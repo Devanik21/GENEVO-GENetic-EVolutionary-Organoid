@@ -3351,13 +3351,6 @@ class EvolutionManager:
         axes[0, 1].set_title('Genetic Diversity')
         axes[0, 1].grid(True)
 
-
-
-# Morphogenetic Neural Architectures: Continuation (Complete)
-
-## Section 8.3 Continued - Checkpointing and Experiment Management
-
-```python
         # Fitness distribution
         if self.history['population_snapshots']:
             latest_snapshot = self.history['population_snapshots'][-1]
