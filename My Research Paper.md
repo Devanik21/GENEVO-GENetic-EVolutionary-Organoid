@@ -4782,7 +4782,889 @@ pythonclass MultiTaskEvolution:
                     MathematicalReasoningTask('GSM8K'),
                     AbstractReasoningTask('ARC'),
                     PlanningTask('Blocksworld')
+                ])
+            
+            elif family == 'control':
+                tasks.extend([
+                    ReinforcementLearningTask('CartPole-v1'),
+                    ReinforcementLearningTask('LunarLander-v2'),
+                    ReinforcementLearningTask('Atari-Pong'),
+                    RoboticsTask('Reaching')
+                ])
+        
+        return TaskDistribution(tasks, sampling_strategy='balanced')
+    
+    def evolve_general_architecture(self, num_generations: int = 500) -> Genotype:
+        """
+        Evolve architecture optimized for multi-task performance
+        
+        Fitness = weighted average across all task families
+        """
+        population = initialize_population(population_size=200)
+        
+        for generation in range(num_generations):
+            print(f"\nGeneration {generation}/{num_generations}")
+            
+            # Evaluate on all task families
+            fitnesses = np.zeros((len(population), len(self.task_families)))
+            
+            for i, genotype in enumerate(population):
+                phenotype = develop_phenotype_staged(genotype)
+                
+                for j, family in enumerate(self.task_families):
+                    family_tasks = self.task_distribution.get_tasks_by_family(family)
+                    family_fitness = self.evaluate_on_task_family(phenotype, family_tasks)
+                    fitnesses[i, j] = family_fitness
+                
+                # Overall fitness: geometric mean (encourages balanced performance)
+                genotype.fitness = np.exp(np.mean(np.log(fitnesses[i] + 1e-6)))
+            
+            # Log multi-task performance
+            self.log_multitask_performance(generation, fitnesses)
+            
+            # Selection with multi-objective optimization
+            population = self.multiobjective_selection(population, fitnesses)
+            
+            # Generate offspring
+            population = self.evolve_generation(population)
+        
+        # Return best generalist
+        best_idx = np.argmax([g.fitness for g in population])
+        return population[best_idx]
+    
+    def evaluate_on_task_family(self, phenotype: Phenotype, tasks: List[Task]) -> float:
+        """Evaluate on sample of tasks from family"""
+        total_performance = 0.0
+        
+        for task in random.sample(tasks, min(5, len(tasks))):
+            # Quick training
+            learner = GradientLearner(phenotype, learning_rate=1e-3)
+            learner.learn_from_experience(task.get_training_data(), num_epochs=5)
+            
+            # Evaluate
+            performance = evaluate_phenotype(phenotype, task.get_test_data())
+            total_performance += performance
+        
+        return total_performance / min(5, len(tasks))
+    
+    def multiobjective_selection(self, population: List[Genotype], 
+                                 fitnesses: np.ndarray) -> List[Genotype]:
+        """
+        Multi-objective selection maintaining diverse specialists and generalists
+        
+        Some individuals excel on specific families (specialists)
+        Others perform well across all families (generalists)
+        """
+        # Pareto front based on per-family performance
+        pareto_indices = self.compute_pareto_front(fitnesses)
+        pareto_population = [population[i] for i in pareto_indices]
+        
+        # Add generalists (high geometric mean)
+        geometric_means = np.exp(np.mean(np.log(fitnesses + 1e-6), axis=1))
+        generalist_indices = np.argsort(geometric_means)[-50:]
+        generalist_population = [population[i] for i in generalist_indices]
+        
+        # Combine and deduplicate
+        combined = list(set(pareto_population + generalist_population))
+        
+        # Fill remaining slots with tournament selection
+        while len(combined) < len(population):
+            parent = tournament_selection(population, geometric_means)
+            combined.append(parent)
+        
+        return combined[:len(population)]
+    
+    def log_multitask_performance(self, generation: int, fitnesses: np.ndarray):
+        """Log performance across task families"""
+        print(f"Multi-task performance (Generation {generation}):")
+        
+        for j, family in enumerate(self.task_families):
+            mean_perf = np.mean(fitnesses[:, j])
+            max_perf = np.max(fitnesses[:, j])
+            print(f"  {family}: mean={mean_perf:.4f}, max={max_perf:.4f}")
+        
+        # Overall generalization
+        geometric_means = np.exp(np.mean(np.log(fitnesses + 1e-6), axis=1))
+        print(f"  Geometric mean (generalization): {np.mean(geometric_means):.4f}")
 
+
+class LifelongLearningSystem:
+    """
+    Evolve architectures for lifelong learning
+    
+    Key requirements:
+    - Continual learning without catastrophic forgetting
+    - Forward transfer to new tasks
+    - Backward transfer (new learning improves old tasks)
+    - Efficient memory management
+    """
+    
+    def __init__(self):
+        self.memory_buffer = ExperienceReplay(capacity=10000)
+        self.task_history = []
+    
+    def evolve_lifelong_learner(self, 
+                               task_stream: Iterator[Task],
+                               num_generations: int = 300) -> Genotype:
+        """
+        Evolve architecture optimized for lifelong learning
+        
+        Fitness = average performance across all seen tasks with forgetting penalty
+        """
+        population = initialize_population(population_size=150)
+        
+        # Sample task sequence
+        task_sequence = [next(task_stream) for _ in range(50)]
+        
+        for generation in range(num_generations):
+            fitnesses = []
+            
+            for genotype in population:
+                phenotype = develop_phenotype_staged(genotype)
+                
+                # Simulate lifelong learning
+                continual_metrics = self.simulate_continual_learning(
+                    phenotype,
+                    task_sequence,
+                    use_memory=True
+                )
+                
+                # Fitness considers:
+                # 1. Average accuracy across all tasks
+                # 2. Forgetting penalty (negative)
+                # 3. Forward/backward transfer (positive)
+                fitness = (
+                    continual_metrics['average_accuracy'] 
+                    - 2.0 * continual_metrics['forgetting']
+                    + 0.5 * continual_metrics['forward_transfer']
+                    + 0.5 * continual_metrics['backward_transfer']
+                )
+                
+                fitnesses.append(fitness)
+                genotype.fitness = fitness
+            
+            # Evolve
+            population = self.evolve_generation_with_selection(population, np.array(fitnesses))
+            
+            print(f"Generation {generation}: Best fitness = {max(fitnesses):.4f}")
+        
+        return max(population, key=lambda g: g.fitness)
+    
+    def simulate_continual_learning(self,
+                                   phenotype: Phenotype,
+                                   task_sequence: List[Task],
+                                   use_memory: bool = True) -> Dict:
+        """
+        Simulate continual learning on task sequence
+        
+        Returns metrics: accuracy, forgetting, transfer
+        """
+        performance_matrix = np.zeros((len(task_sequence), len(task_sequence)))
+        
+        for t, task in enumerate(task_sequence):
+            # Train on current task
+            self.train_with_replay(phenotype, task, t, use_memory=use_memory)
+            
+            # Evaluate on all previous tasks
+            for j, prev_task in enumerate(task_sequence[:t+1]):
+                perf = evaluate_phenotype(phenotype, prev_task.get_test_data())
+                performance_matrix[t, j] = perf
+        
+        metrics = self.compute_continual_metrics(performance_matrix)
+        return metrics
+    
+    def train_with_replay(self, 
+                         phenotype: Phenotype,
+                         current_task: Task,
+                         task_id: int,
+                         use_memory: bool = True):
+        """
+        Train on current task with experience replay from memory
+        """
+        optimizer = torch.optim.Adam(phenotype.parameters(), lr=1e-3)
+        
+        current_data = current_task.get_training_data()
+        
+        for epoch in range(10):
+            for batch in current_data:
+                x_current, y_current = batch
+                
+                # Mix with replayed examples
+                if use_memory and len(self.memory_buffer) > 0:
+                    x_replay, y_replay = self.memory_buffer.sample(batch_size=32)
+                    x = torch.cat([x_current, x_replay], dim=0)
+                    y = torch.cat([y_current, y_replay], dim=0)
+                else:
+                    x, y = x_current, y_current
+                
+                # Forward pass
+                output = phenotype.forward(x)
+                loss = F.cross_entropy(output, y)
+                
+                # Backward pass
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+            
+            # Store examples in memory
+            if use_memory:
+                for batch in current_data:
+                    x, y = batch
+                    self.memory_buffer.add(x, y, task_id=task_id)
+
+
+class MetaEvolutionFramework:
+    """
+    Meta-evolution: Evolve the evolutionary process itself
+    
+    Rather than hand-design genetic operators, evolve:
+    - Mutation operators and rates
+    - Crossover strategies
+    - Selection mechanisms
+    - Fitness functions
+    """
+    
+    def __init__(self):
+        self.meta_genotype = self.initialize_meta_genotype()
+    
+    def initialize_meta_genotype(self) -> MetaGenotype:
+        """
+        Meta-genotype encodes evolutionary algorithm parameters
+        """
+        return MetaGenotype(
+            mutation_rates={
+                'hyperparameter': 0.1,
+                'topology': 0.05,
+                'plasticity': 0.08
+            },
+            mutation_strengths={
+                'hyperparameter': 0.2,
+                'topology': 0.3
+            },
+            crossover_type='modular',
+            crossover_rate=0.7,
+            selection_pressure=2.0,
+            selection_type='tournament',
+            diversity_maintenance=True,
+            fitness_aggregation='geometric_mean'
+        )
+    
+    def meta_evolve(self, 
+                   task_distribution: TaskDistribution,
+                   num_meta_generations: int = 50) -> MetaGenotype:
+        """
+        Evolve the evolutionary algorithm itself
+        
+        Each meta-genotype specifies an EA configuration
+        Meta-fitness = performance of evolved architectures using that EA
+        """
+        meta_population = [self.initialize_meta_genotype() for _ in range(20)]
+        
+        for meta_gen in range(num_meta_generations):
+            print(f"\n{'='*80}")
+            print(f"Meta-generation {meta_gen}/{num_meta_generations}")
+            print(f"{'='*80}\n")
+            
+            meta_fitnesses = []
+            
+            for meta_genotype in meta_population:
+                # Instantiate EA from meta-genotype
+                ea = self.instantiate_ea(meta_genotype)
+                
+                # Run EA for limited generations
+                evolved_architectures = ea.evolve(
+                    task_distribution,
+                    num_generations=100,
+                    population_size=50
+                )
+                
+                # Meta-fitness = quality of evolved architectures
+                meta_fitness = self.evaluate_meta_fitness(
+                    evolved_architectures,
+                    task_distribution
+                )
+                
+                meta_fitnesses.append(meta_fitness)
+                meta_genotype.fitness = meta_fitness
+                
+                print(f"  Meta-individual fitness: {meta_fitness:.4f}")
+            
+            # Evolve meta-population
+            meta_population = self.evolve_meta_population(
+                meta_population,
+                np.array(meta_fitnesses)
+            )
+            
+            best_meta_fitness = max(meta_fitnesses)
+            print(f"\nBest meta-fitness: {best_meta_fitness:.4f}")
+        
+        # Return best meta-genotype
+        return max(meta_population, key=lambda mg: mg.fitness)
+    
+    def instantiate_ea(self, meta_genotype: MetaGenotype) -> EvolutionaryAlgorithm:
+        """Create EA instance from meta-genotype specification"""
+        return EvolutionaryAlgorithm(
+            mutation_rates=meta_genotype.mutation_rates,
+            mutation_strengths=meta_genotype.mutation_strengths,
+            crossover_type=meta_genotype.crossover_type,
+            crossover_rate=meta_genotype.crossover_rate,
+            selection_type=meta_genotype.selection_type,
+            selection_pressure=meta_genotype.selection_pressure,
+            diversity_maintenance=meta_genotype.diversity_maintenance
+        )
+    
+    def evaluate_meta_fitness(self,
+                             evolved_architectures: List[Genotype],
+                             task_distribution: TaskDistribution) -> float:
+        """
+        Evaluate quality of architectures produced by EA
+        
+        Metrics:
+        - Performance of best architecture
+        - Diversity of population
+        - Sample efficiency (quality reached with limited evaluations)
+        """
+        # Best performance
+        best_arch = max(evolved_architectures, key=lambda g: g.fitness)
+        best_performance = best_arch.fitness
+        
+        # Population diversity
+        diversity = self.compute_diversity(evolved_architectures)
+        
+        # Sample efficiency (fitness improvement per generation)
+        if hasattr(best_arch, 'generation_found'):
+            efficiency = best_performance / (best_arch.generation_found + 1)
+        else:
+            efficiency = best_performance / 100
+        
+        # Combined meta-fitness
+        meta_fitness = (
+            0.6 * best_performance +
+            0.2 * diversity +
+            0.2 * efficiency
+        )
+        
+        return meta_fitness
+
+
+### 11.2 Open-Ended Evolution
+
+class OpenEndedEvolution:
+    """
+    Open-ended evolution: Continual generation of novelty and complexity
+    
+    Goal: Create evolutionary process that indefinitely produces
+    increasingly complex and capable architectures
+    
+    Inspired by biological evolution's open-endedness
+    """
+    
+    def __init__(self):
+        self.novelty_archive = []
+        self.complexity_history = []
+        self.innovation_counter = 0
+    
+    def run_open_ended_evolution(self,
+                                initial_task_distribution: TaskDistribution,
+                                max_iterations: int = 10000):
+        """
+        Open-ended evolutionary loop
+        
+        Key mechanisms:
+        1. Novelty search (reward behavioral diversity)
+        2. Minimal Criterion Coevolution (generate new challenges)
+        3. Complexity growth (gradually increase task difficulty)
+        4. Ecological dynamics (niches, resources, competition)
+        """
+        population = initialize_population(population_size=200)
+        task_distribution = initial_task_distribution
+        
+        for iteration in range(max_iterations):
+            print(f"\nIteration {iteration}/{max_iterations}")
+            
+            # Evaluate population
+            fitnesses, behaviors = self.evaluate_with_behavior(
+                population,
+                task_distribution
+            )
+            
+            # Novelty scores
+            novelty_scores = self.compute_novelty_scores(behaviors)
+            
+            # Combined objective: fitness + novelty
+            combined_scores = 0.5 * fitnesses + 0.5 * novelty_scores
+            
+            # Update archive with novel individuals
+            self.update_novelty_archive(population, behaviors, novelty_scores)
+            
+            # Check for innovation (qualitative leap)
+            innovation_detected = self.detect_innovation(population, behaviors)
+            if innovation_detected:
+                print(f"  🎉 Innovation detected at iteration {iteration}!")
+                self.innovation_counter += 1
+                
+                # Expand task distribution (increase complexity)
+                task_distribution = self.expand_task_distribution(task_distribution)
+            
+            # Log complexity metrics
+            avg_complexity = np.mean([self.measure_complexity(g) for g in population])
+            self.complexity_history.append(avg_complexity)
+            print(f"  Average complexity: {avg_complexity:.2f}")
+            
+            # Selection and reproduction
+            population = self.open_ended_selection(
+                population,
+                combined_scores,
+                novelty_scores
+            )
+            
+            # Mutation with adaptive innovation
+            population = self.adaptive_mutation(population, innovation_rate=0.1)
+            
+            # Periodic checkpointing
+            if iteration % 100 == 0:
+                self.save_population_snapshot(iteration, population)
+    
+    def evaluate_with_behavior(self,
+                              population: List[Genotype],
+                              task_distribution: TaskDistribution) -> Tuple[np.ndarray, List]:
+        """
+        Evaluate population and extract behavioral characterizations
+        """
+        fitnesses = []
+        behaviors = []
+        
+        for genotype in population:
+            phenotype = develop_phenotype_staged(genotype)
+            
+            # Fitness evaluation
+            fitness = 0.0
+            behavior_vectors = []
+            
+            for task in task_distribution.sample(num_tasks=5):
+                learner = GradientLearner(phenotype)
+                learner.learn_from_experience(task.get_training_data(), num_epochs=5)
+                
+                performance = evaluate_phenotype(phenotype, task.get_test_data())
+                fitness += performance
+                
+                # Extract behavior (network activations, attention patterns, etc.)
+                behavior = self.extract_detailed_behavior(phenotype, task)
+                behavior_vectors.append(behavior)
+            
+            fitnesses.append(fitness / 5)
+            behaviors.append(np.concatenate(behavior_vectors))
+        
+        return np.array(fitnesses), behaviors
+    
+    def compute_novelty_scores(self, behaviors: List[np.ndarray]) -> np.ndarray:
+        """
+        Compute novelty: average distance to k-nearest neighbors
+        """
+        novelty_scores = np.zeros(len(behaviors))
+        
+        # Include archive in nearest neighbor search
+        all_behaviors = behaviors + [arch['behavior'] for arch in self.novelty_archive]
+        
+        for i, behavior in enumerate(behaviors):
+            # Compute distances to all other behaviors
+            distances = [
+                np.linalg.norm(behavior - other_behavior)
+                for other_behavior in all_behaviors
+                if not np.array_equal(behavior, other_behavior)
+            ]
+            
+            # Novelty = average distance to k=15 nearest neighbors
+            distances.sort()
+            novelty_scores[i] = np.mean(distances[:15])
+        
+        return novelty_scores
+    
+    def detect_innovation(self,
+                         population: List[Genotype],
+                         behaviors: List[np.ndarray]) -> bool:
+        """
+        Detect qualitative innovations (not just incremental improvements)
+        
+        Innovation indicators:
+        - Behavior in unexplored region of behavior space
+        - Sudden complexity increase
+        - Novel architectural motif
+        """
+        # Check for behavior space expansion
+        if self.novelty_archive:
+            archive_behaviors = [arch['behavior'] for arch in self.novelty_archive]
+            max_archive_distance = max([
+                np.linalg.norm(b1 - b2)
+                for b1 in behaviors
+                for b2 in archive_behaviors
+            ])
+            
+            # Innovation if maximum distance exceeds threshold
+            if max_archive_distance > 5.0:  # Threshold
+                return True
+        
+        # Check for complexity leap
+        current_complexity = np.mean([self.measure_complexity(g) for g in population])
+        if self.complexity_history:
+            recent_avg_complexity = np.mean(self.complexity_history[-10:])
+            if current_complexity > 1.5 * recent_avg_complexity:
+                return True
+        
+        # Check for novel architectural motifs
+        motifs = self.extract_architectural_motifs(population)
+        known_motifs = set([arch['motif'] for arch in self.novelty_archive if 'motif' in arch])
+        new_motifs = set(motifs) - known_motifs
+        
+        if len(new_motifs) > 0:
+            return True
+        
+        return False
+    
+    def expand_task_distribution(self, 
+                                current_distribution: TaskDistribution) -> TaskDistribution:
+        """
+        Expand task distribution to increase complexity
+        
+        Strategies:
+        - Add harder versions of existing tasks
+        - Introduce new task types
+        - Combine tasks (multi-task problems)
+        """
+        expanded_tasks = list(current_distribution.tasks)
+        
+        # Make existing tasks harder
+        for task in current_distribution.tasks:
+            harder_variant = self.create_harder_variant(task)
+            expanded_tasks.append(harder_variant)
+        
+        # Add new task types
+        new_task_types = self.generate_new_task_types(current_distribution)
+        expanded_tasks.extend(new_task_types)
+        
+        return TaskDistribution(expanded_tasks, sampling_strategy='curriculum')
+    
+    def create_harder_variant(self, task: Task) -> Task:
+        """Create more difficult version of task"""
+        if isinstance(task, ClassificationTask):
+            # More classes, less data, more noise
+            return ClassificationTask(
+                name=f"{task.name}_hard",
+                num_classes=task.num_classes * 2,
+                data_fraction=0.5,
+                noise_level=task.noise_level * 2
+            )
+        
+        elif isinstance(task, ReasoningTask):
+            # Longer reasoning chains, more distractors
+            return ReasoningTask(
+                name=f"{task.name}_hard",
+                reasoning_depth=task.reasoning_depth + 2,
+                num_distractors=task.num_distractors * 2
+            )
+        
+        return task  # Default: return same task
+    
+    def measure_complexity(self, genotype: Genotype) -> float:
+        """
+        Measure architectural complexity
+        
+        Metrics:
+        - Number of modules and connections
+        - Depth of computation graph
+        - Diversity of module types
+        - Developmental program complexity
+        """
+        # Structural complexity
+        structural = len(genotype.modules) + len(genotype.connections)
+        
+        # Depth
+        phenotype = develop_phenotype_staged(genotype)
+        depth = len(phenotype.graph.execution_order)
+        
+        # Diversity
+        module_types = set([m.type for m in genotype.modules])
+        diversity = len(module_types)
+        
+        # Developmental complexity (program length)
+        dev_complexity = self.estimate_developmental_complexity(genotype)
+        
+        total_complexity = (
+            structural * 0.3 +
+            depth * 0.3 +
+            diversity * 0.2 +
+            dev_complexity * 0.2
+        )
+        
+        return total_complexity
+    
+    def open_ended_selection(self,
+                            population: List[Genotype],
+                            combined_scores: np.ndarray,
+                            novelty_scores: np.ndarray) -> List[Genotype]:
+        """
+        Selection that maintains diversity and encourages exploration
+        
+        - Protect novel individuals even if low fitness
+        - Maintain niches
+        - Gradual replacement (not truncation)
+        """
+        selected = []
+        
+        # Select top performers (30%)
+        top_indices = np.argsort(combined_scores)[-int(0.3 * len(population)):]
+        selected.extend([population[i] for i in top_indices])
+        
+        # Select most novel (20%)
+        novel_indices = np.argsort(novelty_scores)[-int(0.2 * len(population)):]
+        selected.extend([population[i] for i in novel_indices])
+        
+        # Tournament selection for rest
+        while len(selected) < len(population):
+            parent = tournament_selection(population, combined_scores, tournament_size=3)
+            selected.append(parent)
+        
+        return selected
+
+
+### 11.3 Self-Modeling and Meta-Cognition
+
+class SelfModelingArchitecture:
+    """
+    Architectures that model their own learning process
+    
+    Key capability for AGI: Understanding and optimizing own learning
+    """
+    
+    def __init__(self, base_genotype: Genotype):
+        self.base_genotype = base_genotype
+        self.meta_controller = self.create_meta_controller()
+    
+    def create_meta_controller(self) -> MetaController:
+        """
+        Meta-controller monitors learning and adjusts hyperparameters
+        
+        Inputs:
+        - Current loss and gradients
+        - Learning rate and momentum
+        - Epoch number
+        - Validation performance
+        
+        Outputs:
+        - Adjusted learning rate
+        - When to stop training
+        - Which parts of network to freeze/unfreeze
+        """
+        return MetaController(
+            input_dim=20,  # Learning state features
+            hidden_dim=64,
+            output_dim=10  # Control parameters
+        )
+    
+    def learn_with_self_modeling(self,
+                                 task: Task,
+                                 max_epochs: int = 100) -> Dict:
+        """
+        Learning loop with meta-controller
+        
+        Meta-controller observes learning dynamics and adapts strategy
+        """
+        phenotype = develop_phenotype_staged(self.base_genotype)
+        optimizer = torch.optim.SGD(phenotype.parameters(), lr=0.01)
+        
+        train_data = task.get_training_data()
+        val_data = task.get_validation_data()
+        
+        learning_history = []
+        
+        for epoch in range(max_epochs):
+            # Training phase
+            train_loss, train_acc = self.train_epoch(phenotype, train_data, optimizer)
+            
+            # Validation phase
+            val_loss, val_acc = self.evaluate_epoch(phenotype, val_data)
+            
+            # Extract learning state
+            learning_state = self.extract_learning_state(
+                phenotype,
+                train_loss,
+                val_loss,
+                epoch,
+                learning_history
+            )
+            
+            # Meta-controller decision
+            control_signal = self.meta_controller(learning_state)
+            
+            # Interpret control signal
+            new_lr = control_signal[0].item()
+            should_stop = control_signal[1].item() > 0.5
+            freeze_layers = control_signal[2:].sigmoid() > 0.5
+            
+            # Apply controls
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = new_lr
+            
+            self.selective_freeze(phenotype, freeze_layers)
+            
+            # Log
+            learning_history.append({
+                'epoch': epoch,
+                'train_loss': train_loss,
+                'val_loss': val_loss,
+                'learning_rate': new_lr,
+                'control_signal': control_signal.detach().numpy()
+            })
+            
+            print(f"Epoch {epoch}: train_loss={train_loss:.4f}, val_loss={val_loss:.4f}, lr={new_lr:.6f}")
+            
+            # Early stopping if meta-controller says so
+            if should_stop and epoch > 10:
+                print(f"Meta-controller triggered early stopping at epoch {epoch}")
+                break
+        
+        return {
+            'final_performance': val_acc,
+            'learning_history': learning_history,
+            'epochs_used': epoch + 1
+        }
+    
+    def extract_learning_state(self,
+                              phenotype: Phenotype,
+                              train_loss: float,
+                              val_loss: float,
+                              epoch: int,
+                              history: List[Dict]) -> torch.Tensor:
+        """
+        Encode current learning state for meta-controller
+        """
+        features = []
+        
+        # Current losses
+        features.append(train_loss)
+        features.append(val_loss)
+        features.append(train_loss - val_loss)  # Generalization gap
+        
+        # Progress
+        features.append(epoch / 100.0)  # Normalized epoch
+        
+        # Gradient statistics
+        grad_norms = [p.grad.norm().item() for p in phenotype.parameters() if p.grad is not None]
+        features.append(np.mean(grad_norms))
+        features.append(np.std(grad_norms))
+        
+        # Learning dynamics (from history)
+        if len(history) >= 2:
+            recent_losses = [h['train_loss'] for h in history[-5:]]
+            loss_trend = np.polyfit(range(len(recent_losses)), recent_losses, 1)[0]
+            features.append(loss_trend)
+        else:
+            features.append(0.0)
+        
+        # Overfitting indicators
+        if len(history) >= 1:
+            gap_trend = [h['train_loss'] - h['val_loss'] for h in history[-5:]]
+            features.append(np.mean(gap_trend))
+        else:
+            features.append(0.0)
+        
+        # Pad to fixed size
+        while len(features) < 20:
+            features.append(0.0)
+        
+        return torch.tensor(features, dtype=torch.float32)
+
+
+class MetaController(nn.Module):
+    """Neural controller for learning process"""
+    
+    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int):
+        super().__init__()
+        self.network = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, output_dim)
+        )
+    
+    def forward(self, learning_state: torch.Tensor) -> torch.Tensor:
+        return self.network(learning_state)
+
+
+class RecursiveSelfImprovementFramework:
+    """
+    Framework for recursive self-improvement
+    
+    Architecture modifies its own evolutionary process to accelerate improvement
+    """
+    
+    def __init__(self):
+        self.improvement_history = []
+    
+    def recursive_self_improvement_loop(self,
+                                       initial_genotype: Genotype,
+                                       task_distribution: TaskDistribution,
+                                       num_iterations: int = 10):
+        """
+        Recursive improvement loop
+        
+        Each iteration:
+        1. Current architecture proposes improvements to evolutionary process
+        2. Improved evolutionary process generates next-generation architectures
+        3. Select best next-generation architecture
+        4. Repeat
+        """
+        current_genotype = initial_genotype
+        
+        for iteration in range(num_iterations):
+            print(f"\n{'='*80}")
+            print(f"Recursive Self-Improvement Iteration {iteration}/{num_iterations}")
+            print(f"{'='*80}\n")
+            
+            # Current architecture evaluates itself
+            current_phenotype = develop_phenotype_staged(current_genotype)
+            current_performance = self.evaluate_comprehensive(
+                current_phenotype,
+                task_distribution
+            )
+            
+            print(f"Current performance: {current_performance:.4f}")
+            
+            # Architecture proposes improvements to evolutionary process
+            proposed_ea_modifications = self.propose_ea_improvements(
+                current_genotype,
+                self.improvement_history
+            )
+            
+            print(f"Proposed EA modifications: {proposed_ea_modifications}")
+            
+            # Apply proposed modifications
+            modified_ea = self.apply_ea_modifications(
+                proposed_ea_modifications
+            )
+            
+            # Run modified EA to generate candidates
+            print("Running modified evolutionary algorithm...")
+            candidate_genotypes = modified_ea.evolve(
+                task_distribution,
+                num_generations=50,
+                population_size=100
+            )
+            
+            # Select best candidate
+            best_candidate = max(candidate_genotypes, key=lambda g: g.fitness)
+            candidate_performance = best_candidate.fitness
+            
+            print(f"Best candidate performance: {candidate_performance:.4f}")
+            
+            # Improvement achieved?
+            if candidate_performance > current_performance:
+                improvement = candidate_performance - current_performance
+                print(f"✓ Improvement: +{improvement:.4f}")
+                current_genotype = best_candidate
+            else:
+                print("✗
 
 
 
