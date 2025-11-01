@@ -4043,7 +4043,745 @@ pythonclass ComprehensiveEvaluation:
         morpho_performances = []
         baseline_performances = {name: [] for name in results['baselines'].keys()}
         
-        for
+        for benchmark_name in results['morphogenetic'].keys():
+            morpho_perf = results['morphogenetic'][benchmark_name]['accuracy']['mean']
+            morpho_performances.append(morpho_perf)
+            
+            for baseline_name in results['baselines'].keys():
+                baseline_perf = results['baselines'][baseline_name][benchmark_name]['accuracy']['mean']
+                baseline_performances[baseline_name].append(baseline_perf)
+        
+        print("\n" + "="*80)
+        print("STATISTICAL ANALYSIS")
+        print("="*80 + "\n")
+        
+        for baseline_name, baseline_perfs in baseline_performances.items():
+            # Paired t-test
+            t_stat, p_value = scipy.stats.ttest_rel(morpho_performances, baseline_perfs)
+            
+            # Wilcoxon signed-rank test
+            w_stat, w_pvalue = scipy.stats.wilcoxon(morpho_performances, baseline_perfs)
+            
+            # Effect size (Cohen's d)
+            diff = np.array(morpho_performances) - np.array(baseline_perfs)
+            cohen_d = np.mean(diff) / np.std(diff)
+            
+            # Win/tie/loss record
+            wins = sum(1 for m, b in zip(morpho_performances, baseline_perfs) if m > b)
+            ties = sum(1 for m, b in zip(morpho_performances, baseline_perfs) if m == b)
+            losses = sum(1 for m, b in zip(morpho_performances, baseline_perfs) if m < b)
+            
+            print(f"Morphogenetic vs {baseline_name}:")
+            print(f"  Paired t-test: t={t_stat:.4f}, p={p_value:.4f}")
+            print(f"  Wilcoxon test: W={w_stat:.4f}, p={w_pvalue:.4f}")
+            print(f"  Cohen's d: {cohen_d:.4f}")
+            print(f"  Win/Tie/Loss: {wins}/{ties}/{losses}")
+            print(f"  Significance: {'***' if p_value < 0.001 else '**' if p_value < 0.01 else '*' if p_value < 0.05 else 'ns'}")
+            print()
+    
+    def generate_report(self, results: Dict):
+        """Generate comprehensive evaluation report"""
+        report_path = Path("evaluation_report.md")
+        
+        with open(report_path, 'w') as f:
+            f.write("# Morphogenetic Neural Architecture Evaluation Report\n\n")
+            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            
+            # Summary table
+            f.write("## Summary Results\n\n")
+            f.write("| Benchmark | Morphogenetic | " + " | ".join(results['baselines'].keys()) + " |\n")
+            f.write("|-----------|---------------|" + "|".join(["---"]*len(results['baselines'])) + "|\n")
+            
+            for benchmark_name in results['morphogenetic'].keys():
+                morpho_acc = results['morphogenetic'][benchmark_name]['accuracy']['mean']
+                row = f"| {benchmark_name} | {morpho_acc:.4f} |"
+                
+                for baseline_name in results['baselines'].keys():
+                    baseline_acc = results['baselines'][baseline_name][benchmark_name]['accuracy']['mean']
+                    row += f" {baseline_acc:.4f} |"
+                
+                f.write(row + "\n")
+            
+            # Detailed results per benchmark category
+            for category, benchmarks in self.benchmarks.items():
+                f.write(f"\n## {category.replace('_', ' ').title()}\n\n")
+                
+                for benchmark in benchmarks:
+                    f.write(f"### {benchmark.name}\n\n")
+                    
+                    # Morphogenetic results
+                    morpho_res = results['morphogenetic'][benchmark.name]
+                    f.write("**Morphogenetic Architecture:**\n")
+                    f.write(f"- Accuracy: {morpho_res['accuracy']['mean']:.4f} ± {morpho_res['accuracy']['std']:.4f}\n")
+                    f.write(f"- Parameters: {morpho_res['num_parameters']:,}\n")
+                    f.write(f"- FLOPs: {morpho_res['flops']:,}\n")
+                    f.write(f"- Memory: {morpho_res['memory_mb']:.2f} MB\n")
+                    f.write(f"- Inference time: {morpho_res['inference_time_ms']:.2f} ms\n\n")
+                    
+                    # Baseline comparisons
+                    for baseline_name in results['baselines'].keys():
+                        baseline_res = results['baselines'][baseline_name][benchmark.name]
+                        f.write(f"**{baseline_name}:**\n")
+                        f.write(f"- Accuracy: {baseline_res['accuracy']['mean']:.4f} ± {baseline_res['accuracy']['std']:.4f}\n")
+                        f.write(f"- Parameters: {baseline_res['num_parameters']:,}\n")
+                        f.write(f"- FLOPs: {baseline_res['flops']:,}\n\n")
+        
+        print(f"\nDetailed report saved to: {report_path}")
+
+
+class CompositionalGeneralizationExperiment:
+    """
+    Specific experiment testing compositional generalization
+    
+    Hypothesis: Modular evolved architectures generalize better to novel compositions
+    """
+    
+    def __init__(self):
+        self.primitives = ['JUMP', 'WALK', 'RUN', 'TURN_LEFT', 'TURN_RIGHT', 'LOOK']
+        self.modifiers = ['TWICE', 'THRICE', 'AND', 'AFTER']
+    
+    def generate_compositional_splits(self) -> Tuple[List, List]:
+        """
+        Generate train/test split with compositional gap
+        
+        Training: Simple compositions
+        Testing: Novel complex compositions
+        """
+        train_examples = []
+        test_examples = []
+        
+        # Training: single primitives and simple compositions
+        for prim in self.primitives:
+            train_examples.append((f"{prim}", self.execute(prim)))
+        
+        for prim1, prim2 in itertools.combinations(self.primitives, 2):
+            train_examples.append((f"{prim1} AND {prim2}", self.execute(f"{prim1} AND {prim2}")))
+        
+        # Testing: complex compositions unseen in training
+        for prim1, prim2, prim3 in itertools.combinations(self.primitives, 3):
+            test_examples.append((
+                f"{prim1} AND {prim2} AND {prim3}",
+                self.execute(f"{prim1} AND {prim2} AND {prim3}")
+            ))
+        
+        for prim in self.primitives:
+            test_examples.append((
+                f"{prim} TWICE AND {prim} THRICE",
+                self.execute(f"{prim} TWICE AND {prim} THRICE")
+            ))
+        
+        return train_examples, test_examples
+    
+    def execute(self, command: str) -> List[str]:
+        """Execute command to get ground truth output sequence"""
+        # Simplified execution logic
+        actions = []
+        tokens = command.split()
+        
+        i = 0
+        while i < len(tokens):
+            if tokens[i] in self.primitives:
+                actions.append(tokens[i].lower())
+                i += 1
+            elif tokens[i] == 'TWICE':
+                # Repeat previous action
+                if actions:
+                    actions.append(actions[-1])
+                i += 1
+            elif tokens[i] == 'THRICE':
+                if actions:
+                    prev = actions[-1]
+                    actions.extend([prev, prev])
+                i += 1
+            elif tokens[i] == 'AND':
+                i += 1  # Just a separator
+            elif tokens[i] == 'AFTER':
+                i += 1  # Sequential marker
+            else:
+                i += 1
+        
+        return actions
+    
+    def evaluate_compositional_generalization(self,
+                                            genotype: Genotype,
+                                            baseline_arch: Architecture) -> Dict:
+        """
+        Compare compositional generalization capabilities
+        """
+        train_data, test_data = self.generate_compositional_splits()
+        
+        # Train both on same training data
+        morpho_phenotype = develop_phenotype_staged(genotype)
+        self.train_sequence_model(morpho_phenotype, train_data)
+        
+        baseline_model = baseline_arch.instantiate()
+        self.train_sequence_model(baseline_model, train_data)
+        
+        # Evaluate on compositional test set
+        morpho_test_acc = self.evaluate_sequence_model(morpho_phenotype, test_data)
+        baseline_test_acc = self.evaluate_sequence_model(baseline_model, test_data)
+        
+        # Analyze error patterns
+        morpho_errors = self.analyze_errors(morpho_phenotype, test_data)
+        baseline_errors = self.analyze_errors(baseline_model, test_data)
+        
+        return {
+            'morphogenetic': {
+                'test_accuracy': morpho_test_acc,
+                'error_analysis': morpho_errors
+            },
+            'baseline': {
+                'test_accuracy': baseline_test_acc,
+                'error_analysis': baseline_errors
+            },
+            'improvement': morpho_test_acc - baseline_test_acc
+        }
+
+
+class ContinualLearningExperiment:
+    """
+    Evaluate continual learning without catastrophic forgetting
+    
+    Tests whether evolved architectures maintain performance on old tasks
+    while learning new ones
+    """
+    
+    def __init__(self, task_sequence: List[Task]):
+        self.task_sequence = task_sequence
+        self.num_tasks = len(task_sequence)
+    
+    def evaluate_continual_learning(self,
+                                   genotype: Genotype,
+                                   baseline_arch: Architecture) -> Dict:
+        """
+        Measure forgetting across task sequence
+        
+        Metrics:
+        - Average accuracy after learning all tasks
+        - Backward transfer (improvement on old tasks)
+        - Forward transfer (zero-shot on new tasks)
+        - Forgetting (performance drop on old tasks)
+        """
+        # Initialize models
+        morpho_phenotype = develop_phenotype_staged(genotype)
+        baseline_model = baseline_arch.instantiate()
+        
+        morpho_results = self.continual_learning_protocol(morpho_phenotype)
+        baseline_results = self.continual_learning_protocol(baseline_model)
+        
+        return {
+            'morphogenetic': morpho_results,
+            'baseline': baseline_results,
+            'comparison': self.compare_continual_learning(morpho_results, baseline_results)
+        }
+    
+    def continual_learning_protocol(self, model: nn.Module) -> Dict:
+        """
+        Execute continual learning protocol
+        
+        For each task t:
+          1. Evaluate zero-shot on task t (forward transfer)
+          2. Train on task t
+          3. Evaluate on all previous tasks (measure forgetting)
+        """
+        performance_matrix = np.zeros((self.num_tasks, self.num_tasks))
+        # performance_matrix[i, j] = performance on task j after training on task i
+        
+        for t, task in enumerate(self.task_sequence):
+            # Zero-shot evaluation on new task (forward transfer)
+            if t > 0:
+                zero_shot_perf = self.evaluate_on_task(model, task)
+                performance_matrix[t-1, t] = zero_shot_perf
+            
+            # Train on current task
+            self.train_on_task(model, task, epochs=10)
+            
+            # Evaluate on all tasks (including current)
+            for j, prev_task in enumerate(self.task_sequence[:t+1]):
+                perf = self.evaluate_on_task(model, prev_task)
+                performance_matrix[t, j] = perf
+        
+        # Compute metrics from performance matrix
+        metrics = self.compute_continual_metrics(performance_matrix)
+        
+        return {
+            'performance_matrix': performance_matrix,
+            'metrics': metrics
+        }
+    
+    def compute_continual_metrics(self, perf_matrix: np.ndarray) -> Dict:
+        """
+        Compute continual learning metrics from performance matrix
+        """
+        T = perf_matrix.shape[0]
+        
+        # Average accuracy after learning all tasks
+        avg_accuracy = np.mean(perf_matrix[-1, :])
+        
+        # Forgetting: drop in performance from peak
+        forgetting = []
+        for j in range(T):
+            peak_perf = np.max(perf_matrix[j:, j])  # Best performance on task j
+            final_perf = perf_matrix[-1, j]  # Final performance on task j
+            forgetting.append(peak_perf - final_perf)
+        avg_forgetting = np.mean(forgetting)
+        
+        # Backward transfer: improvement on old tasks after learning new ones
+        backward_transfer = []
+        for t in range(1, T):
+            for j in range(t):
+                if perf_matrix[t, j] > perf_matrix[j, j]:
+                    backward_transfer.append(perf_matrix[t, j] - perf_matrix[j, j])
+        avg_backward_transfer = np.mean(backward_transfer) if backward_transfer else 0.0
+        
+        # Forward transfer: zero-shot performance on new tasks
+        forward_transfer = []
+        for t in range(1, T):
+            if perf_matrix[t-1, t] > 0:  # Zero-shot performance
+                forward_transfer.append(perf_matrix[t-1, t])
+        avg_forward_transfer = np.mean(forward_transfer) if forward_transfer else 0.0
+        
+        return {
+            'average_accuracy': avg_accuracy,
+            'forgetting': avg_forgetting,
+            'backward_transfer': avg_backward_transfer,
+            'forward_transfer': avg_forward_transfer
+        }
+    
+    def compare_continual_learning(self, morpho_res: Dict, baseline_res: Dict) -> Dict:
+        """Compare continual learning performance"""
+        comparison = {}
+        
+        for metric_name in morpho_res['metrics']:
+            morpho_val = morpho_res['metrics'][metric_name]
+            baseline_val = baseline_res['metrics'][metric_name]
+            
+            comparison[metric_name] = {
+                'morphogenetic': morpho_val,
+                'baseline': baseline_val,
+                'improvement': morpho_val - baseline_val,
+                'relative_improvement': (morpho_val - baseline_val) / baseline_val if baseline_val != 0 else float('inf')
+            }
+        
+        return comparison
+
+
+class RobustnessExperiment:
+    """
+    Evaluate robustness to various perturbations
+    
+    Tests:
+    - Adversarial attacks (PGD, FGSM)
+    - Common corruptions (noise, blur, weather)
+    - Out-of-distribution detection
+    - Calibration (confidence alignment)
+    """
+    
+    def __init__(self):
+        self.attack_methods = {
+            'FGSM': self.fgsm_attack,
+            'PGD': self.pgd_attack,
+            'CW': self.carlini_wagner_attack
+        }
+        
+        self.corruption_types = [
+            'gaussian_noise', 'shot_noise', 'impulse_noise',
+            'defocus_blur', 'glass_blur', 'motion_blur',
+            'zoom_blur', 'snow', 'frost', 'fog',
+            'brightness', 'contrast', 'elastic_transform',
+            'pixelate', 'jpeg_compression'
+        ]
+    
+    def evaluate_robustness(self,
+                          genotype: Genotype,
+                          baseline_arch: Architecture,
+                          test_data: DataLoader) -> Dict:
+        """
+        Comprehensive robustness evaluation
+        """
+        morpho_phenotype = develop_phenotype_staged(genotype)
+        baseline_model = baseline_arch.instantiate()
+        
+        results = {
+            'morphogenetic': {},
+            'baseline': {}
+        }
+        
+        # 1. Clean accuracy
+        results['morphogenetic']['clean'] = self.evaluate_clean(morpho_phenotype, test_data)
+        results['baseline']['clean'] = self.evaluate_clean(baseline_model, test_data)
+        
+        # 2. Adversarial robustness
+        print("Evaluating adversarial robustness...")
+        for attack_name, attack_fn in self.attack_methods.items():
+            print(f"  {attack_name}...")
+            results['morphogenetic'][f'adv_{attack_name}'] = self.evaluate_adversarial(
+                morpho_phenotype, test_data, attack_fn
+            )
+            results['baseline'][f'adv_{attack_name}'] = self.evaluate_adversarial(
+                baseline_model, test_data, attack_fn
+            )
+        
+        # 3. Corruption robustness
+        print("Evaluating corruption robustness...")
+        for corruption in self.corruption_types:
+            print(f"  {corruption}...")
+            results['morphogenetic'][f'corrupt_{corruption}'] = self.evaluate_corruption(
+                morpho_phenotype, test_data, corruption
+            )
+            results['baseline'][f'corrupt_{corruption}'] = self.evaluate_corruption(
+                baseline_model, test_data, corruption
+            )
+        
+        # 4. Calibration
+        print("Evaluating calibration...")
+        results['morphogenetic']['calibration'] = self.evaluate_calibration(
+            morpho_phenotype, test_data
+        )
+        results['baseline']['calibration'] = self.evaluate_calibration(
+            baseline_model, test_data
+        )
+        
+        # 5. OOD detection
+        print("Evaluating OOD detection...")
+        results['morphogenetic']['ood'] = self.evaluate_ood_detection(
+            morpho_phenotype, test_data, self.get_ood_data()
+        )
+        results['baseline']['ood'] = self.evaluate_ood_detection(
+            baseline_model, test_data, self.get_ood_data()
+        )
+        
+        return results
+    
+    def fgsm_attack(self, model: nn.Module, x: torch.Tensor, y: torch.Tensor,
+                   epsilon: float = 0.03) -> torch.Tensor:
+        """
+        Fast Gradient Sign Method adversarial attack
+        """
+        x_adv = x.clone().detach().requires_grad_(True)
+        
+        output = model(x_adv)
+        loss = F.cross_entropy(output, y)
+        
+        loss.backward()
+        
+        # Generate adversarial example
+        x_adv = x_adv + epsilon * x_adv.grad.sign()
+        x_adv = torch.clamp(x_adv, 0, 1)
+        
+        return x_adv.detach()
+    
+    def pgd_attack(self, model: nn.Module, x: torch.Tensor, y: torch.Tensor,
+                  epsilon: float = 0.03, alpha: float = 0.01, num_iter: int = 40) -> torch.Tensor:
+        """
+        Projected Gradient Descent adversarial attack
+        """
+        x_adv = x.clone().detach()
+        
+        for _ in range(num_iter):
+            x_adv.requires_grad_(True)
+            
+            output = model(x_adv)
+            loss = F.cross_entropy(output, y)
+            
+            loss.backward()
+            
+            # Update adversarial example
+            x_adv = x_adv + alpha * x_adv.grad.sign()
+            
+            # Project back to epsilon ball
+            perturbation = torch.clamp(x_adv - x, -epsilon, epsilon)
+            x_adv = torch.clamp(x + perturbation, 0, 1).detach()
+        
+        return x_adv
+    
+    def evaluate_calibration(self, model: nn.Module, test_data: DataLoader) -> Dict:
+        """
+        Evaluate calibration: alignment between confidence and accuracy
+        
+        Metrics:
+        - Expected Calibration Error (ECE)
+        - Maximum Calibration Error (MCE)
+        - Brier score
+        """
+        model.eval()
+        
+        all_confidences = []
+        all_predictions = []
+        all_labels = []
+        
+        with torch.no_grad():
+            for x, y in test_data:
+                output = model(x)
+                probs = F.softmax(output, dim=1)
+                
+                confidences, predictions = torch.max(probs, dim=1)
+                
+                all_confidences.extend(confidences.cpu().numpy())
+                all_predictions.extend(predictions.cpu().numpy())
+                all_labels.extend(y.cpu().numpy())
+        
+        all_confidences = np.array(all_confidences)
+        all_predictions = np.array(all_predictions)
+        all_labels = np.array(all_labels)
+        
+        # Compute ECE
+        ece = self.compute_ece(all_confidences, all_predictions, all_labels)
+        
+        # Compute MCE
+        mce = self.compute_mce(all_confidences, all_predictions, all_labels)
+        
+        # Compute Brier score
+        brier = self.compute_brier_score(all_confidences, all_predictions, all_labels)
+        
+        return {
+            'ece': ece,
+            'mce': mce,
+            'brier_score': brier
+        }
+    
+    def compute_ece(self, confidences: np.ndarray, predictions: np.ndarray,
+                   labels: np.ndarray, num_bins: int = 15) -> float:
+        """Expected Calibration Error"""
+        bin_boundaries = np.linspace(0, 1, num_bins + 1)
+        bin_lowers = bin_boundaries[:-1]
+        bin_uppers = bin_boundaries[1:]
+        
+        ece = 0.0
+        for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+            in_bin = (confidences > bin_lower) & (confidences <= bin_upper)
+            prop_in_bin = np.mean(in_bin)
+            
+            if prop_in_bin > 0:
+                accuracy_in_bin = np.mean(predictions[in_bin] == labels[in_bin])
+                avg_confidence_in_bin = np.mean(confidences[in_bin])
+                ece += np.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+        
+        return ece
+
+
+class FewShotLearningExperiment:
+    """
+    Evaluate few-shot learning capabilities
+    
+    Tests ability to adapt to new tasks with minimal data
+    """
+    
+    def __init__(self, n_way: int = 5, k_shot: int = 1, num_query: int = 15):
+        self.n_way = n_way
+        self.k_shot = k_shot
+        self.num_query = num_query
+    
+    def evaluate_few_shot(self,
+                         genotype: Genotype,
+                         baseline_arch: Architecture,
+                         dataset: Dataset,
+                         num_episodes: int = 600) -> Dict:
+        """
+        Meta-learning evaluation: N-way K-shot classification
+        """
+        morpho_phenotype = develop_phenotype_staged(genotype)
+        baseline_model = baseline_arch.instantiate()
+        
+        # Meta-train both models
+        print("Meta-training morphogenetic architecture...")
+        morpho_meta_learner = MAMLMetaLearner(morpho_phenotype, inner_lr=0.01, outer_lr=0.001)
+        morpho_meta_learner.meta_train(dataset, num_iterations=10000)
+        
+        print("Meta-training baseline...")
+        baseline_meta_learner = MAMLMetaLearner(baseline_model, inner_lr=0.01, outer_lr=0.001)
+        baseline_meta_learner.meta_train(dataset, num_iterations=10000)
+        
+        # Meta-test: sample episodes and adapt
+        morpho_accuracies = []
+        baseline_accuracies = []
+        
+        for episode in range(num_episodes):
+            # Sample episode
+            support_set, query_set = self.sample_episode(dataset)
+            
+            # Morphogenetic adaptation
+            morpho_adapted = morpho_meta_learner.adapt(support_set, num_steps=5)
+            morpho_acc = self.evaluate_on_query(morpho_adapted, query_set)
+            morpho_accuracies.append(morpho_acc)
+            
+            # Baseline adaptation
+            baseline_adapted = baseline_meta_learner.adapt(support_set, num_steps=5)
+            baseline_acc = self.evaluate_on_query(baseline_adapted, query_set)
+            baseline_accuracies.append(baseline_acc)
+        
+        return {
+            'morphogenetic': {
+                'mean_accuracy': np.mean(morpho_accuracies),
+                'std_accuracy': np.std(morpho_accuracies),
+                'ci_95': 1.96 * np.std(morpho_accuracies) / np.sqrt(num_episodes)
+            },
+            'baseline': {
+                'mean_accuracy': np.mean(baseline_accuracies),
+                'std_accuracy': np.std(baseline_accuracies),
+                'ci_95': 1.96 * np.std(baseline_accuracies) / np.sqrt(num_episodes)
+            },
+            'improvement': np.mean(morpho_accuracies) - np.mean(baseline_accuracies)
+        }
+    
+    def sample_episode(self, dataset: Dataset) -> Tuple[DataLoader, DataLoader]:
+        """
+        Sample N-way K-shot episode
+        
+        Returns:
+        - Support set: N classes, K examples per class
+        - Query set: N classes, num_query examples per class
+        """
+        # Sample N classes
+        all_classes = dataset.get_all_classes()
+        episode_classes = random.sample(all_classes, self.n_way)
+        
+        support_examples = []
+        query_examples = []
+        
+        for class_idx, class_id in enumerate(episode_classes):
+            class_examples = dataset.get_examples_for_class(class_id)
+            
+            # Sample K + num_query examples
+            selected = random.sample(class_examples, self.k_shot + self.num_query)
+            
+            support = selected[:self.k_shot]
+            query = selected[self.k_shot:]
+            
+            support_examples.extend([(x, class_idx) for x in support])
+            query_examples.extend([(x, class_idx) for x in query])
+        
+        support_loader = DataLoader(support_examples, batch_size=self.n_way * self.k_shot, shuffle=True)
+        query_loader = DataLoader(query_examples, batch_size=self.n_way * self.num_query, shuffle=False)
+        
+        return support_loader, query_loader
+
+
+class MAMLMetaLearner:
+    """
+    Model-Agnostic Meta-Learning
+    
+    Learn initialization that adapts quickly with few examples
+    """
+    
+    def __init__(self, model: nn.Module, inner_lr: float = 0.01, outer_lr: float = 0.001):
+        self.model = model
+        self.inner_lr = inner_lr
+        self.outer_optimizer = torch.optim.Adam(model.parameters(), lr=outer_lr)
+    
+    def meta_train(self, dataset: Dataset, num_iterations: int = 10000):
+        """
+        Meta-training loop
+        
+        For each iteration:
+        1. Sample batch of tasks
+        2. For each task:
+           a. Clone model
+           b. Adapt on support set (inner loop)
+           c. Evaluate on query set
+        3. Update meta-parameters based on query losses (outer loop)
+        """
+        for iteration in range(num_iterations):
+            # Sample batch of tasks
+            task_batch = [self.sample_task(dataset) for _ in range(4)]
+            
+            meta_loss = 0.0
+            
+            for support_set, query_set in task_batch:
+                # Clone model
+                adapted_model = self.clone_model()
+                
+                # Inner loop: adapt on support set
+                for _ in range(5):
+                    support_loss = self.compute_loss(adapted_model, support_set)
+                    
+                    # Manual gradient update (first-order MAML)
+                    grads = torch.autograd.grad(
+                        support_loss,
+                        adapted_model.parameters(),
+                        create_graph=True
+                    )
+                    
+                    # Update adapted model parameters
+                    with torch.no_grad():
+                        for param, grad in zip(adapted_model.parameters(), grads):
+                            param.data -= self.inner_lr * grad
+                
+                # Evaluate on query set
+                query_loss = self.compute_loss(adapted_model, query_set)
+                meta_loss += query_loss
+            
+            # Outer loop: update meta-parameters
+            meta_loss /= len(task_batch)
+            
+            self.outer_optimizer.zero_grad()
+            meta_loss.backward()
+            self.outer_optimizer.step()
+            
+            if iteration % 100 == 0:
+                print(f"Meta-iteration {iteration}/{num_iterations}, Meta-loss: {meta_loss.item():.4f}")
+    
+    def adapt(self, support_set: DataLoader, num_steps: int = 5) -> nn.Module:
+        """Adapt model to new task using support set"""
+        adapted_model = self.clone_model()
+        
+        optimizer = torch.optim.SGD(adapted_model.parameters(), lr=self.inner_lr)
+        
+        for _ in range(num_steps):
+            loss = self.compute_loss(adapted_model, support_set)
+            
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        
+        return adapted_model
+
+11. Applications to AGI Challenges
+11.1 Multi-Task Learning and Transfer
+pythonclass MultiTaskEvolution:
+    """
+    Evolve architectures that excel across multiple task families
+    
+    Key insight: AGI requires solving diverse tasks, not optimizing for single benchmark
+    """
+    
+    def __init__(self, task_families: List[str]):
+        self.task_families = task_families
+        self.task_distribution = self.create_multi_task_distribution()
+    
+    def create_multi_task_distribution(self) -> TaskDistribution:
+        """
+        Create distribution spanning:
+        - Vision (classification, segmentation, detection)
+        - Language (LM, translation, QA)
+        - Reasoning (logic, math, planning)
+        - Control (RL, robotics)
+        """
+        tasks = []
+        
+        for family in self.task_families:
+            if family == 'vision':
+                tasks.extend([
+                    ImageClassificationTask('CIFAR-10'),
+                    ImageClassificationTask('ImageNet'),
+                    ObjectDetectionTask('COCO'),
+                    SemanticSegmentationTask('ADE20K')
+                ])
+            
+            elif family == 'language':
+                tasks.extend([
+                    LanguageModelingTask('WikiText-103'),
+                    MachineTranslationTask('WMT14'),
+                    QuestionAnsweringTask('SQuAD'),
+                    SentimentAnalysisTask('SST-2')
+                ])
+            
+            elif family == 'reasoning':
+                tasks.extend([
+                    LogicalReasoningTask('bAbI'),
+                    MathematicalReasoningTask('GSM8K'),
+                    AbstractReasoningTask('ARC'),
+                    PlanningTask('Blocksworld')
 
 
 
