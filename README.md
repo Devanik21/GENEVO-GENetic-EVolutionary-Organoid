@@ -8,7 +8,7 @@ Modern deep learning has achieved remarkable success through scaling static arch
 
 ---
 
-> **📚 New to this research?** This document is highly technical. I recommend starting with the [**Beginner's Roadmap**]([[BEGINNER_ROADMAP.md]](https://github.com/Devanik21/GENEVO-GENetic-EVolutionary-Organoid/blob/main/Beginner's%20roadmap.md)) for a guided introduction to evolutionary neural architectures.
+> **📚 New to this research?** This document is highly technical. I recommend starting with the [**Beginner's Roadmap**](Beginner's%20roadmap.md) for a guided introduction to evolutionary neural architectures.
 
 ---
 
