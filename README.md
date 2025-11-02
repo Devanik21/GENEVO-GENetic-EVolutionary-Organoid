@@ -6,6 +6,12 @@ Modern deep learning has achieved remarkable success through scaling static arch
 
 ---
 
+---
+
+> **📚 New to this research?** This document is highly technical. We recommend starting with our [**Beginner's Roadmap**](BEGINNER_ROADMAP.md) for a guided introduction to evolutionary neural architectures.
+
+---
+
 ## 1. The Limitations of Current Paradigms
 
 ### 1.1 The Transformer: Triumphs and Constraints
