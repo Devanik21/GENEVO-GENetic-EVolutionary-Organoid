@@ -1170,9 +1170,9 @@ def main():
     st.markdown('<h1 class="main-header">🧬 GENEVO: Genetic Evolution of Neural Architectures</h1>', unsafe_allow_html=True)
     st.markdown('''
     <p class="sub-header">
-    <b>Mathematical Framework:</b> φ: (G,E,t) → P | L: (φ,D,τ) → ℝ | F: (P,L,E) → ℝ⁺<br>
-    <b>Evolutionary Dynamics:</b> dG/dt = μ∇<sub>G</sub>F(φ(G)) + σε(t)<br>
-    <b>Multi-Objective Optimization:</b> max<sub>G</sub> {α·Accuracy(G) + β·Efficiency(G) + γ·Robustness(G)}
+    <b>Phenotypic Development & Fitness:</b> F(G, E) = &int; L(&phi;(G, E, t), D, &tau;) d&tau;<br>
+    <b>Evolutionary Trajectory (Langevin Dynamics):</b> dG/dt = M(G) &nabla;<sub>G</sub>F + &sigma;(G) dW<br>
+    <b>Multi-Objective Goal (Pareto Optimality):</b> Find G* &isin; {G | &not;&exist;G' s.t. <b>V</b>(G') &succ; <b>V</b>(G)}
     </p>
     ''', unsafe_allow_html=True)
     
