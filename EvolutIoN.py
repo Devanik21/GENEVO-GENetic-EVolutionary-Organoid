@@ -326,36 +326,36 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
     if form['topology'] == 'hierarchical':
         for i in range(len(modules) - 1):
             connections.append(ConnectionGene(
-                modules[i].id, modules[i+1].id, 
-                np.random.uniform(0.7, 1.0), 'excitatory', 0.01, 'hebbian'
+                modules[i].id, modules[i+1].id,
+                float(np.random.uniform(0.7, 1.0)), 'excitatory', 0.01, 'hebbian'
             ))
             
     elif form['topology'] == 'residual_attention':
         for i in range(len(modules) - 1):
             connections.append(ConnectionGene(
                 modules[i].id, modules[i+1].id,
-                np.random.uniform(0.8, 1.0), 'excitatory', 0.005, 'stdp'
+                float(np.random.uniform(0.8, 1.0)), 'excitatory', 0.005, 'stdp'
             ))
         # Add residual connections
         for i in range(1, len(modules) - 2):
             if 'attn' in modules[i].id:
                 connections.append(ConnectionGene(
                     modules[i].id, modules[i+2].id,
-                    np.random.uniform(0.3, 0.5), 'excitatory', 0.02, 'static'
+                    float(np.random.uniform(0.3, 0.5)), 'excitatory', 0.02, 'static'
                 ))
                 
     elif form['topology'] == 'recurrent_memory':
         for i in range(len(modules) - 1):
             connections.append(ConnectionGene(
                 modules[i].id, modules[i+1].id,
-                np.random.uniform(0.7, 0.9), 'excitatory', 0.01, 'hebbian'
+                float(np.random.uniform(0.7, 0.9)), 'excitatory', 0.01, 'hebbian'
             ))
         # Recurrent connections
         for module in modules:
             if 'lstm' in module.id:
                 connections.append(ConnectionGene(
                     module.id, module.id,
-                    np.random.uniform(0.4, 0.6), 'modulatory', 0.001, 'stdp'
+                    float(np.random.uniform(0.4, 0.6)), 'modulatory', 0.001, 'stdp'
                 ))
                 
     elif form['topology'] == 'dual_pathway':
@@ -374,11 +374,11 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
         for i, m1 in enumerate(modules):
             for j, m2 in enumerate(modules):
                 if i != j and np.random.random() > 0.4:
-                    weight = np.random.uniform(0.3, 0.8) if i < j else np.random.uniform(0.2, 0.5)
+                    weight = float(np.random.uniform(0.3, 0.8) if i < j else np.random.uniform(0.2, 0.5))
                     conn_type = 'excitatory' if i < j else 'modulatory'
                     connections.append(ConnectionGene(
                         m1.id, m2.id, weight, conn_type,
-                        np.random.uniform(0.001, 0.02), 'hebbian'
+                        float(np.random.uniform(0.001, 0.02)), 'hebbian'
                     ))
     
     # Create developmental rules
@@ -411,17 +411,17 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
             # Size mutation with drift
             change_factor = np.random.lognormal(0, 0.2)
             module.size = int(module.size * change_factor)
-            module.size = np.clip(module.size, 16, 1024)
+            module.size = int(np.clip(module.size, 16, 1024))
         
         if random.random() < mutation_rate * 0.5:
             # Plasticity mutation
             module.plasticity += np.random.normal(0, 0.1)
-            module.plasticity = np.clip(module.plasticity, 0, 1)
+            module.plasticity = float(np.clip(module.plasticity, 0, 1))
         
         if random.random() < mutation_rate * 0.3:
             # Learning rate multiplier
             module.learning_rate_mult *= np.random.lognormal(0, 0.15)
-            module.learning_rate_mult = np.clip(module.learning_rate_mult, 0.1, 2.0)
+            module.learning_rate_mult = float(np.clip(module.learning_rate_mult, 0.1, 2.0))
         
         if random.random() < mutation_rate * 0.2:
             # Activation function mutation
@@ -431,7 +431,7 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
     for connection in mutated.connections:
         if random.random() < mutation_rate:
             connection.weight += np.random.normal(0, 0.15)
-            connection.weight = np.clip(connection.weight, 0.05, 1.0)
+            connection.weight = float(np.clip(connection.weight, 0.05, 1.0))
         
         if random.random() < mutation_rate * 0.3:
             # Plasticity rule mutation
@@ -449,8 +449,8 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
             if not exists:
                 mutated.connections.append(ConnectionGene(
                     source.id, target.id,
-                    np.random.uniform(0.2, 0.5), 'excitatory',
-                    np.random.uniform(0.001, 0.02), 'hebbian'
+                    float(np.random.uniform(0.2, 0.5)), 'excitatory',
+                    float(np.random.uniform(0.001, 0.02)), 'hebbian'
                 ))
     
     if random.random() < innovation_rate * 0.5:
