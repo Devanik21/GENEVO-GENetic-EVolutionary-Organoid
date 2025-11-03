@@ -612,7 +612,7 @@ def apply_developmental_rules(genotype: Genotype, stagnation_counter: int) -> Ge
     developed_genotype.complexity = developed_genotype.compute_complexity()
     return developed_genotype
 
-def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weights: Optional[Dict[str, float]] = None) -> Tuple[float, Dict[str, float]]:
+def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weights: Optional[Dict[str, float]] = None, enable_epigenetics: bool = False, enable_baldwin: bool = False) -> Tuple[float, Dict[str, float]]:
     """
     Multi-objective fitness evaluation with realistic task simulation
     
@@ -635,9 +635,10 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
     # 1a. Epigenetic Inheritance Bonus
     # Apply bonus from markers inherited from parents.
     epigenetic_bonus = 0.0
-    aptitude_key = f"{task_type}_aptitude"
-    if aptitude_key in genotype.epigenetic_markers:
-        epigenetic_bonus = genotype.epigenetic_markers[aptitude_key]
+    if enable_epigenetics:
+        aptitude_key = f"{task_type}_aptitude"
+        if aptitude_key in genotype.epigenetic_markers:
+            epigenetic_bonus = genotype.epigenetic_markers[aptitude_key]
     
     # 1b. Task-specific accuracy simulation
     if task_type == 'Abstract Reasoning (ARC-AGI-2)':
@@ -709,8 +710,9 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
     # 2. Lifetime Learning Simulation (Baldwin Effect)
     # Plasticity allows an individual to "learn" and improve its performance during its lifetime.
     # This bonus is added to the base task accuracy, rewarding adaptable architectures.
-    lifetime_learning_bonus = avg_plasticity * 0.2  # Max 20% accuracy boost from learning
-    scores['task_accuracy'] += lifetime_learning_bonus
+    if enable_baldwin:
+        lifetime_learning_bonus = avg_plasticity * 0.2  # Max 20% accuracy boost from learning
+        scores['task_accuracy'] += lifetime_learning_bonus
     
     # Clamp task accuracy after adding bonus
     scores['task_accuracy'] = np.clip(scores['task_accuracy'], 0, 1)
@@ -743,9 +745,11 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
     # 6. Epigenetic Marking (Lamarckian-like learning)
     # The individual "learns" from its performance, creating a marker for its offspring.
     # This maps current performance to a small, heritable aptitude value.
-    performance_marker = (scores['task_accuracy'] - 0.5) * 0.05 # Small learning step
-    current_aptitude = genotype.epigenetic_markers.get(aptitude_key, 0.0)
-    genotype.epigenetic_markers[aptitude_key] = np.clip(current_aptitude + performance_marker, -0.15, 0.15)
+    if enable_epigenetics:
+        aptitude_key = f"{task_type}_aptitude"
+        performance_marker = (scores['task_accuracy'] - 0.5) * 0.05 # Small learning step
+        current_aptitude = genotype.epigenetic_markers.get(aptitude_key, 0.0)
+        genotype.epigenetic_markers[aptitude_key] = np.clip(current_aptitude + performance_marker, -0.15, 0.15)
     
     # Multi-objective fitness with task-dependent weights
     if weights is None:
@@ -1430,24 +1434,22 @@ def main():
         help="Rate of structural mutations"
     )
     
-    endosymbiosis_rate = st.sidebar.slider(
-        "Endosymbiosis Rate",
-        min_value=0.0, max_value=0.05, value=s.get('endosymbiosis_rate', 0.01), step=0.005,
-        help="Extremely rare chance to acquire a module from an elite parent."
-    )
-
     with st.sidebar.expander("🔬 Advanced Dynamics", expanded=True):
-        st.info(
-            "**Developmental Program:** Each generation, individuals execute their internal genetic programs, causing changes like synaptic pruning (removing weak connections) or module proliferation (growth during stagnation). This creates a dynamic genotype-phenotype map."
+        st.markdown("These features add deep biological complexity. You can disable them for a more classical evolutionary run.")
+        enable_development = st.checkbox("Enable Developmental Program", value=s.get('enable_development', True), help="Each generation, individuals execute their internal genetic programs, causing changes like synaptic pruning (removing weak connections) or module proliferation (growth during stagnation).")
+        enable_baldwin = st.checkbox("Enable Baldwin Effect", value=s.get('enable_baldwin', True), help="An individual's `plasticity` score allows it to 'learn' during its lifetime, boosting its final fitness. This creates a selective pressure for architectures that are not just good, but also good at learning.")
+        enable_epigenetics = st.checkbox("Enable Epigenetic Inheritance", value=s.get('enable_epigenetics', True), help="Individuals pass down partially heritable 'aptitude' for tasks they performed well on, creating a fast, non-genetic adaptation layer.")
+        enable_endosymbiosis = st.checkbox("Enable Endosymbiosis", value=s.get('enable_endosymbiosis', True), help="A rare event where an architecture acquires a pre-evolved, successful module from an elite individual, allowing for major leaps in complexity.")
+        
+        endosymbiosis_rate = st.slider(
+            "Endosymbiosis Rate",
+            min_value=0.0, max_value=0.05, value=s.get('endosymbiosis_rate', 0.01), step=0.005,
+            help="Chance for an individual to acquire a module from an elite parent.",
+            disabled=not enable_endosymbiosis
         )
+
         st.info(
-            "**Baldwin Effect:** An individual's `plasticity` score allows it to 'learn' during its lifetime, boosting its final fitness. This creates a selective pressure for architectures that are not just good, but also good at learning."
-        )
-        st.info(
-            "**Epigenetic Inheritance:** Individuals pass down partially heritable 'aptitude' for tasks they performed well on, creating a fast, non-genetic adaptation layer."
-        )
-        st.info(
-            "**Endosymbiosis:** A rare event where an architecture acquires a pre-evolved, successful module from an elite individual, allowing for major leaps in complexity."
+            "Hover over the (?) on each checkbox for a detailed explanation of the dynamic."
         )
 
     with st.sidebar.expander("Advanced Mutation Control"):
@@ -1508,7 +1510,11 @@ def main():
         'mutation_rate': mutation_rate,
         'crossover_rate': crossover_rate,
         'innovation_rate': innovation_rate,
+        'enable_development': enable_development,
+        'enable_baldwin': enable_baldwin,
+        'enable_epigenetics': enable_epigenetics,
         'endosymbiosis_rate': endosymbiosis_rate,
+        'enable_endosymbiosis': enable_endosymbiosis,
         'mutation_schedule': mutation_schedule,
         'adaptive_mutation_strength': adaptive_mutation_strength,
         'selection_pressure': selection_pressure,
@@ -1568,14 +1574,16 @@ def main():
             
             # --- Apply developmental rules ---
             # This simulates lifetime development like pruning and growth before evaluation
-            for i in range(len(population)):
-                population[i] = apply_developmental_rules(population[i], stagnation_counter)
+            if enable_development:
+                for i in range(len(population)):
+                    population[i] = apply_developmental_rules(population[i], stagnation_counter)
 
             # Evaluate fitness
             all_scores = []
             for individual in population:
                 # Pass the weights from the sidebar
-                fitness, component_scores = evaluate_fitness(individual, current_task, gen, fitness_weights)
+                # Pass the flags for advanced dynamics
+                fitness, component_scores = evaluate_fitness(individual, current_task, gen, fitness_weights, enable_epigenetics, enable_baldwin)
                 individual.fitness = fitness
                 individual.generation = gen
                 individual.age += 1
@@ -1682,7 +1690,7 @@ def main():
                 child.generation = gen + 1
 
                 # Endosymbiotic Transfer (Horizontal Gene Transfer)
-                if random.random() < endosymbiosis_rate and survivors:
+                if enable_endosymbiosis and random.random() < endosymbiosis_rate and survivors:
                     child = apply_endosymbiosis(child, survivors)
 
                 offspring.append(child)
