@@ -612,7 +612,7 @@ def apply_developmental_rules(genotype: Genotype, stagnation_counter: int) -> Ge
     developed_genotype.complexity = developed_genotype.compute_complexity()
     return developed_genotype
 
-def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weights: Optional[Dict[str, float]] = None, enable_epigenetics: bool = False, enable_baldwin: bool = False, epistatic_linkage_k: int = 0) -> Tuple[float, Dict[str, float]]:
+def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weights: Optional[Dict[str, float]] = None, enable_epigenetics: bool = False, enable_baldwin: bool = False, epistatic_linkage_k: int = 0, parasite_profile: Optional[Dict] = None) -> Tuple[float, Dict[str, float]]:
     """
     Multi-objective fitness evaluation with realistic task simulation
     
@@ -781,6 +781,16 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
     # Apply epistatic effect to final fitness
     total_fitness += epistatic_contribution
     
+    # 8. Red Queen Coevolution (Parasite Attack)
+    # If a genotype has a trait targeted by the co-evolving parasite, its fitness is penalized.
+    if parasite_profile:
+        vulnerability_score = 0.0
+        for module in genotype.modules:
+            if module.module_type == parasite_profile['target_type'] and module.activation == parasite_profile['target_activation']:
+                vulnerability_score += 0.1 # Each matching module increases vulnerability
+        
+        total_fitness *= (1.0 - min(vulnerability_score, 0.5)) # Max 50% fitness reduction
+
     # Store component scores
     genotype.accuracy = scores['task_accuracy']
     genotype.efficiency = scores['efficiency']
@@ -1475,6 +1485,20 @@ def main():
             "These parameters are inspired by theoretical biology to simulate complex evolutionary dynamics like epistasis and niche partitioning."
         )
 
+    with st.sidebar.expander("🌋 Ecosystem Shocks & Dynamics", expanded=False):
+        st.markdown("Introduce high-level ecosystem pressures.")
+        enable_cataclysms = st.checkbox("Enable Cataclysms", value=s.get('enable_cataclysms', True), help="Enable rare, random mass-extinction or environmental collapse events.")
+        cataclysm_probability = st.slider(
+            "Cataclysm Probability", 0.0, 0.1, s.get('cataclysm_probability', 0.02), 0.005,
+            help="Per-generation chance of a cataclysmic event.",
+            disabled=not enable_cataclysms
+        )
+        enable_red_queen = st.checkbox("Enable Red Queen Dynamics", value=s.get('enable_red_queen', True), help="A co-evolving 'parasite' creates an arms race by targeting common traits, forcing continuous adaptation.")
+        st.info(
+            "These features test the ecosystem's resilience and ability to escape static equilibria through external shocks and internal arms races."
+        )
+
+
     with st.sidebar.expander("🔬 Advanced Dynamics", expanded=True):
         st.markdown("These features add deep biological complexity. You can disable them for a more classical evolutionary run.")
         enable_development = st.checkbox("Enable Developmental Program", value=s.get('enable_development', True), help="Each generation, individuals execute their internal genetic programs, causing changes like synaptic pruning (removing weak connections) or module proliferation (growth during stagnation).")
@@ -1558,6 +1582,9 @@ def main():
         'epistatic_linkage_k': epistatic_linkage_k,
         'gene_flow_rate': gene_flow_rate,
         'niche_competition_factor': niche_competition_factor,
+        'enable_cataclysms': enable_cataclysms,
+        'cataclysm_probability': cataclysm_probability,
+        'enable_red_queen': enable_red_queen,
         'enable_endosymbiosis': enable_endosymbiosis,
         'mutation_schedule': mutation_schedule,
         'adaptive_mutation_strength': adaptive_mutation_strength,
@@ -1600,6 +1627,14 @@ def main():
         # For dynamic environment
         current_task = task_type
         
+        # For ecosystem dynamics
+        st.session_state.cataclysm_recovery_mode = 0
+        st.session_state.cataclysm_weights = None
+        st.session_state.parasite_profile = {
+            'target_type': 'attention',
+            'target_activation': 'gelu'
+        }
+
         # Progress tracking
         progress_container = st.empty()
         metrics_container = st.empty()
@@ -1607,6 +1642,37 @@ def main():
         
         # Evolution loop
         for gen in range(num_generations):
+            # --- Ecosystem Dynamics ---
+            active_fitness_weights = fitness_weights
+            
+            # Cataclysm Recovery
+            if st.session_state.cataclysm_recovery_mode > 0:
+                st.session_state.cataclysm_recovery_mode -= 1
+                active_fitness_weights = st.session_state.cataclysm_weights
+                if st.session_state.cataclysm_recovery_mode == 0:
+                    st.toast("🌍 Environmental pressures have normalized.", icon="✅")
+                    st.session_state.cataclysm_weights = None
+
+            # Cataclysm Trigger
+            elif enable_cataclysms and random.random() < cataclysm_probability:
+                event_type = random.choice(['extinction', 'collapse'])
+                if event_type == 'extinction' and len(population) > 10:
+                    st.warning(f"💥 Mass Extinction Event! A genetic bottleneck has occurred.")
+                    st.toast("💥 Mass Extinction!", icon="☄️")
+                    survivor_count = max(5, int(len(population) * 0.1))
+                    population = random.sample(population, k=survivor_count)
+                elif event_type == 'collapse':
+                    st.warning(f"📉 Environmental Collapse! Fitness objectives have drastically shifted.")
+                    st.toast("📉 Environmental Collapse!", icon="🌪️")
+                    st.session_state.cataclysm_recovery_mode = 5 # Lasts for 5 generations
+                    collapse_target = random.choice(list(fitness_weights.keys()))
+                    st.session_state.cataclysm_weights = {k: 0.05 for k in fitness_weights}
+                    st.session_state.cataclysm_weights[collapse_target] = 0.8
+                    active_fitness_weights = st.session_state.cataclysm_weights
+
+            # Red Queen Parasite Info
+            parasite_display = status_text.empty()
+
             # Handle dynamic environment
             if dynamic_environment and gen > 0 and gen % env_change_frequency == 0:
                 previous_task = current_task
@@ -1627,7 +1693,7 @@ def main():
             for individual in population:
                 # Pass the weights from the sidebar
                 # Pass the flags for advanced dynamics
-                fitness, component_scores = evaluate_fitness(individual, current_task, gen, fitness_weights, enable_epigenetics, enable_baldwin, epistatic_linkage_k)
+                fitness, component_scores = evaluate_fitness(individual, current_task, gen, active_fitness_weights, enable_epigenetics, enable_baldwin, epistatic_linkage_k, st.session_state.parasite_profile if enable_red_queen else None)
                 individual.fitness = fitness
                 individual.generation = gen
                 individual.age += 1
@@ -1664,6 +1730,10 @@ def main():
                 col3.metric("Diversity (H)", f"{diversity:.3f}")
                 col4.metric("Mutation Rate (μ)", f"{current_mutation_rate:.3f}")
                 # Placeholder for species count, will be updated below
+                if enable_red_queen:
+                    parasite_display.info(f"**Red Queen Active:** Parasite targeting `{st.session_state.parasite_profile['target_type']}` with `{st.session_state.parasite_profile['target_activation']}` activation.")
+                else:
+                    parasite_display.empty()
                 species_metric = col5.metric("Species Count", "N/A")
 
             st.session_state.evolutionary_metrics.append({
@@ -1711,6 +1781,15 @@ def main():
             # Calculate selection differential
             selected_idx = np.arange(num_survivors)
             sel_diff = EvolutionaryTheory.selection_differential(fitness_array, selected_idx)
+
+            # Red Queen Parasite Evolution
+            if enable_red_queen and survivors:
+                trait_counts = Counter()
+                for ind in survivors:
+                    for module in ind.modules:
+                        trait_counts[(module.module_type, module.activation)] += 1
+                if trait_counts:
+                    st.session_state.parasite_profile['target_type'], st.session_state.parasite_profile['target_activation'] = trait_counts.most_common(1)[0][0]
             
             # Reproduction
             offspring = []
