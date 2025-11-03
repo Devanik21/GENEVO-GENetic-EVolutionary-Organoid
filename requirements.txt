@@ -1,6 +1,6 @@
-requests
-opencv-python-headless
+streamlit
 numpy
 pandas
 plotly
-tensorflow
+scipy
+networkx
