@@ -1452,7 +1452,7 @@ def main():
     st.sidebar.markdown("---")
     
     # Run evolution button
-    if st.sidebar.button("🚀 Initiate Evolution", type="primary", use_container_width=True):
+    if st.sidebar.button("⚡ Initiate Evolution", type="primary", use_container_width=True):
         st.session_state.history = []
         st.session_state.evolutionary_metrics = []
         
@@ -1869,7 +1869,7 @@ def main():
 
         # --- Synthesized Master Architecture ---
         st.markdown("---")
-        st.header("🤖 Synthesized Master Architecture")
+        st.header("🌐 Synthesized Master Architecture")
         st.markdown("""
         This final architecture is a **consensus design** synthesized from the best-performing individuals. It starts with the single best architecture and refines it by averaging its parameters (like module sizes and connection weights) with the other top individuals. It also adds structural elements (like new connections) that have strong consensus among the elite group.
         
