@@ -940,6 +940,73 @@ def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     
     return fig
 
+def visualize_genotype_2d(genotype: Genotype) -> go.Figure:
+    """Creates a clear 2D visualization of a genotype for analysis."""
+    
+    G = nx.DiGraph()
+    
+    # Add nodes with attributes
+    for module in genotype.modules:
+        G.add_node(
+            module.id,
+            size=module.size,
+            color=module.color,
+            module_type=module.module_type,
+            hover_text=(
+                f"<b>{module.id}</b><br>"
+                f"Type: {module.module_type}<br>"
+                f"Size: {module.size}<br>"
+                f"Activation: {module.activation}<br>"
+                f"Plasticity: {module.plasticity:.3f}"
+            )
+        )
+        
+    # Add edges with attributes
+    for conn in genotype.connections:
+        if conn.source in G.nodes and conn.target in G.nodes:
+            G.add_edge(conn.source, conn.target)
+            
+    # Use a layout that spreads nodes out
+    try:
+        pos = nx.kamada_kawai_layout(G)
+    except Exception:
+        pos = nx.spring_layout(G, seed=42, k=0.8)
+
+    # Create Plotly edge traces
+    edge_x, edge_y = [], []
+    for edge in G.edges():
+        x0, y0 = pos[edge[0]]
+        x1, y1 = pos[edge[1]]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(x=edge_x, y=edge_y, line=dict(width=1, color='#888'), hoverinfo='none', mode='lines')
+
+    # Create Plotly node traces
+    node_x, node_y, node_text, node_color, node_size = [], [], [], [], []
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+        node_text.append(G.nodes[node]['hover_text'])
+        node_color.append(G.nodes[node]['color'])
+        node_size.append(15 + np.sqrt(G.nodes[node]['size']))
+
+    node_trace = go.Scatter(x=node_x, y=node_y, mode='markers+text', text=[node for node in G.nodes()], textposition="top center", hoverinfo='text', hovertext=node_text,
+        marker=dict(showscale=False, color=node_color, size=node_size, line=dict(width=2, color='black')))
+    
+    # Use a different title for master architecture
+    if genotype.lineage_id == "SYNTHESIZED_MASTER":
+        title_text = f"<b>2D View: Synthesized Master Architecture</b> | Avg. Fitness: {genotype.fitness:.4f}"
+    else:
+        title_text = f"<b>2D View: Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f}"
+
+    fig = go.Figure(data=[edge_trace, node_trace],
+             layout=go.Layout(title=title_text, title_x=0.5, showlegend=False, hovermode='closest',
+                             margin=dict(b=20, l=5, r=5, t=50), xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False), height=600, plot_bgcolor='white'))
+    return fig
+
 def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype]) -> go.Figure:
     """Comprehensive evolution analytics dashboard"""
     
@@ -1613,11 +1680,19 @@ def main():
         # Show top 3
         for i, individual in enumerate(population[:3]):
             with st.expander(f"🥇 Rank {i+1}: Form {individual.form_id} | Fitness: {individual.fitness:.4f}", expanded=(i==0)):
-                st.plotly_chart(
-                    visualize_genotype_3d(individual),
-                    use_container_width=True
-                )
+                tab1, tab2 = st.tabs(["3D Interactive View", "2D Static View & Download"])
+
+                with tab1:
+                    st.plotly_chart(
+                        visualize_genotype_3d(individual),
+                        use_container_width=True
+                    )
                 
+                with tab2:
+                    st.info("This 2D layout is optimized for clarity of connections and module properties.")
+                    fig_2d = visualize_genotype_2d(individual)
+                    st.plotly_chart(fig_2d, use_container_width=True)
+
                 # Detailed stats
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -1771,7 +1846,15 @@ def main():
                 master_architecture = synthesize_master_architecture(top_n_individuals)
             
             if master_architecture:
-                st.plotly_chart(visualize_genotype_3d(master_architecture), use_container_width=True)
+                tab1, tab2 = st.tabs(["3D Interactive View", "2D Static View & Download"])
+
+                with tab1:
+                    st.plotly_chart(visualize_genotype_3d(master_architecture), use_container_width=True)
+                
+                with tab2:
+                    st.info("This 2D layout is optimized for clarity of connections and module properties.")
+                    fig_2d = visualize_genotype_2d(master_architecture)
+                    st.plotly_chart(fig_2d, use_container_width=True)
 
     st.sidebar.markdown("---")
     st.sidebar.info(
