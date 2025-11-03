@@ -384,8 +384,8 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
     
     # Create developmental rules
     dev_rules = [
-        DevelopmentalGene('proliferation', 'fitness_plateau', {'growth_rate': 1.1, 'max_size': max_size * 2}),
-        DevelopmentalGene('pruning', 'maturity', {'threshold': 0.1, 'rate': 0.05}),
+        DevelopmentalGene('proliferation', 'fitness_plateau', {'growth_rate': 1.1, 'max_size': max_size * 2, 'stagnation_threshold': 3}),
+        DevelopmentalGene('pruning', 'maturity', {'threshold': 0.1, 'maturity_age': 5}),
         DevelopmentalGene('differentiation', 'environmental_signal', {'specialization_strength': 0.7})
     ]
     
@@ -535,6 +535,35 @@ def crossover(parent1: Genotype, parent2: Genotype, crossover_rate: float = 0.7)
     child.complexity = child.compute_complexity()
     return child
 
+def apply_developmental_rules(genotype: Genotype, stagnation_counter: int) -> Genotype:
+    """
+    Executes the developmental program encoded in the genotype.
+    This simulates processes like pruning and proliferation during an individual's life.
+    """
+    developed_genotype = genotype # Work on the same object
+    
+    for rule in developed_genotype.developmental_rules:
+        if rule.rule_type == 'pruning' and rule.trigger_condition == 'maturity':
+            # Prune weak connections if the individual is mature enough
+            if developed_genotype.age > rule.parameters.get('maturity_age', 5):
+                threshold = rule.parameters.get('threshold', 0.1)
+                developed_genotype.connections = [
+                    c for c in developed_genotype.connections if c.weight >= threshold
+                ]
+                
+        elif rule.rule_type == 'proliferation' and rule.trigger_condition == 'fitness_plateau':
+            # Grow a module if the population is stagnating
+            if stagnation_counter > rule.parameters.get('stagnation_threshold', 3):
+                if developed_genotype.modules:
+                    target_module = random.choice(developed_genotype.modules)
+                    growth_rate = rule.parameters.get('growth_rate', 1.1)
+                    max_size = rule.parameters.get('max_size', 2048)
+                    target_module.size = int(min(target_module.size * growth_rate, max_size))
+
+    # Recalculate complexity after development
+    developed_genotype.complexity = developed_genotype.compute_complexity()
+    return developed_genotype
+
 def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weights: Optional[Dict[str, float]] = None) -> Tuple[float, Dict[str, float]]:
     """
     Multi-objective fitness evaluation with realistic task simulation
@@ -619,24 +648,30 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             np.random.normal(0, 0.05)
         )
     
-    # Clamp task accuracy
+    # 2. Lifetime Learning Simulation (Baldwin Effect)
+    # Plasticity allows an individual to "learn" and improve its performance during its lifetime.
+    # This bonus is added to the base task accuracy, rewarding adaptable architectures.
+    lifetime_learning_bonus = avg_plasticity * 0.2  # Max 20% accuracy boost from learning
+    scores['task_accuracy'] += lifetime_learning_bonus
+    
+    # Clamp task accuracy after adding bonus
     scores['task_accuracy'] = np.clip(scores['task_accuracy'], 0, 1)
     
-    # 2. Efficiency score (inverse of computational cost)
+    # 3. Efficiency score (inverse of computational cost)
     # Prefer architectures with good accuracy-to-parameter ratio
     param_efficiency = 1.0 / (1.0 + np.log(1 + total_params / 10000))
     connection_efficiency = 1.0 - min(connection_density, 0.8)
     
     scores['efficiency'] = (param_efficiency + connection_efficiency) / 2
     
-    # 3. Robustness (architectural stability)
+    # 4. Robustness (architectural stability)
     # More diverse connections and moderate plasticity = more robust
     robustness_from_diversity = len(set(c.connection_type for c in genotype.connections)) / 3
     robustness_from_plasticity = 1.0 - abs(avg_plasticity - 0.5) * 2  # Prefer moderate
     
     scores['robustness'] = (robustness_from_diversity * 0.5 + robustness_from_plasticity * 0.5)
     
-    # 4. Generalization potential
+    # 5. Generalization potential
     # Architectural properties that predict generalization
     depth = len(genotype.modules)
     modularity_score = 1.0 - abs(connection_density - 0.3) * 2  # Sweet spot at 0.3
@@ -1330,6 +1365,14 @@ def main():
         help="Rate of structural mutations"
     )
     
+    with st.sidebar.expander("🔬 Advanced Dynamics", expanded=True):
+        st.info(
+            "**Developmental Program:** Each generation, individuals execute their internal genetic programs, causing changes like synaptic pruning (removing weak connections) or module proliferation (growth during stagnation). This creates a dynamic genotype-phenotype map."
+        )
+        st.info(
+            "**Baldwin Effect:** An individual's `plasticity` score allows it to 'learn' during its lifetime, boosting its final fitness. This creates a selective pressure for architectures that are not just good, but also good at learning."
+        )
+
     with st.sidebar.expander("Advanced Mutation Control"):
         mutation_schedule = st.selectbox(
             "Mutation Rate Schedule",
@@ -1445,6 +1488,11 @@ def main():
             
             status_text.markdown(f"### 🧬 Generation {gen + 1}/{num_generations} | Task: **{current_task}**")
             
+            # --- Apply developmental rules ---
+            # This simulates lifetime development like pruning and growth before evaluation
+            for i in range(len(population)):
+                population[i] = apply_developmental_rules(population[i], stagnation_counter)
+
             # Evaluate fitness
             all_scores = []
             for individual in population:
