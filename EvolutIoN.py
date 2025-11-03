@@ -1138,6 +1138,68 @@ class EvolvedArchitecture(nn.Module):
 """
     return code.strip()
 
+def generate_tensorflow_code(architecture: Genotype) -> str:
+    """Generates a TensorFlow/Keras tf.keras.Model class from a genotype."""
+    
+    module_defs = []
+    for module in architecture.modules:
+        if module.module_type == 'mlp':
+            module_defs.append(f"        self.{module.id} = tf.keras.Sequential([tf.keras.layers.Dense({module.size}, activation='gelu')])")
+        elif module.module_type == 'attention':
+            module_defs.append(f"        self.{module.id} = tf.keras.layers.MultiHeadAttention(num_heads=8, key_dim={module.size})")
+        elif module.module_type == 'conv':
+            module_defs.append(f"        self.{module.id} = tf.keras.layers.Conv2D(filters={module.size}, kernel_size=3, padding='same', activation='relu')")
+        elif module.module_type == 'recurrent':
+            module_defs.append(f"        self.{module.id} = tf.keras.layers.LSTM(units={module.size}, return_sequences=True)")
+        else: # graph, etc.
+            module_defs.append(f"        self.{module.id} = tf.keras.layers.Layer(name='{module.id}') # Placeholder for '{module.module_type}'")
+
+    module_defs_str = "\n".join(module_defs)
+
+    # Topological sort for the call pass
+    G = nx.DiGraph()
+    for conn in architecture.connections: G.add_edge(conn.source, conn.target)
+    try:
+        exec_order = list(nx.topological_sort(G))
+    except nx.NetworkXUnfeasible: # Handle cycles
+        exec_order = [m.id for m in architecture.modules]
+
+    call_pass = ["        outputs = {{'input': inputs}} # Assuming 'input' is the first module's ID"]
+    for module_id in exec_order:
+        inputs = [c.source for c in architecture.connections if c.target == module_id]
+        if not inputs:
+            if module_id != 'input': call_pass.append(f"        # Module '{module_id}' has no inputs, skipping.")
+            continue
+        
+        # Simple aggregation: sum inputs if more than one
+        if len(inputs) > 1:
+            input_str = " + ".join([f"outputs['{i}']" for i in inputs])
+            call_pass.append(f"        aggregated_input = {input_str}")
+            current_input = "aggregated_input"
+        else:
+            current_input = f"outputs['{inputs[0]}']"
+
+        if any(m.module_type == 'attention' and m.id == module_id for m in architecture.modules):
+             call_pass.append(f"        outputs['{module_id}'] = self.{module_id}(query={current_input}, value={current_input}, key={current_input})")
+        else:
+            call_pass.append(f"        outputs['{module_id}'] = self.{module_id}({current_input})")
+
+    call_pass.append("        return outputs['output'] # Assuming 'output' is the final module's ID")
+    call_pass_str = "\n".join(call_pass)
+
+    code = f"""
+import tensorflow as tf
+
+class EvolvedArchitecture(tf.keras.Model):
+    def __init__(self):
+        super().__init__()
+{module_defs_str}
+
+    def call(self, inputs):
+{call_pass_str}
+"""
+    return code.strip()
+
 # ==================== VISUALIZATION ====================
 
 def visualize_fitness_landscape(history_df: pd.DataFrame):
@@ -2556,8 +2618,9 @@ def main():
 
                 with code_tab2:
                     st.subheader("TensorFlow / Keras Conceptual Code")
-                    st.info("A full TensorFlow code generator follows a similar logic, defining layers in `__init__` and connecting them in `call()` using a topological sort of the evolved graph.")
-                    st.code("# Conceptual TensorFlow/Keras code would be generated here.", language='python')
+                    st.info("This generated Keras model follows the same logic as the PyTorch version, defining layers in `__init__` and connecting them in `call()` using a topological sort of the evolved graph.")
+                    tensorflow_code = generate_tensorflow_code(master_architecture)
+                    st.code(tensorflow_code, language='python')
 
     st.sidebar.markdown("---")
     st.sidebar.info(
