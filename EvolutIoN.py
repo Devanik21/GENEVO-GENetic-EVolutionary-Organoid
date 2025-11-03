@@ -661,13 +661,17 @@ def main():
     )
     
     num_forms = st.sidebar.slider("Number of Forms (n)", 1, 5, 5,
-                                  help="How many architectural forms can exist simultaneously")
+                                  help="How many architectural forms can exist simultaneously",
+                                  key="num_forms_slider")
     
-    population_per_form = st.sidebar.slider("Population per Form", 2, 10, 5)
+    population_per_form = st.sidebar.slider("Population per Form", 2, 10, 5,
+                                            key="population_per_form_slider")
     
-    mutation_rate = st.sidebar.slider("Mutation Rate", 0.1, 0.9, 0.3, 0.1)
+    mutation_rate = st.sidebar.slider("Mutation Rate", 0.1, 0.9, 0.3, 0.1,
+                                      key="mutation_rate_slider")
     
-    num_generations = st.sidebar.slider("Number of Generations", 5, 50, 20)
+    num_generations = st.sidebar.slider("Number of Generations", 5, 50, 20,
+                                        key="num_generations_slider")
     
     # Initialize session state
     if 'history' not in st.session_state:
