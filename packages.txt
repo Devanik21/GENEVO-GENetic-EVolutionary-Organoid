@@ -1,2 +1,5 @@
-chromium-browser
-
+libnss3
+libxss1
+libasound2
+libx11-xcb1
+libxtst6
