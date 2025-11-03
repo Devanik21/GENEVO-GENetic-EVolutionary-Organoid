@@ -648,6 +648,109 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
 
 # ==================== VISUALIZATION ====================
 
+def visualize_fitness_landscape(history_df: pd.DataFrame):
+    """Renders a 3D fitness landscape with the population's evolutionary trajectory."""
+    st.markdown("### Fitness Landscape and Evolutionary Trajectory")
+    st.markdown("""
+    This visualization models the fitness landscape explored by the algorithm. The surface represents the fitness (Z-axis) as a function of two key architectural traits: total parameters (log scale) and architectural complexity. The colored line shows the trajectory of the population's mean genotype over generations, illustrating how the population navigates this complex search space.
+    """)
+
+    # Use a subset for performance if history is large, ensuring we have data
+    sample_size = min(len(history_df), 20000)
+    if sample_size < 10:
+        st.warning("Not enough data to render fitness landscape.")
+        return
+    df_sample = history_df.sample(n=sample_size, random_state=42)
+    
+    x_param = 'total_params'
+    y_param = 'complexity'
+    z_param = 'fitness'
+
+    # Create grid for the surface
+    x_bins = np.logspace(np.log10(max(1, df_sample[x_param].min())), np.log10(max(10, df_sample[x_param].max())), 25)
+    y_bins = np.linspace(df_sample[y_param].min(), df_sample[y_param].max(), 25)
+
+    # Bin data and calculate mean fitness for each grid cell
+    df_sample['x_bin'] = pd.cut(df_sample[x_param], bins=x_bins, labels=False, include_lowest=True)
+    df_sample['y_bin'] = pd.cut(df_sample[y_param], bins=y_bins, labels=False, include_lowest=True)
+    grid = df_sample.groupby(['x_bin', 'y_bin'])[z_param].mean().unstack(level='x_bin')
+    
+    # Get grid coordinates (bin centers)
+    x_coords = (x_bins[:-1] + x_bins[1:]) / 2
+    y_coords = (y_bins[:-1] + y_bins[1:]) / 2
+    z_surface = grid.values
+
+    surface_trace = go.Surface(
+        x=np.log10(x_coords), 
+        y=y_coords, 
+        z=z_surface,
+        colorscale='cividis',
+        opacity=0.7,
+        colorbar=dict(title='Mean Fitness'),
+        name='Fitness Landscape',
+        hoverinfo='x+y+z'
+    )
+
+    # Calculate the evolutionary trajectory (path of the population mean)
+    trajectory = history_df.groupby('generation').agg({
+        x_param: 'mean',
+        y_param: 'mean',
+        z_param: 'mean'
+    }).reset_index()
+
+    trajectory_trace = go.Scatter3d(
+        x=np.log10(trajectory[x_param]),
+        y=trajectory[y_param],
+        z=trajectory[z_param],
+        mode='lines+markers',
+        line=dict(color=trajectory['generation'], colorscale='plasma', width=10),
+        marker=dict(size=5, color=trajectory['generation'], colorscale='plasma', showscale=True, colorbar=dict(title='Generation', x=1.15)),
+        name='Population Mean Trajectory',
+        hovertext=[f"Gen: {g}<br>Fitness: {f:.3f}" for g, f in zip(trajectory['generation'], trajectory[z_param])]
+    )
+
+    fig = go.Figure(data=[surface_trace, trajectory_trace])
+    fig.update_layout(
+        title='<b>3D Fitness Landscape with Population Trajectory</b>',
+        scene=dict(
+            xaxis_title='Log(Total Parameters)',
+            yaxis_title='Architectural Complexity',
+            zaxis_title='Fitness',
+            camera=dict(eye=dict(x=-1.8, y=-1.8, z=1.5))
+        ),
+        height=700,
+        margin=dict(l=0, r=0, b=0, t=40)
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def visualize_phase_space_portraits(metrics_df: pd.DataFrame):
+    """Plots phase-space portraits of key evolutionary metrics."""
+    st.markdown("### Phase-Space Portraits of Evolutionary Dynamics")
+    st.markdown("""
+    Inspired by dynamical systems theory, these plots visualize the evolution's trajectory in a "phase space". Each point represents a generation, showing a system metric (like diversity) versus its own rate of change. This reveals the stability and nature of the evolutionary process:
+    - **Trajectories moving towards the `y=0` line** indicate stabilization (an equilibrium).
+    - **Spirals** suggest damped oscillations around an equilibrium point.
+    - **Large `y` values** indicate rapid change or instability.
+    """)
+
+    metrics_df['diversity_delta'] = metrics_df['diversity'].diff()
+    metrics_df['mean_fitness_delta'] = metrics_df['mean_fitness'].diff()
+
+    fig = make_subplots(rows=1, cols=2, subplot_titles=('Diversity Phase Space (H vs dH/dt)', 'Fitness Phase Space (F vs dF/dt)'))
+
+    # Diversity Plot
+    fig.add_trace(go.Scatter(x=metrics_df['diversity'], y=metrics_df['diversity_delta'], mode='lines+markers', marker=dict(color=metrics_df['generation'], colorscale='plasma', showscale=False, size=8), line=dict(color='rgba(128,128,128,0.5)'), hovertext=[f"Gen: {g}" for g in metrics_df['generation']]), row=1, col=1)
+    fig.add_hline(y=0, line_width=1, line_dash="dash", line_color="grey", row=1, col=1)
+
+    # Fitness Plot
+    fig.add_trace(go.Scatter(x=metrics_df['mean_fitness'], y=metrics_df['mean_fitness_delta'], mode='lines+markers', marker=dict(color=metrics_df['generation'], colorscale='plasma', showscale=True, colorbar=dict(title='Generation'), size=8), line=dict(color='rgba(128,128,128,0.5)'), hovertext=[f"Gen: {g}" for g in metrics_df['generation']]), row=1, col=2)
+    fig.add_hline(y=0, line_width=1, line_dash="dash", line_color="grey", row=1, col=2)
+
+    fig.update_xaxes(title_text="Genetic Diversity (H)", row=1, col=1); fig.update_yaxes(title_text="Rate of Change (dH/dt)", row=1, col=1)
+    fig.update_xaxes(title_text="Mean Fitness (F)", row=1, col=2); fig.update_yaxes(title_text="Rate of Change (dF/dt)", row=1, col=2)
+    fig.update_layout(height=500, title_text="<b>Evolutionary Dynamics in Phase Space</b>", title_x=0.5, showlegend=False)
+    st.plotly_chart(fig, use_container_width=True)
+
 def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     """Advanced 3D network visualization"""
     
@@ -1347,6 +1450,19 @@ def main():
         # Key Metrics Summary
         st.header("📊 Evolutionary Outcome Analysis")
         
+        # --- ADVANCED VISUALIZATIONS ---
+        if not history_df.empty:
+            visualize_fitness_landscape(history_df)
+        
+        if 'evolutionary_metrics' in st.session_state and st.session_state.evolutionary_metrics:
+            metrics_df = pd.DataFrame(st.session_state.evolutionary_metrics)
+            if len(metrics_df) > 1:
+                visualize_phase_space_portraits(metrics_df)
+        
+        st.markdown("<hr style='margin-top: 2rem; margin-bottom: 2rem;'>", unsafe_allow_html=True)
+        st.markdown("### Run Summary Metrics")
+        # --- END ADVANCED VISUALIZATIONS ---
+
         final_gen = history_df[history_df['generation'] == history_df['generation'].max()]
         best_individual_idx = final_gen['fitness'].idxmax()
         best_individual_data = final_gen.loc[best_individual_idx]
