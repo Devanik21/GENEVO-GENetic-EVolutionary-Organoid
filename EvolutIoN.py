@@ -535,6 +535,41 @@ def main():
                          x='generation', y='total_params', color='form',
                          title='Average Parameters Over Time')
             st.plotly_chart(fig, use_container_width=True)
+            
+        # Export results
+        st.markdown("---")
+        st.header("📤 Export Results")
+        st.markdown("Download the complete evolution history and the final population's genetic makeup as CSV files.")
+
+        # Export evolution history
+        history_csv = history_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+           label="Download Evolution History (CSV)",
+           data=history_csv,
+           file_name=f"genevo_evolution_history_{task_type}.csv",
+           mime="text/csv",
+        )
+
+        # Export final population
+        if st.session_state.current_population:
+            population_data = [{
+                'form_id': ind.form_id,
+                'generation': ind.generation,
+                'fitness': f"{ind.fitness:.4f}",
+                'total_params': sum(m.size for m in ind.modules),
+                'modules': str([{'id': m.id, 'type': m.module_type, 'size': m.size} for m in ind.modules]),
+                'connections': str([{'source': c.source, 'target': c.target, 'weight': f"{c.weight:.4f}"} for c in ind.connections])
+            } for ind in st.session_state.current_population]
+            
+            final_pop_df = pd.DataFrame(population_data)
+            final_pop_csv = final_pop_df.to_csv(index=False).encode('utf-8')
+
+            st.download_button(
+               label="Download Final Population (CSV)",
+               data=final_pop_csv,
+               file_name=f"genevo_final_population_{task_type}.csv",
+               mime="text/csv",
+            )
     
     else:
         # Instructions
