@@ -927,7 +927,7 @@ def visualize_phylogenetic_tree(history_df: pd.DataFrame):
             showscale=True, colorscale='Viridis', reversescale=False,
             color=[G.nodes[n].get('generation', 0) for n in G.nodes()],
             size=node_size,
-            colorbar=dict(thickness=15, title='Generation', xanchor='left', titleside='right'),
+            colorbar=dict(thickness=15, title={'text': 'Generation', 'side': 'right'}, xanchor='left'),
             line=dict(width=1, color='black'))
     )
 
