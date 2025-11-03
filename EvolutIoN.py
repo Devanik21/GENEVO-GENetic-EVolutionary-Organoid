@@ -35,6 +35,7 @@ import networkx as nx
 import os
 from tinydb import TinyDB, Query
 from collections import Counter
+import json
 
 # ==================== THEORETICAL FOUNDATIONS ====================
 
@@ -1069,6 +1070,74 @@ def analyze_phylogenetic_signal(history_df: pd.DataFrame, final_population: List
         "pheno_distances": pheno_dist
     }
 
+def generate_pytorch_code(architecture: Genotype) -> str:
+    """Generates a PyTorch nn.Module class from a genotype."""
+    
+    module_defs = []
+    for module in architecture.modules:
+        if module.module_type == 'mlp':
+            # Assuming input size is same as output size for simplicity
+            module_defs.append(f"            '{module.id}': nn.Sequential(nn.Linear({module.size}, {module.size}), nn.GELU()),")
+        elif module.module_type == 'attention':
+            module_defs.append(f"            '{module.id}': nn.MultiheadAttention(embed_dim={module.size}, num_heads=8, batch_first=True),")
+        elif module.module_tpye == 'conv':
+            module_defs.append(f"            '{module.id}': nn.Conv2d(in_channels=3, out_channels={module.size}, kernel_size=3, padding=1), # Assuming 3 input channels")
+        elif module.module_type == 'recurrent':
+            module_defs.append(f"            '{module.id}': nn.LSTM(input_size={module.size}, hidden_size={module.size}, batch_first=True),")
+        else: # graph, etc.
+            module_defs.append(f"            '{module.id}': nn.Identity(), # Placeholder for '{module.module_type}'")
+
+    module_defs_str = "\n".join(module_defs)
+
+    # Create a simplified topological sort for the forward pass
+    G = nx.DiGraph()
+    for conn in architecture.connections: G.add_edge(conn.source, conn.target)
+    try:
+        exec_order = list(nx.topological_sort(G))
+    except nx.NetworkXUnfeasible: # Handle cycles
+        # Fallback for cyclic graphs: just use module order and hope for the best
+        exec_order = [m.id for m in architecture.modules]
+
+    forward_pass = ["        outputs = {'input': x} # Assuming 'input' is the first module's ID"]
+    for module_id in exec_order:
+        # Find inputs for the current module
+        inputs = [c.source for c in architecture.connections if c.target == module_id]
+        if not inputs:
+            if module_id != 'input': forward_pass.append(f"        # Module '{module_id}' has no inputs, skipping.")
+            continue
+        
+        # Simple aggregation: sum inputs
+        input_str = " + ".join([f"outputs['{i}']" for i in inputs])
+        
+        # Handle special cases for nn.Module outputs (e.g., LSTM)
+        if any(m.module_type == 'recurrent' and m.id == module_id for m in architecture.modules):
+            forward_pass.append(f"        out, _ = self.evolved_modules['{module_id}']({input_str})")
+            forward_pass.append(f"        outputs['{module_id}'] = out")
+        elif any(m.module_type == 'attention' and m.id == module_id for m in architecture.modules):
+             forward_pass.append(f"        attn_out, _ = self.evolved_modules['{module_id}']({input_str}, {input_str}, {input_str})")
+             forward_pass.append(f"        outputs['{module_id}'] = attn_out")
+        else:
+            forward_pass.append(f"        outputs['{module_id}'] = self.evolved_modules['{module_id}']({input_str})")
+
+    forward_pass.append("        return outputs['output'] # Assuming 'output' is the final module's ID")
+    forward_pass_str = "\n".join(forward_pass)
+
+    code = f"""
+import torch
+import torch.nn as nn
+
+class EvolvedArchitecture(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.evolved_modules = nn.ModuleDict({{
+{module_defs_str}
+        }})
+
+    def forward(self, x):
+{forward_pass_str}
+"""
+    return code.strip()
+
 # ==================== VISUALIZATION ====================
 
 def visualize_fitness_landscape(history_df: pd.DataFrame):
@@ -1698,6 +1767,26 @@ def main():
         st.info(
             "These parameters are inspired by theoretical biology to simulate complex evolutionary dynamics like epistasis and niche partitioning."
         )
+    
+    with st.sidebar.expander("🗂️ Experiment Management", expanded=False):
+        st.markdown("Export the full configuration to reproduce this experiment, or import a previous configuration.")
+        
+        # Export button
+        st.download_button(
+            label="Export Experiment Config",
+            data=json.dumps(st.session_state.settings, indent=2),
+            file_name="genevo_config.json",
+            mime="application/json",
+            width='stretch'
+        )
+
+        # Import button and logic
+        uploaded_file = st.file_uploader("Import Experiment Config", type="json")
+        if uploaded_file is not None:
+            new_settings = json.load(uploaded_file)
+            st.session_state.settings = new_settings
+            st.toast("✅ Config imported! Settings have been updated.", icon="⚙️")
+            st.rerun()
 
     with st.sidebar.expander("🌋 Ecosystem Shocks & Dynamics", expanded=False):
         st.markdown("Introduce high-level ecosystem pressures.")
@@ -2453,6 +2542,22 @@ def main():
                         st.plotly_chart(fig, width='stretch')
                     else:
                         st.info("Not enough data for phylogenetic signal analysis.")
+
+                st.markdown("---")
+                st.header("🛠️ Practical Implementation & Export")
+                st.markdown("The synthesized architecture can be translated into functional code for deep learning frameworks. This provides a direct path from evolutionary discovery to real-world application.")
+
+                code_tab1, code_tab2 = st.tabs(["PyTorch", "TensorFlow (Conceptual)"])
+
+                with code_tab1:
+                    st.subheader("PyTorch Code Generation")
+                    pytorch_code = generate_pytorch_code(master_architecture)
+                    st.code(pytorch_code, language='python')
+
+                with code_tab2:
+                    st.subheader("TensorFlow / Keras Conceptual Code")
+                    st.info("A full TensorFlow code generator follows a similar logic, defining layers in `__init__` and connecting them in `call()` using a topological sort of the evolved graph.")
+                    st.code("# Conceptual TensorFlow/Keras code would be generated here.", language='python')
 
     st.sidebar.markdown("---")
     st.sidebar.info(
