@@ -181,6 +181,47 @@ class Genotype:
         
         return (c_params + c_connections + c_diversity) / 3
 
+def genomic_distance(g1: Genotype, g2: Genotype, c1=1.0, c3=0.5) -> float:
+    """
+    Computes genomic distance between two genotypes (NEAT-inspired).
+    Distance is a weighted sum of differences in connections and module properties.
+    c1: weight for disjoint/excess connections
+    c3: weight for average attribute difference of matching modules (e.g., size)
+    """
+    # Incompatible forms are in different species
+    if g1.form_id != g2.form_id:
+        return float('inf')
+
+    # Compare connections
+    g1_conns = {(c.source, c.target) for c in g1.connections}
+    g2_conns = {(c.source, c.target) for c in g2.connections}
+    
+    disjoint_conns = len(g1_conns.symmetric_difference(g2_conns))
+    
+    # Compare modules
+    g1_modules = {m.id: m for m in g1.modules}
+    g2_modules = {m.id: m for m in g2.modules}
+    
+    matching_modules = 0
+    size_diff = 0.0
+    plasticity_diff = 0.0
+    
+    all_module_ids = set(g1_modules.keys()) | set(g2_modules.keys())
+    
+    for mid in all_module_ids:
+        if mid in g1_modules and mid in g2_modules:
+            matching_modules += 1
+            size_diff += abs(g1_modules[mid].size - g2_modules[mid].size)
+            plasticity_diff += abs(g1_modules[mid].plasticity - g2_modules[mid].plasticity)
+
+    avg_size_diff = (size_diff / matching_modules) if matching_modules > 0 else 0
+    avg_plasticity_diff = (plasticity_diff / matching_modules) if matching_modules > 0 else 0
+
+    N = max(1, len(g1.connections), len(g2.connections))
+    distance = (c1 * disjoint_conns / N) + (c3 * (avg_size_diff / 100 + avg_plasticity_diff))
+    
+    return distance
+
 # ==================== ADVANCED INITIALIZATION ====================
 
 def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genotype:
@@ -477,7 +518,7 @@ def crossover(parent1: Genotype, parent2: Genotype, crossover_rate: float = 0.7)
     child.complexity = child.compute_complexity()
     return child
 
-def evaluate_fitness(genotype: Genotype, task_type: str, generation: int) -> Tuple[float, Dict[str, float]]:
+def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weights: Optional[Dict[str, float]] = None) -> Tuple[float, Dict[str, float]]:
     """
     Multi-objective fitness evaluation with realistic task simulation
     
@@ -590,11 +631,12 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int) -> Tup
     )
     
     # Multi-objective fitness with task-dependent weights
-    if 'ARC' in task_type:
-        weights = {'task_accuracy': 0.5, 'efficiency': 0.3, 'robustness': 0.1, 'generalization': 0.1}
-    else:
-        weights = {'task_accuracy': 0.6, 'efficiency': 0.2, 'robustness': 0.1, 'generalization': 0.1}
-    
+    if weights is None:
+        if 'ARC' in task_type:
+            weights = {'task_accuracy': 0.5, 'efficiency': 0.3, 'robustness': 0.1, 'generalization': 0.1}
+        else:
+            weights = {'task_accuracy': 0.6, 'efficiency': 0.2, 'robustness': 0.1, 'generalization': 0.1}
+        
     total_fitness = sum(scores[k] * weights[k] for k in weights)
     
     # Store component scores
@@ -987,17 +1029,27 @@ def main():
     st.sidebar.header("🎛️ Evolution Configuration")
     
     st.sidebar.markdown("### Task Environment")
+    task_options = [
+        'Abstract Reasoning (ARC-AGI-2)',
+        'Vision (ImageNet)',
+        'Language (MMLU-Pro)',
+        'Sequential Prediction',
+        'Multi-Task Learning'
+    ]
     task_type = st.sidebar.selectbox(
-        "Selection Pressure (Task Type)",
-        [
-            'Abstract Reasoning (ARC-AGI-2)',
-            'Vision (ImageNet)',
-            'Language (MMLU-Pro)',
-            'Sequential Prediction',
-            'Multi-Task Learning'
-        ],
+        "Initial Task",
+        task_options,
         help="Environmental pressure determines which architectures survive"
     )
+    
+    with st.sidebar.expander("Dynamic Environment Settings"):
+        dynamic_environment = st.checkbox("Enable Dynamic Environment", value=True, help="If enabled, the task will change periodically.")
+        env_change_frequency = st.slider(
+            "Change Frequency (Generations)",
+            min_value=5, max_value=50, value=15,
+            help="How often the task environment changes.",
+            disabled=not dynamic_environment
+        )
     
     st.sidebar.markdown("### Population Parameters")
     num_forms = st.sidebar.slider(
@@ -1012,18 +1064,37 @@ def main():
         help="Larger populations increase genetic diversity"
     )
     
+    st.sidebar.markdown("### Fitness Objectives")
+    with st.sidebar.expander("Multi-Objective Weights", expanded=False):
+        st.info("Define the importance of each fitness objective. Weights will be normalized.")
+        w_accuracy = st.slider("Accuracy Weight", 0.0, 1.0, 0.5)
+        w_efficiency = st.slider("Efficiency Weight", 0.0, 1.0, 0.2)
+        w_robustness = st.slider("Robustness Weight", 0.0, 1.0, 0.1)
+        w_generalization = st.slider("Generalization Weight", 0.0, 1.0, 0.2)
+        
+        total_w = w_accuracy + w_efficiency + w_robustness + w_generalization + 1e-9
+        fitness_weights = {
+            'task_accuracy': w_accuracy / total_w,
+            'efficiency': w_efficiency / total_w,
+            'robustness': w_robustness / total_w,
+            'generalization': w_generalization / total_w
+        }
+        
+        st.write("Normalized Weights:")
+        st.json({k: f"{v:.2f}" for k, v in fitness_weights.items()})
+    
     st.sidebar.markdown("### Evolutionary Operators")
     
     col1, col2 = st.sidebar.columns(2)
     with col1:
         mutation_rate = st.slider(
-            "Mutation Rate (μ)",
+            "Base Mutation Rate (μ)",
             min_value=0.05, max_value=0.6, value=0.2, step=0.05,
-            help="Probability of genetic variation"
+            help="Initial probability of genetic variation"
         )
     
     with col2:
-        crossover_rate = st.sidebar.slider(
+        crossover_rate = st.slider(
             "Crossover Rate",
             min_value=0.3, max_value=0.9, value=0.7, step=0.1,
             help="Probability of recombination"
@@ -1035,6 +1106,20 @@ def main():
         help="Rate of structural mutations"
     )
     
+    with st.sidebar.expander("Advanced Mutation Control"):
+        mutation_schedule = st.selectbox(
+            "Mutation Rate Schedule",
+            ['Constant', 'Linear Decay', 'Adaptive'],
+            index=2,
+            help="How the mutation rate changes over generations."
+        )
+        adaptive_mutation_strength = st.slider(
+            "Adaptive Strength",
+            min_value=0.1, max_value=1.0, value=0.5,
+            help="How strongly mutation rate reacts to stagnation.",
+            disabled=(mutation_schedule != 'Adaptive')
+        )
+    
     st.sidebar.markdown("### Selection Strategy")
     selection_pressure = st.sidebar.slider(
         "Selection Pressure",
@@ -1042,6 +1127,16 @@ def main():
         help="Fraction of population surviving each generation"
     )
     
+    with st.sidebar.expander("Speciation (NEAT-style)", expanded=True):
+        enable_speciation = st.checkbox("Enable Speciation", value=True, help="Group similar individuals into species to protect innovation.")
+        compatibility_threshold = st.slider(
+            "Compatibility Threshold",
+            min_value=1.0, max_value=10.0, value=4.0, step=0.5,
+            disabled=not enable_speciation,
+            help="Genomic distance to be in the same species. Higher = fewer species."
+        )
+        st.info("Speciation uses a genomic distance metric based on form, module/connection differences, and parameter differences.")
+
     st.sidebar.markdown("### Experiment Settings")
     num_generations = st.sidebar.slider(
         "Generations",
@@ -1076,6 +1171,14 @@ def main():
                 genotype.generation = 0
                 population.append(genotype)
         
+        # For adaptive mutation
+        last_best_fitness = -1
+        stagnation_counter = 0
+        current_mutation_rate = mutation_rate
+        
+        # For dynamic environment
+        current_task = task_type
+        
         # Progress tracking
         progress_container = st.empty()
         metrics_container = st.empty()
@@ -1083,12 +1186,20 @@ def main():
         
         # Evolution loop
         for gen in range(num_generations):
-            status_text.markdown(f"### 🧬 Generation {gen + 1}/{num_generations}")
+            # Handle dynamic environment
+            if dynamic_environment and gen > 0 and gen % env_change_frequency == 0:
+                previous_task = current_task
+                current_task = random.choice([t for t in task_options if t != previous_task])
+                st.toast(f"🌍 Environment Shift! New Task: {current_task}", icon="🔄")
+                time.sleep(1.0)
+            
+            status_text.markdown(f"### 🧬 Generation {gen + 1}/{num_generations} | Task: **{current_task}**")
             
             # Evaluate fitness
             all_scores = []
             for individual in population:
-                fitness, component_scores = evaluate_fitness(individual, task_type, gen)
+                # Pass the weights from the sidebar
+                fitness, component_scores = evaluate_fitness(individual, current_task, gen, fitness_weights)
                 individual.fitness = fitness
                 individual.generation = gen
                 individual.age += 1
@@ -1116,15 +1227,17 @@ def main():
             fitness_array = np.array([ind.fitness for ind in population])
             diversity = EvolutionaryTheory.genetic_diversity(population)
             fisher_info = EvolutionaryTheory.fisher_information(population, fitness_array)
-            
+
             # Display real-time metrics
             with metrics_container.container():
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2, col3, col4, col5 = st.columns(5)
                 col1.metric("Best Fitness", f"{fitness_array.max():.4f}")
                 col2.metric("Mean Fitness", f"{fitness_array.mean():.4f}")
                 col3.metric("Diversity (H)", f"{diversity:.3f}")
-                col4.metric("Fisher Info", f"{fisher_info:.3f}")
-            
+                col4.metric("Mutation Rate (μ)", f"{current_mutation_rate:.3f}")
+                # Placeholder for species count, will be updated below
+                species_metric = col5.metric("Species Count", "N/A")
+
             st.session_state.evolutionary_metrics.append({
                 'generation': gen,
                 'diversity': diversity,
@@ -1134,7 +1247,36 @@ def main():
             })
             
             # Selection
-            population.sort(key=lambda x: x.fitness, reverse=True)
+            if enable_speciation:
+                species = []
+                for ind in population:
+                    found_species = False
+                    for s in species:
+                        representative = s['representative']
+                        dist = genomic_distance(ind, representative)
+                        if dist < compatibility_threshold:
+                            s['members'].append(ind)
+                            found_species = True
+                            break
+                    if not found_species:
+                        species.append({'representative': ind, 'members': [ind]})
+                
+                species_metric.metric("Species Count", f"{len(species)}")
+                
+                # Apply fitness sharing
+                for s in species:
+                    species_size = len(s['members'])
+                    if species_size > 0:
+                        for member in s['members']:
+                            member.adjusted_fitness = member.fitness / species_size
+                
+                population.sort(key=lambda x: x.adjusted_fitness, reverse=True)
+                selection_key = lambda x: x.adjusted_fitness
+            else:
+                species_metric.metric("Species Count", f"{len(set(ind.form_id for ind in population))}")
+                population.sort(key=lambda x: x.fitness, reverse=True)
+                selection_key = lambda x: x.fitness
+
             num_survivors = max(2, int(len(population) * selection_pressure))
             survivors = population[:num_survivors]
             
@@ -1145,14 +1287,14 @@ def main():
             # Reproduction
             offspring = []
             while len(offspring) < len(population) - len(survivors):
-                # Tournament selection
-                parent1 = max(random.sample(survivors, min(3, len(survivors))), key=lambda x: x.fitness)
+                # Tournament selection using the appropriate fitness key
+                parent1 = max(random.sample(survivors, min(3, len(survivors))), key=selection_key)
                 
                 if random.random() < crossover_rate and len(survivors) > 1:
                     # Select compatible parent (same form)
                     compatible = [s for s in survivors if s.form_id == parent1.form_id and s.lineage_id != parent1.lineage_id]
                     if compatible:
-                        parent2 = max(random.sample(compatible, min(2, len(compatible))), key=lambda x: x.fitness)
+                        parent2 = max(random.sample(compatible, min(2, len(compatible))), key=selection_key)
                         child = crossover(parent1, parent2, crossover_rate)
                     else:
                         child = parent1.copy()
@@ -1160,10 +1302,32 @@ def main():
                     child = parent1.copy()
                 
                 # Mutation
-                child = mutate(child, mutation_rate, innovation_rate)
+                child = mutate(child, current_mutation_rate, innovation_rate)
                 child.generation = gen + 1
                 offspring.append(child)
             
+            # Clean up temporary attribute
+            if enable_speciation:
+                for ind in population:
+                    if hasattr(ind, 'adjusted_fitness'):
+                        del ind.adjusted_fitness
+
+            # Update mutation rate for next generation
+            if mutation_schedule == 'Linear Decay':
+                current_mutation_rate = mutation_rate * (1.0 - ((gen + 1) / num_generations))
+            elif mutation_schedule == 'Adaptive':
+                current_best_fitness = fitness_array.max()
+                if current_best_fitness > last_best_fitness:
+                    stagnation_counter = 0
+                    current_mutation_rate = max(0.05, current_mutation_rate * 0.95) # Anneal
+                else:
+                    stagnation_counter += 1
+                
+                if stagnation_counter > 3: # If stagnated for >3 generations
+                    current_mutation_rate = min(0.8, current_mutation_rate * (1 + adaptive_mutation_strength)) # Spike
+                
+                last_best_fitness = current_best_fitness
+
             population = survivors + offspring
             
             # Update progress
