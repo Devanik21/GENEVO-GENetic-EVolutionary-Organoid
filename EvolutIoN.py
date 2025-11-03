@@ -656,7 +656,8 @@ def main():
     task_type = st.sidebar.selectbox(
         "Select Task Type (Environmental Pressure)",
         ['Vision', 'Language', 'Sequential', 'Reasoning', 'Multi-Task'],
-        help="The task creates selection pressure—different forms will thrive in different environments"
+        help="The task creates selection pressure—different forms will thrive in different environments",
+        key="task_type_selector"
     )
     
     num_forms = st.sidebar.slider("Number of Forms (n)", 1, 5, 5,
