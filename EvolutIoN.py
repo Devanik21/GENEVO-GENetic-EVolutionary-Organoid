@@ -580,7 +580,7 @@ def apply_endosymbiosis(recipient: Genotype, donors: List[Genotype]) -> Genotype
     recipient.connections.append(ConnectionGene(new_id, connection_to_split.target, float(np.random.uniform(0.4, 0.8)), 'excitatory', 0.01, 'stdp'))
 
     recipient.complexity = recipient.compute_complexity()
-    st.toast(f"🌀 Endosymbiosis! Acquired module '{module_to_acquire.module_type}'.", icon="🧬")
+    st.toast(f"Endosymbiosis Event: Acquired module '{module_to_acquire.module_type}'.", icon="🧬")
     return recipient
 
 def apply_developmental_rules(genotype: Genotype, stagnation_counter: int) -> Genotype:
@@ -1375,7 +1375,7 @@ def main():
     if st.sidebar.button("🗑️ Clear Saved State & Reset", use_container_width=True):
         db.truncate() # Clear all tables
         st.session_state.clear()
-        st.toast("Cleared all saved data. App has been reset.", icon="✨")
+        st.toast("Cleared all saved data. App has been reset.", icon="🗑️")
         time.sleep(1) # Give time for toast to show
         st.rerun()
 
@@ -1455,7 +1455,7 @@ def main():
         help="Rate of structural mutations"
     )
     
-    with st.sidebar.expander("👑 Advanced Speciation & Landscape Control", expanded=False):
+    with st.sidebar.expander("🏔️ Landscape & Speciation Control", expanded=False):
         st.markdown("Control the deep physics of the evolutionary ecosystem.")
         epistatic_linkage_k = st.slider(
             "Epistatic Linkage (K)", 0, 5, s.get('epistatic_linkage_k', 0), 1,
@@ -1785,7 +1785,7 @@ def main():
             results_table.insert(results_to_save)
         
         status_text.markdown("### ✅ Evolution Complete! Results saved.")
-        st.balloons()
+        # st.balloons() # Removed for a more serious tone
     
     # Display results
     if st.session_state.history:
@@ -1858,14 +1858,14 @@ def main():
         
         # Best evolved architectures
         st.markdown("---")
-        st.header("🏆 Elite Evolved Architectures")
+        st.header("🏛️ Elite Evolved Architectures")
         
         population = st.session_state.current_population
         population.sort(key=lambda x: x.fitness, reverse=True)
         
         # Show top 3
         for i, individual in enumerate(population[:3]):
-            with st.expander(f"🥇 Rank {i+1}: Form {individual.form_id} | Fitness: {individual.fitness:.4f}", expanded=(i==0)):
+            with st.expander(f"Rank {i+1}: Form {individual.form_id} | Fitness: {individual.fitness:.4f}", expanded=(i==0)):
                 tab1, tab2 = st.tabs(["3D Interactive View", "2D Static View & Download"])
 
                 with tab1:
