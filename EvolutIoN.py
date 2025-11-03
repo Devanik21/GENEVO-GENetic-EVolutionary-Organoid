@@ -1080,7 +1080,7 @@ def generate_pytorch_code(architecture: Genotype) -> str:
             module_defs.append(f"            '{module.id}': nn.Sequential(nn.Linear({module.size}, {module.size}), nn.GELU()),")
         elif module.module_type == 'attention':
             module_defs.append(f"            '{module.id}': nn.MultiheadAttention(embed_dim={module.size}, num_heads=8, batch_first=True),")
-        elif module.module_tpye == 'conv':
+        elif module.module_type == 'conv':
             module_defs.append(f"            '{module.id}': nn.Conv2d(in_channels=3, out_channels={module.size}, kernel_size=3, padding=1), # Assuming 3 input channels")
         elif module.module_type == 'recurrent':
             module_defs.append(f"            '{module.id}': nn.LSTM(input_size={module.size}, hidden_size={module.size}, batch_first=True),")
