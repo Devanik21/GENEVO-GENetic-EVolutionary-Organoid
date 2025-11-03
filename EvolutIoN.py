@@ -1335,7 +1335,10 @@ def main():
     # Save settings to DB if they have changed
     if current_settings != st.session_state.settings:
         st.session_state.settings = current_settings
-        settings_table.upsert(current_settings, doc_id=1)
+        if settings_table.get(doc_id=1):
+            settings_table.update(current_settings, doc_ids=[1])
+        else:
+            settings_table.insert(current_settings)
         st.toast("Settings saved.", icon="⚙️")
 
     st.sidebar.markdown("---")
@@ -1525,7 +1528,10 @@ def main():
             'evolutionary_metrics': st.session_state.evolutionary_metrics,
             'current_population': serializable_population
         }
-        results_table.upsert(results_to_save, doc_id=1)
+        if results_table.get(doc_id=1):
+            results_table.update(results_to_save, doc_ids=[1])
+        else:
+            results_table.insert(results_to_save)
         
         status_text.markdown("### ✅ Evolution Complete! Results saved.")
         st.balloons()
