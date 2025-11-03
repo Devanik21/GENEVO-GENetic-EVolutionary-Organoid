@@ -123,6 +123,7 @@ class Genotype:
     developmental_rules: List[DevelopmentalGene] = field(default_factory=list)
     meta_parameters: Dict[str, float] = field(default_factory=dict)
     
+    epigenetic_markers: Dict[str, float] = field(default_factory=dict)
     # Evolutionary metrics
     fitness: float = 0.0
     age: int = 0
@@ -163,6 +164,7 @@ class Genotype:
                 d.rule_type, d.trigger_condition, d.parameters.copy()
             ) for d in self.developmental_rules],
             meta_parameters=self.meta_parameters.copy(),
+            epigenetic_markers={k: v * 0.5 for k, v in self.epigenetic_markers.items()}, # Imperfect inheritance
             fitness=self.fitness,
             age=0,
             generation=self.generation,
@@ -491,6 +493,15 @@ def crossover(parent1: Genotype, parent2: Genotype, crossover_rate: float = 0.7)
     if random.random() > crossover_rate:
         return child
     
+    # Epigenetic Crossover: average the decayed markers from both parents
+    # child.epigenetic_markers already contains decayed markers from parent1 via .copy()
+    for key, p2_val in parent2.epigenetic_markers.items():
+        # Decay parent2's markers as well before averaging
+        decayed_p2_val = p2_val * 0.5 
+        # Get the current value (from parent1) and average with parent2's
+        current_val = child.epigenetic_markers.get(key, 0.0)
+        child.epigenetic_markers[key] = (current_val + decayed_p2_val) / 2.0
+
     # Module-level crossover
     for i in range(min(len(parent1.modules), len(parent2.modules))):
         if random.random() < 0.5:
@@ -534,6 +545,43 @@ def crossover(parent1: Genotype, parent2: Genotype, crossover_rate: float = 0.7)
     
     child.complexity = child.compute_complexity()
     return child
+
+def apply_endosymbiosis(recipient: Genotype, donors: List[Genotype]) -> Genotype:
+    """
+    A rare event where a recipient genotype acquires a module from a highly fit donor.
+    This simulates horizontal gene transfer or endosymbiosis.
+    """
+    if not donors or not recipient.connections:
+        return recipient
+
+    # Select a random elite donor
+    donor = random.choice(donors)
+    
+    # Select a non-trivial module from the donor to acquire
+    candidate_modules = [m for m in donor.modules if m.module_type not in ['input', 'output']]
+    if not candidate_modules:
+        return recipient
+
+    module_to_acquire = ModuleGene(**asdict(random.choice(candidate_modules)))
+    
+    # Ensure the new module has a unique ID
+    new_id = f"endo_{module_to_acquire.id}_{random.randint(0, 999)}"
+    if any(m.id == new_id for m in recipient.modules):
+        return recipient # Avoid ID collision
+    module_to_acquire.id = new_id
+
+    # Insert the module by splitting an existing connection
+    connection_to_split = random.choice(recipient.connections)
+    recipient.connections.remove(connection_to_split)
+
+    # Add the new module and wire it in
+    recipient.modules.append(module_to_acquire)
+    recipient.connections.append(ConnectionGene(connection_to_split.source, new_id, float(np.random.uniform(0.4, 0.8)), 'excitatory', 0.01, 'hebbian'))
+    recipient.connections.append(ConnectionGene(new_id, connection_to_split.target, float(np.random.uniform(0.4, 0.8)), 'excitatory', 0.01, 'stdp'))
+
+    recipient.complexity = recipient.compute_complexity()
+    st.toast(f"🌀 Endosymbiosis! Acquired module '{module_to_acquire.module_type}'.", icon="🧬")
+    return recipient
 
 def apply_developmental_rules(genotype: Genotype, stagnation_counter: int) -> Genotype:
     """
@@ -584,7 +632,14 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
     avg_plasticity = np.mean([m.plasticity for m in genotype.modules])
     connection_density = len(genotype.connections) / (len(genotype.modules) ** 2 + 1)
     
-    # 1. Task-specific accuracy simulation
+    # 1a. Epigenetic Inheritance Bonus
+    # Apply bonus from markers inherited from parents.
+    epigenetic_bonus = 0.0
+    aptitude_key = f"{task_type}_aptitude"
+    if aptitude_key in genotype.epigenetic_markers:
+        epigenetic_bonus = genotype.epigenetic_markers[aptitude_key]
+    
+    # 1b. Task-specific accuracy simulation
     if task_type == 'Abstract Reasoning (ARC-AGI-2)':
         # Reward compositional structures and high plasticity
         graph_attention_count = sum(1 for m in genotype.modules 
@@ -648,6 +703,9 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             np.random.normal(0, 0.05)
         )
     
+    # Apply epigenetic bonus to the base score
+    scores['task_accuracy'] += epigenetic_bonus
+
     # 2. Lifetime Learning Simulation (Baldwin Effect)
     # Plasticity allows an individual to "learn" and improve its performance during its lifetime.
     # This bonus is added to the base task accuracy, rewarding adaptable architectures.
@@ -681,6 +739,13 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
         modularity_score * 0.3 +
         avg_plasticity * 0.3
     )
+
+    # 6. Epigenetic Marking (Lamarckian-like learning)
+    # The individual "learns" from its performance, creating a marker for its offspring.
+    # This maps current performance to a small, heritable aptitude value.
+    performance_marker = (scores['task_accuracy'] - 0.5) * 0.05 # Small learning step
+    current_aptitude = genotype.epigenetic_markers.get(aptitude_key, 0.0)
+    genotype.epigenetic_markers[aptitude_key] = np.clip(current_aptitude + performance_marker, -0.15, 0.15)
     
     # Multi-objective fitness with task-dependent weights
     if weights is None:
@@ -1365,12 +1430,24 @@ def main():
         help="Rate of structural mutations"
     )
     
+    endosymbiosis_rate = st.sidebar.slider(
+        "Endosymbiosis Rate",
+        min_value=0.0, max_value=0.05, value=s.get('endosymbiosis_rate', 0.01), step=0.005,
+        help="Extremely rare chance to acquire a module from an elite parent."
+    )
+
     with st.sidebar.expander("🔬 Advanced Dynamics", expanded=True):
         st.info(
             "**Developmental Program:** Each generation, individuals execute their internal genetic programs, causing changes like synaptic pruning (removing weak connections) or module proliferation (growth during stagnation). This creates a dynamic genotype-phenotype map."
         )
         st.info(
             "**Baldwin Effect:** An individual's `plasticity` score allows it to 'learn' during its lifetime, boosting its final fitness. This creates a selective pressure for architectures that are not just good, but also good at learning."
+        )
+        st.info(
+            "**Epigenetic Inheritance:** Individuals pass down partially heritable 'aptitude' for tasks they performed well on, creating a fast, non-genetic adaptation layer."
+        )
+        st.info(
+            "**Endosymbiosis:** A rare event where an architecture acquires a pre-evolved, successful module from an elite individual, allowing for major leaps in complexity."
         )
 
     with st.sidebar.expander("Advanced Mutation Control"):
@@ -1431,6 +1508,7 @@ def main():
         'mutation_rate': mutation_rate,
         'crossover_rate': crossover_rate,
         'innovation_rate': innovation_rate,
+        'endosymbiosis_rate': endosymbiosis_rate,
         'mutation_schedule': mutation_schedule,
         'adaptive_mutation_strength': adaptive_mutation_strength,
         'selection_pressure': selection_pressure,
@@ -1602,6 +1680,11 @@ def main():
                 # Mutation
                 child = mutate(child, current_mutation_rate, innovation_rate)
                 child.generation = gen + 1
+
+                # Endosymbiotic Transfer (Horizontal Gene Transfer)
+                if random.random() < endosymbiosis_rate and survivors:
+                    child = apply_endosymbiosis(child, survivors)
+
                 offspring.append(child)
             
             # Clean up temporary attribute
