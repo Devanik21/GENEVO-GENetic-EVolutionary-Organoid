@@ -6,3 +6,4 @@ scipy
 networkx
 tinydb
 pygraphviz
+statsmodels
