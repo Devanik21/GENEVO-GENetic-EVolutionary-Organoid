@@ -887,6 +887,77 @@ def synthesize_master_architecture(top_individuals: List[Genotype]) -> Optional[
     master_arch.complexity = master_arch.compute_complexity()
     return master_arch
 
+def analyze_lesion_sensitivity(
+    master_architecture: Genotype, 
+    base_fitness: float, 
+    task_type: str, 
+    fitness_weights: Dict, 
+    eval_params: Dict
+) -> Dict[str, float]:
+    """
+    Performs a lesion study on the master architecture to find critical components.
+    Returns a dictionary of component ID to fitness drop (criticality).
+    """
+    criticality_scores = {}
+
+    # 1. Lesion Modules
+    for module in master_architecture.modules:
+        # Don't lesion input/output
+        if 'input' in module.id or 'output' in module.id:
+            continue
+
+        lesioned_arch = master_architecture.copy()
+        
+        # Remove the module and any connections to/from it
+        lesioned_arch.modules = [m for m in lesioned_arch.modules if m.id != module.id]
+        lesioned_arch.connections = [
+            c for c in lesioned_arch.connections if c.source != module.id and c.target != module.id
+        ]
+        
+        if not lesioned_arch.connections or not lesioned_arch.modules: continue # Skip if network is disconnected
+
+        lesioned_fitness, _ = evaluate_fitness(
+            lesioned_arch, 
+            task_type, 
+            lesioned_arch.generation, 
+            fitness_weights, 
+            **eval_params
+        )
+        
+        fitness_drop = base_fitness - lesioned_fitness
+        criticality_scores[f"Module: {module.id}"] = fitness_drop
+
+    # 2. Lesion a few critical connections (highest weight)
+    sorted_connections = sorted(master_architecture.connections, key=lambda c: c.weight, reverse=True)
+    for conn in sorted_connections[:3]: # Lesion top 3 connections
+        lesioned_arch = master_architecture.copy()
+        
+        lesioned_arch.connections = [c for c in lesioned_arch.connections if not (c.source == conn.source and c.target == conn.target)]
+        
+        lesioned_fitness, _ = evaluate_fitness(
+            lesioned_arch, 
+            task_type, 
+            lesioned_arch.generation, 
+            fitness_weights, 
+            **eval_params
+        )
+        
+        fitness_drop = base_fitness - lesioned_fitness
+        criticality_scores[f"Conn: {conn.source}→{conn.target}"] = fitness_drop
+        
+    return criticality_scores
+
+def analyze_information_flow(master_architecture: Genotype) -> Dict[str, float]:
+    """
+    Analyzes the flow of information through the network using graph centrality.
+    Returns a dictionary of module ID to its betweenness centrality score.
+    """
+    G = nx.DiGraph()
+    for module in master_architecture.modules: G.add_node(module.id)
+    for conn in master_architecture.connections:
+        if conn.weight > 1e-6: G.add_edge(conn.source, conn.target, weight=1.0/conn.weight)
+    return nx.betweenness_centrality(G, weight='weight', normalized=True)
+
 # ==================== VISUALIZATION ====================
 
 def visualize_fitness_landscape(history_df: pd.DataFrame):
@@ -2153,6 +2224,52 @@ def main():
                     st.info("This 2D layout is optimized for clarity of connections and module properties.")
                     fig_2d = visualize_genotype_2d(master_architecture)
                     st.plotly_chart(fig_2d, width='stretch', key="master_2d")
+                
+                # --- New Analysis Sections ---
+                st.markdown("---")
+                st.header("🔬 Structural & Causal Analysis")
+                
+                analysis_col1, analysis_col2 = st.columns(2)
+
+                with analysis_col1:
+                    st.subheader("Lesion Sensitivity Analysis")
+                    st.markdown("""
+                    This analysis simulates a **lesion study**, a technique from neuroscience where parts of a brain are disabled to understand their function. We computationally "remove" each component from the master architecture and measure the drop in fitness. A larger drop indicates a more **critical** component.
+                    """)
+                    
+                    with st.spinner("Performing lesion analysis..."):
+                        eval_params = {
+                            'enable_epigenetics': enable_epigenetics,
+                            'enable_baldwin': enable_baldwin,
+                            'epistatic_linkage_k': epistatic_linkage_k
+                        }
+                        criticality_scores = analyze_lesion_sensitivity(
+                            master_architecture, master_architecture.fitness, task_type, fitness_weights, eval_params
+                        )
+                    
+                    sorted_criticality = sorted(criticality_scores.items(), key=lambda item: item[1], reverse=True)
+                    
+                    st.markdown("##### Most Critical Components:")
+                    for i, (component, score) in enumerate(sorted_criticality[:5]):
+                        st.metric(
+                            label=f"#{i+1} {component}",
+                            value=f"{score:.4f} Fitness Drop",
+                            help="The reduction in overall fitness when this component is removed."
+                        )
+
+                with analysis_col2:
+                    st.subheader("Information Flow Backbone")
+                    st.markdown("""
+                    This analysis identifies the **causal backbone** of the architecture—the key modules that act as bridges for information flow. Using `betweenness centrality`, we find nodes that lie on the most shortest paths between all other nodes. These are critical for integrating and routing information.
+                    """)
+                    
+                    with st.spinner("Analyzing information flow..."):
+                        centrality_scores = analyze_information_flow(master_architecture)
+                    
+                    sorted_centrality = sorted(centrality_scores.items(), key=lambda item: item[1], reverse=True)
+                    st.markdown("##### Causal Backbone Nodes:")
+                    for i, (module_id, score) in enumerate(sorted_centrality[:5]):
+                        st.metric(label=f"#{i+1} Module: {module_id}", value=f"{score:.3f} Centrality", help="A normalized score of how critical this node is for information routing.")
 
     st.sidebar.markdown("---")
     st.sidebar.info(
