@@ -2,11 +2,8 @@ requests
 opencv-python-headless==4.9.0.80
 numpy==1.26.4
 pandas
+plotly
 tensorflow==2.15.0
 tensorflow-hub==0.16.1
 mediapipe==0.10.11
-deepface==0.0.79
-plotly
-kaleido
-reportlab
 
