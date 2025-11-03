@@ -1982,13 +1982,14 @@ def main():
                 with tab1:
                     st.plotly_chart(
                         visualize_genotype_3d(individual),
-                        width='stretch'
+                        width='stretch',
+                        key=f"elite_3d_{individual.lineage_id}"
                     )
                 
                 with tab2:
                     st.info("This 2D layout is optimized for clarity of connections and module properties.")
                     fig_2d = visualize_genotype_2d(individual)
-                    st.plotly_chart(fig_2d, width='stretch')
+                    st.plotly_chart(fig_2d, width='stretch', key=f"elite_2d_{individual.lineage_id}")
 
                 # Detailed stats
                 col1, col2, col3 = st.columns(3)
@@ -2146,13 +2147,12 @@ def main():
                 tab1, tab2 = st.tabs(["3D Interactive View", "2D Static View & Download"])
 
                 with tab1:
-                    st.plotly_chart(visualize_genotype_3d(master_architecture), use_container_width=True)
-                    st.plotly_chart(visualize_genotype_3d(master_architecture), width='stretch')
+                    st.plotly_chart(visualize_genotype_3d(master_architecture), width='stretch', key="master_3d")
                 
                 with tab2:
                     st.info("This 2D layout is optimized for clarity of connections and module properties.")
                     fig_2d = visualize_genotype_2d(master_architecture)
-                    st.plotly_chart(fig_2d, width='stretch')
+                    st.plotly_chart(fig_2d, width='stretch', key="master_2d")
 
     st.sidebar.markdown("---")
     st.sidebar.info(
