@@ -1725,12 +1725,10 @@ def main():
                     elif len(survivors) > 1:
                         # Normal Crossover: select compatible parent
                         compatible = [s for s in survivors if s.form_id == parent1.form_id and s.lineage_id != parent1.lineage_id]
-                        parent2 = max(random.sample(compatible, min(2, len(compatible))), key=selection_key) if compatible else parent1
+                        parent2 = max(random.sample(compatible, min(2, len(compatible))), key=selection_key) if compatible else parent1 # type: ignore
                     else:
                         parent2 = parent1
                     child = crossover(parent1, parent2, crossover_rate)
-                    else:
-                        child = parent1.copy()
                 else:
                     child = parent1.copy()
                 
