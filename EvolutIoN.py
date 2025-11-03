@@ -1007,98 +1007,6 @@ def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genoty
     
     return fig
 
-def visualize_phylogenetic_tree(history_df: pd.DataFrame):
-    """Visualizes the evolutionary lineage as a phylogenetic tree."""
-    st.markdown("---")
-    st.header("🌳 Phylogenetic Analysis")
-    st.markdown("""
-    Tracking the ancestry of evolved architectures reveals evolutionary pathways and diversification events. 
-    Each node is an individual, sized by its fitness and colored by its architectural form. The tree is organized by generation from top to bottom.
-    *This visualization requires `pygraphviz` for optimal layout. If not installed, a simpler layout is used.*
-    """)
-
-    G = nx.DiGraph()
-    
-    # Get unique individuals and their last known stats (final state)
-    unique_individuals = history_df.loc[history_df.groupby('lineage_id')['generation'].idxmax()].set_index('lineage_id')
-
-    if len(unique_individuals) < 2:
-        st.warning("Not enough data for phylogenetic analysis.")
-        return
-
-    for lineage_id, row in unique_individuals.iterrows():
-        G.add_node(
-            lineage_id,
-            generation=row['generation'],
-            fitness=row['fitness'],
-            form_id=row['form_id'],
-            size=row['total_params']
-        )
-        
-        parent_ids = row['parent_ids']
-        if isinstance(parent_ids, list):
-            for parent_id in parent_ids:
-                # Ensure parent node exists in our set of unique individuals before adding an edge
-                if parent_id in unique_individuals.index:
-                    G.add_edge(parent_id, lineage_id)
-
-    if not G.nodes:
-        st.warning("Could not construct lineage graph.")
-        return
-
-    # Use graphviz layout for a hierarchical tree structure
-    try:
-        pos = nx.nx_agraph.graphviz_layout(G, prog='dot', args='-Gsplines=true -Gnodesep=0.1 -Granksep=0.5')
-    except Exception as e:
-        st.info(f"Graphviz layout failed, falling back to spring layout. For a better tree view, `pip install pygraphviz`.")
-        pos = nx.spring_layout(G, iterations=50, seed=42, k=0.5/np.sqrt(len(G.nodes())))
-
-    # Create Plotly traces
-    edge_x, edge_y = [], []
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
-
-    edge_trace = go.Scatter(x=edge_x, y=edge_y, line=dict(width=0.7, color='#888'), hoverinfo='none', mode='lines')
-
-    node_x, node_y, node_text, node_color, node_size = [], [], [], [], []
-    form_colors = px.colors.qualitative.Set3
-
-    for node in G.nodes():
-        x, y = pos[node]
-        node_x.append(x)
-        node_y.append(y)
-        
-        node_info = G.nodes[node]
-        node_text.append(
-            f"ID: {node}<br>"
-            f"Gen: {node_info.get('generation', 'N/A')}<br>"
-            f"Fitness: {node_info.get('fitness', 0):.4f}<br>"
-            f"Form: {int(node_info.get('form_id', 0))}<br>"
-            f"Params: {node_info.get('size', 0):,}"
-        )
-        node_color.append(form_colors[int(node_info.get('form_id', 1)-1) % len(form_colors)])
-        node_size.append(8 + np.sqrt(max(0, node_info.get('fitness', 0)) * 500))
-
-    node_trace = go.Scatter(
-        x=node_x, y=node_y, mode='markers', hoverinfo='text', text=node_text,
-        marker=dict(
-            showscale=True, colorscale='Viridis', reversescale=False,
-            color=[G.nodes[n].get('generation', 0) for n in G.nodes()],
-            size=node_size,
-            colorbar=dict(thickness=15, title={'text': 'Generation', 'side': 'right'}, xanchor='left'),
-            line=dict(width=1, color='black'))
-    )
-
-    fig = go.Figure(data=[edge_trace, node_trace],
-             layout=go.Layout(title_text='<b>Phylogenetic Lineage Tree</b>', title_x=0.5, showlegend=False, hovermode='closest',
-                             margin=dict(b=20,l=5,r=5,t=40), xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False), height=600))
-    
-    st.plotly_chart(fig, use_container_width=True)
-
 # ==================== STREAMLIT APP ====================
 
 def main():
@@ -1732,10 +1640,6 @@ def main():
             fig.update_layout(height=400, showlegend=False)
             
             st.plotly_chart(fig, use_container_width=True)
-
-        # Phylogenetic analysis
-        if 'parent_ids' in history_df.columns:
-            visualize_phylogenetic_tree(history_df)
 
         st.markdown("---")
         st.header("Concluding Remarks")
