@@ -962,7 +962,7 @@ def visualize_fitness_landscape(history_df: pd.DataFrame):
         height=700,
         margin=dict(l=0, r=0, b=0, t=40)
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 def visualize_phase_space_portraits(metrics_df: pd.DataFrame):
     """Plots phase-space portraits of key evolutionary metrics."""
@@ -990,7 +990,7 @@ def visualize_phase_space_portraits(metrics_df: pd.DataFrame):
     fig.update_xaxes(title_text="Genetic Diversity (H)", row=1, col=1); fig.update_yaxes(title_text="Rate of Change (dH/dt)", row=1, col=1)
     fig.update_xaxes(title_text="Mean Fitness (F)", row=1, col=2); fig.update_yaxes(title_text="Rate of Change (dF/dt)", row=1, col=2)
     fig.update_layout(height=500, title_text="<b>Evolutionary Dynamics in Phase Space</b>", title_x=0.5, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width='stretch')
 
 def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     """Advanced 3D network visualization"""
@@ -1414,7 +1414,7 @@ def main():
     # Get settings from session state, with hardcoded defaults as fallback
     s = st.session_state.get('settings', {})
 
-    if st.sidebar.button("🗑️ Clear Saved State & Reset", use_container_width=True):
+    if st.sidebar.button("🗑️ Clear Saved State & Reset", width='stretch'):
         db.truncate() # Clear all tables
         st.session_state.clear()
         st.toast("Cleared all saved data. App has been reset.", icon="🗑️")
@@ -1639,7 +1639,7 @@ def main():
     st.sidebar.markdown("---")
     
     # Run evolution button
-    if st.sidebar.button("⚡ Initiate Evolution", type="primary", use_container_width=True):
+    if st.sidebar.button("⚡ Initiate Evolution", type="primary", width='stretch'):
         st.session_state.history = []
         st.session_state.evolutionary_metrics = []
         
@@ -1964,7 +1964,7 @@ def main():
         # Comprehensive dashboard
         st.plotly_chart(
             create_evolution_dashboard(history_df, st.session_state.current_population),
-            use_container_width=True
+            width='stretch'
         )
         
         # Best evolved architectures
@@ -1982,13 +1982,13 @@ def main():
                 with tab1:
                     st.plotly_chart(
                         visualize_genotype_3d(individual),
-                        use_container_width=True
+                        width='stretch'
                     )
                 
                 with tab2:
                     st.info("This 2D layout is optimized for clarity of connections and module properties.")
                     fig_2d = visualize_genotype_2d(individual)
-                    st.plotly_chart(fig_2d, use_container_width=True)
+                    st.plotly_chart(fig_2d, width='stretch')
 
                 # Detailed stats
                 col1, col2, col3 = st.columns(3)
@@ -2029,7 +2029,7 @@ def main():
             }).round(4)
             
             st.markdown("### Performance Metrics by Form")
-            st.dataframe(form_performance, use_container_width=True)
+            st.dataframe(form_performance, width='stretch')
         
         with col2:
             # Population distribution
@@ -2040,7 +2040,7 @@ def main():
                 title='Final Population Distribution',
                 color_discrete_sequence=px.colors.qualitative.Set3
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         
         # Time series analysis
         st.markdown("---")
@@ -2058,7 +2058,7 @@ def main():
                 title='Network Size Evolution',
                 labels={'total_params': 'Mean Parameters', 'generation': 'Generation'}
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         
         with col2:
             # Complexity trajectory
@@ -2070,7 +2070,7 @@ def main():
                 title='Architectural Complexity Trajectory',
                 labels={'complexity': 'Complexity Score', 'generation': 'Generation'}
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         
         # Evolutionary metrics
         if st.session_state.evolutionary_metrics:
@@ -2101,7 +2101,7 @@ def main():
             fig.update_yaxes(title_text="I(θ)", row=1, col=2)
             fig.update_layout(height=400, showlegend=False)
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         st.markdown("---")
         st.header("Concluding Remarks")
@@ -2147,11 +2147,12 @@ def main():
 
                 with tab1:
                     st.plotly_chart(visualize_genotype_3d(master_architecture), use_container_width=True)
+                    st.plotly_chart(visualize_genotype_3d(master_architecture), width='stretch')
                 
                 with tab2:
                     st.info("This 2D layout is optimized for clarity of connections and module properties.")
                     fig_2d = visualize_genotype_2d(master_architecture)
-                    st.plotly_chart(fig_2d, use_container_width=True)
+                    st.plotly_chart(fig_2d, width='stretch')
 
     st.sidebar.markdown("---")
     st.sidebar.info(
