@@ -17,19 +17,6 @@ from dataclasses import dataclass
 from typing import List, Dict, Tuple
 import random
 import time
-from datetime import datetime
-import io
-import base64
-
-# PDF Generation imports
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, PageBreak, Table, TableStyle
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
-from reportlab.pdfgen import canvas
-import plotly.io as pio
 
 # ==================== GENOTYPE DEFINITION ====================
 
@@ -373,267 +360,6 @@ def plot_evolution_history(history: pd.DataFrame) -> go.Figure:
     fig.update_traces(mode='lines+markers')
     return fig
 
-# ==================== PDF GENERATION ====================
-
-def generate_pdf_report(history_df, population, task_type, num_forms, mutation_rate, num_generations):
-    """Generate comprehensive PDF report with all results"""
-    
-    # Create PDF buffer
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
-    
-    # Container for PDF elements
-    story = []
-    styles = getSampleStyleSheet()
-    
-    # Custom styles
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#2C3E50'),
-        spaceAfter=30,
-        alignment=TA_CENTER,
-        fontName='Helvetica-Bold'
-    )
-    
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=16,
-        textColor=colors.HexColor('#E74C3C'),
-        spaceAfter=12,
-        fontName='Helvetica-Bold'
-    )
-    
-    subheading_style = ParagraphStyle(
-        'CustomSubHeading',
-        parent=styles['Heading3'],
-        fontSize=14,
-        textColor=colors.HexColor('#3498DB'),
-        spaceAfter=10,
-        fontName='Helvetica-Bold'
-    )
-    
-    body_style = ParagraphStyle(
-        'CustomBody',
-        parent=styles['BodyText'],
-        fontSize=11,
-        textColor=colors.HexColor('#34495E'),
-        spaceAfter=12,
-        alignment=TA_JUSTIFY
-    )
-    
-    # Title Page
-    story.append(Spacer(1, 1*inch))
-    story.append(Paragraph("🧬 GENEVO Evolution Report", title_style))
-    story.append(Spacer(1, 0.2*inch))
-    story.append(Paragraph(f"<b>True Self-Evolving Neural Architecture</b>", styles['Heading2']))
-    story.append(Spacer(1, 0.3*inch))
-    
-    # Experiment details
-    story.append(Paragraph(f"<b>Generated:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", body_style))
-    story.append(Paragraph(f"<b>Task Type:</b> {task_type}", body_style))
-    story.append(Paragraph(f"<b>Number of Forms:</b> {num_forms}", body_style))
-    story.append(Paragraph(f"<b>Mutation Rate:</b> {mutation_rate}", body_style))
-    story.append(Paragraph(f"<b>Generations:</b> {num_generations}", body_style))
-    story.append(Spacer(1, 0.5*inch))
-    
-    # Formula
-    story.append(Paragraph("<b>Formula:</b> X = f(n), where 1 ≤ n ≤ 5", body_style))
-    story.append(Paragraph("Each form represents a different architectural paradigm that can evolve independently.", body_style))
-    
-    story.append(PageBreak())
-    
-    # Executive Summary
-    story.append(Paragraph("Executive Summary", heading_style))
-    story.append(Spacer(1, 0.1*inch))
-    
-    final_gen = history_df[history_df['generation'] == history_df['generation'].max()]
-    best_form = final_gen.loc[final_gen['fitness'].idxmax(), 'form']
-    best_fitness = final_gen['fitness'].max()
-    avg_fitness = final_gen['fitness'].mean()
-    
-    story.append(Paragraph(f"<b>Best Performing Form:</b> {best_form}", body_style))
-    story.append(Paragraph(f"<b>Maximum Fitness Achieved:</b> {best_fitness:.4f}", body_style))
-    story.append(Paragraph(f"<b>Average Final Fitness:</b> {avg_fitness:.4f}", body_style))
-    story.append(Paragraph(f"<b>Total Individuals Evolved:</b> {len(history_df)}", body_style))
-    
-    story.append(Spacer(1, 0.3*inch))
-    
-    # Key findings
-    story.append(Paragraph("<b>Key Findings:</b>", subheading_style))
-    
-    findings = [
-        f"The {task_type} task created selection pressure favoring forms with specialized modules.",
-        f"Form diversity {'increased' if len(final_gen['form'].unique()) > num_forms//2 else 'decreased'} over evolution, indicating {'exploration' if len(final_gen['form'].unique()) > num_forms//2 else 'convergence'}.",
-        f"Average parameter count {'grew' if final_gen['total_params'].mean() > history_df[history_df['generation']==0]['total_params'].mean() else 'shrank'} during evolution.",
-        "Mutation enabled continuous adaptation while crossover preserved successful patterns."
-    ]
-    
-    for finding in findings:
-        story.append(Paragraph(f"• {finding}", body_style))
-    
-    story.append(PageBreak())
-    
-    # Fitness Evolution Plot
-    story.append(Paragraph("Fitness Evolution Over Generations", heading_style))
-    story.append(Spacer(1, 0.1*inch))
-    
-    fig_fitness = plot_evolution_history(history_df)
-    img_bytes = pio.to_image(fig_fitness, format='png', width=700, height=400)
-    img = Image(io.BytesIO(img_bytes), width=6.5*inch, height=3.5*inch)
-    story.append(img)
-    story.append(Spacer(1, 0.2*inch))
-    
-    story.append(Paragraph("This plot shows how fitness evolved across different forms over generations. Forms better suited to the task show steeper improvement.", body_style))
-    
-    story.append(PageBreak())
-    
-    # Best Architectures
-    story.append(Paragraph("Best Evolved Architectures", heading_style))
-    story.append(Spacer(1, 0.1*inch))
-    
-    population_sorted = sorted(population, key=lambda x: x.fitness, reverse=True)
-    forms_shown = set()
-    
-    for individual in population_sorted:
-        if individual.form_id not in forms_shown:
-            story.append(Paragraph(f"Form {individual.form_id} - Best Architecture", subheading_style))
-            story.append(Paragraph(f"Fitness: {individual.fitness:.4f} | Generation: {individual.generation}", body_style))
-            
-            # Architecture visualization
-            fig_arch = visualize_genotype(individual)
-            img_bytes = pio.to_image(fig_arch, format='png', width=700, height=400)
-            img = Image(io.BytesIO(img_bytes), width=6.5*inch, height=3.5*inch)
-            story.append(img)
-            story.append(Spacer(1, 0.1*inch))
-            
-            # Architecture details
-            modules_info = [
-                [f"{m.module_type}", f"{m.size} params", m.id]
-                for m in individual.modules
-            ]
-            
-            table = Table([['Module Type', 'Size', 'ID']] + modules_info)
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3498DB')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
-            ]))
-            
-            story.append(table)
-            story.append(Spacer(1, 0.3*inch))
-            
-            forms_shown.add(individual.form_id)
-            
-            if len(forms_shown) >= num_forms:
-                break
-    
-    story.append(PageBreak())
-    
-    # Population Distribution
-    story.append(Paragraph("Population Analysis", heading_style))
-    story.append(Spacer(1, 0.1*inch))
-    
-    # Form distribution
-    form_counts = final_gen['form'].value_counts()
-    fig_dist = px.bar(x=form_counts.index, y=form_counts.values,
-                     labels={'x': 'Form', 'y': 'Count'},
-                     title='Final Population Distribution by Form')
-    img_bytes = pio.to_image(fig_dist, format='png', width=700, height=400)
-    img = Image(io.BytesIO(img_bytes), width=6.5*inch, height=3.5*inch)
-    story.append(img)
-    story.append(Spacer(1, 0.2*inch))
-    
-    # Parameter evolution
-    fig_params = px.line(
-        history_df.groupby(['generation', 'form'])['total_params'].mean().reset_index(),
-        x='generation', y='total_params', color='form',
-        title='Average Parameters Over Time'
-    )
-    img_bytes = pio.to_image(fig_params, format='png', width=700, height=400)
-    img = Image(io.BytesIO(img_bytes), width=6.5*inch, height=3.5*inch)
-    story.append(img)
-    story.append(Spacer(1, 0.2*inch))
-    
-    story.append(PageBreak())
-    
-    # Statistical Summary
-    story.append(Paragraph("Statistical Summary", heading_style))
-    story.append(Spacer(1, 0.1*inch))
-    
-    # Create summary table
-    summary_data = []
-    for form in sorted(final_gen['form'].unique()):
-        form_data = final_gen[final_gen['form'] == form]
-        summary_data.append([
-            form,
-            f"{form_data['fitness'].mean():.4f}",
-            f"{form_data['fitness'].max():.4f}",
-            f"{form_data['fitness'].std():.4f}",
-            f"{int(form_data['total_params'].mean())}"
-        ])
-    
-    summary_table = Table(
-        [['Form', 'Avg Fitness', 'Max Fitness', 'Std Dev', 'Avg Params']] + summary_data
-    )
-    summary_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E74C3C')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-    ]))
-    
-    story.append(summary_table)
-    story.append(Spacer(1, 0.3*inch))
-    
-    # Conclusions
-    story.append(Paragraph("Conclusions", heading_style))
-    story.append(Spacer(1, 0.1*inch))
-    
-    conclusions = [
-        f"Evolution successfully adapted architectures to the {task_type} task over {num_generations} generations.",
-        f"The winning form ({best_form}) emerged through natural selection, demonstrating {best_fitness:.2f}x fitness improvement.",
-        "Genetic diversity was maintained through mutation while successful patterns were preserved through crossover.",
-        "This demonstrates GENEVO's ability to discover task-appropriate architectures through Darwinian evolution.",
-        "With n=5 forms, the system showed the potential for infinite adaptation (X = f(n), n → ∞)."
-    ]
-    
-    for conclusion in conclusions:
-        story.append(Paragraph(f"• {conclusion}", body_style))
-    
-    story.append(Spacer(1, 0.5*inch))
-    
-    # Footer
-    story.append(Paragraph("---", styles['Normal']))
-    story.append(Paragraph(
-        "<i>Generated by GENEVO - Genetic Evolutionary Neural Organoid</i><br/>"
-        "<i>GitHub: github.com/Devanik21/GENEVO-GENetic-EVolutionary-Organoid</i>",
-        styles['Normal']
-    ))
-    
-    # Build PDF
-    doc.build(story)
-    buffer.seek(0)
-    return buffer
-
-def create_download_link(pdf_buffer, filename="genevo_results.pdf"):
-    """Create download link for PDF"""
-    b64 = base64.b64encode(pdf_buffer.read()).decode()
-    return f'<a href="data:application/pdf;base64,{b64}" download="{filename}">📥 Download Complete Results (PDF)</a>'
-
 # ==================== STREAMLIT APP ====================
 
 def main():
@@ -656,22 +382,17 @@ def main():
     task_type = st.sidebar.selectbox(
         "Select Task Type (Environmental Pressure)",
         ['Vision', 'Language', 'Sequential', 'Reasoning', 'Multi-Task'],
-        help="The task creates selection pressure—different forms will thrive in different environments",
-        key="task_type_selector"
+        help="The task creates selection pressure—different forms will thrive in different environments"
     )
     
     num_forms = st.sidebar.slider("Number of Forms (n)", 1, 5, 5,
-                                  help="How many architectural forms can exist simultaneously",
-                                  key="num_forms_slider")
+                                  help="How many architectural forms can exist simultaneously")
     
-    population_per_form = st.sidebar.slider("Population per Form", 2, 10, 5,
-                                            key="population_per_form_slider")
+    population_per_form = st.sidebar.slider("Population per Form", 2, 10, 5)
     
-    mutation_rate = st.sidebar.slider("Mutation Rate", 0.1, 0.9, 0.3, 0.1,
-                                      key="mutation_rate_slider")
+    mutation_rate = st.sidebar.slider("Mutation Rate", 0.1, 0.9, 0.3, 0.1)
     
-    num_generations = st.sidebar.slider("Number of Generations", 5, 50, 20,
-                                        key="num_generations_slider")
+    num_generations = st.sidebar.slider("Number of Generations", 5, 50, 20)
     
     # Initialize session state
     if 'history' not in st.session_state:
@@ -680,21 +401,9 @@ def main():
     if 'current_population' not in st.session_state:
         st.session_state.current_population = None
     
-    if 'evolution_params' not in st.session_state:
-        st.session_state.evolution_params = {}
-    
     # Run evolution button
-    if st.sidebar.button("🚀 Start Evolution", type="primary", key="start_evolution"):
+    if st.sidebar.button("🚀 Start Evolution", type="primary"):
         st.session_state.history = []
-        
-        # Store parameters
-        st.session_state.evolution_params = {
-            'task_type': task_type,
-            'num_forms': num_forms,
-            'population_per_form': population_per_form,
-            'mutation_rate': mutation_rate,
-            'num_generations': num_generations
-        }
         
         # Initialize population
         population = []
@@ -790,8 +499,7 @@ def main():
         
         # Group by form and show best of each
         forms_shown = set()
-        num_forms_param = st.session_state.evolution_params['num_forms']
-        cols = st.columns(min(num_forms_param, 3))
+        cols = st.columns(min(num_forms, 3))
         col_idx = 0
         
         for individual in population:
@@ -804,7 +512,7 @@ def main():
                 forms_shown.add(individual.form_id)
                 col_idx += 1
                 
-                if len(forms_shown) >= num_forms_param:
+                if len(forms_shown) >= num_forms:
                     break
         
         # Analysis
@@ -827,94 +535,6 @@ def main():
                          x='generation', y='total_params', color='form',
                          title='Average Parameters Over Time')
             st.plotly_chart(fig, use_container_width=True)
-        
-        # Download Section
-        st.markdown("---")
-        st.header("📥 Download Complete Results")
-        
-        st.markdown("""
-        Generate a comprehensive PDF report containing:
-        - **Executive Summary** with key findings
-        - **All plots and visualizations** (full color)
-        - **Best evolved architectures** from each form
-        - **Statistical analysis** tables
-        - **Detailed architecture diagrams**
-        - **Conclusions and insights**
-        """)
-        
-        col1, col2, col3 = st.columns([1, 2, 1])
-        
-        with col2:
-            if st.button("📄 Generate PDF Report", type="primary", use_container_width=True, key="generate_pdf"):
-                with st.spinner("Generating comprehensive PDF report..."):
-                    # Generate PDF
-                    pdf_buffer = generate_pdf_report(
-                        history_df,
-                        population,
-                        st.session_state.evolution_params['task_type'],
-                        st.session_state.evolution_params['num_forms'],
-                        st.session_state.evolution_params['mutation_rate'],
-                        st.session_state.evolution_params['num_generations']
-                    )
-                    
-                    # Create download button
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    filename = f"GENEVO_Evolution_Report_{timestamp}.pdf"
-                    
-                    st.download_button(
-                        label="⬇️ Download PDF Report",
-                        data=pdf_buffer,
-                        file_name=filename,
-                        mime="application/pdf",
-                        use_container_width=True,
-                        key="download_pdf"
-                    )
-                    
-                    st.success("✅ PDF Report Generated Successfully!")
-                    st.info(f"📊 Report includes {len(forms_shown)} evolved architectures, {len(history_df)} data points, and comprehensive analysis.")
-        
-        # Also offer CSV download
-        st.markdown("---")
-        st.subheader("📊 Raw Data Export")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            csv = history_df.to_csv(index=False)
-            st.download_button(
-                label="📊 Download Evolution Data (CSV)",
-                data=csv,
-                file_name=f"evolution_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv",
-                use_container_width=True,
-                key="download_csv_data"
-            )
-        
-        with col2:
-            # Create architecture details CSV
-            arch_data = []
-            for individual in population[:num_forms_param]:
-                for module in individual.modules:
-                    arch_data.append({
-                        'form_id': individual.form_id,
-                        'fitness': individual.fitness,
-                        'generation': individual.generation,
-                        'module_id': module.id,
-                        'module_type': module.module_type,
-                        'module_size': module.size
-                    })
-            
-            arch_df = pd.DataFrame(arch_data)
-            arch_csv = arch_df.to_csv(index=False)
-            
-            st.download_button(
-                label="🏗️ Download Architecture Details (CSV)",
-                data=arch_csv,
-                file_name=f"architecture_details_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                mime="text/csv",
-                use_container_width=True,
-                key="download_csv_arch"
-            )
     
     else:
         # Instructions
@@ -937,15 +557,6 @@ def main():
         - **Form 5 (Graph)**: Graph Neural Network with flexible connectivity
         
         Each form has its strengths! The environment (task type) determines which survives. 🌱→🌳
-        
-        ### After Evolution:
-        
-        📥 **Download a comprehensive PDF report** with:
-        - Full-color visualizations
-        - Statistical analysis
-        - Architecture diagrams
-        - Detailed findings
-        - All in a shareable format!
         """)
 
 if __name__ == "__main__":
