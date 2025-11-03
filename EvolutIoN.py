@@ -665,97 +665,92 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
 
 def synthesize_master_architecture(top_individuals: List[Genotype]) -> Optional[Genotype]:
     """
-    Synthesizes a "master" architecture from the best evolved individuals,
-    inspired by Mixture-of-Experts (MoE) principles.
+    Synthesizes a "master" architecture by creating a consensus from the top n individuals.
+    It starts with the best individual and refines its parameters by averaging them
+    with other elite individuals. It may also add highly-voted structural elements.
     """
     if not top_individuals:
         return None
 
-    # 1. Gather all modules from the elite pool
-    all_modules = [m for ind in top_individuals for m in ind.modules]
-    
-    # 2. Identify the best "expert" modules.
-    # Experts are non-trivial modules (e.g., attention, graph, recurrent).
-    potential_experts = [
-        m for m in all_modules 
-        if m.module_type in ['attention', 'graph', 'recurrent', 'conv'] and 
-           'input' not in m.id and 'output' not in m.id and 'gate' not in m.id
-    ]
-    
-    if not potential_experts:
-        st.warning("No distinct 'expert' modules found. Returning a copy of the best individual.")
-        return top_individuals[0].copy()
-
-    # Score modules by a heuristic: frequency * log(size)
-    module_counts = Counter(m.id for m in potential_experts)
-    module_avg_size = {}
-    for m in potential_experts:
-        if m.id not in module_avg_size:
-            module_avg_size[m.id] = []
-        module_avg_size[m.id].append(m.size)
-
-    for mid in module_avg_size:
-        module_avg_size[mid] = np.mean(module_avg_size[mid])
-
-    expert_scores = {mid: count * np.log(1 + module_avg_size.get(mid, 1)) for mid, count in module_counts.items()}
-    
-    # Get the top k expert IDs (k up to 4)
-    num_experts = min(len(expert_scores), 4)
-    if num_experts == 0:
-        st.warning("Could not identify any experts based on scoring. Returning a copy of the best individual.")
-        return top_individuals[0].copy()
-        
-    top_expert_ids = sorted(expert_scores, key=expert_scores.get, reverse=True)[:num_experts]
-
-    # Get a definitive copy of each expert module
-    expert_modules = []
-    for expert_id in top_expert_ids:
-        for ind in top_individuals:
-            found_module = next((m for m in ind.modules if m.id == expert_id), None)
-            if found_module:
-                new_expert = ModuleGene(**asdict(found_module))
-                new_expert.id = f"expert_{len(expert_modules)+1}_{found_module.module_type}"
-                expert_modules.append(new_expert)
-                break
-    
-    # 3. Define the backbone: Input, Output, Gating, Aggregator
+    n = len(top_individuals)
     best_ind = top_individuals[0]
     
-    input_template = next((m for m in best_ind.modules if 'input' in m.id or m.position[0] == 0), best_ind.modules[0])
-    output_template = next((m for m in best_ind.modules if 'output' in m.id or m.position[0] == max(m.position[0] for m in best_ind.modules)), best_ind.modules[-1])
-    
-    input_module = ModuleGene(**asdict(input_template)); input_module.id = 'master_input'; input_module.position = (0, 0, 0)
-    output_module = ModuleGene(**asdict(output_template)); output_module.id = 'master_output'; output_module.position = (4, 0, 0)
-    
-    avg_expert_size = np.mean([m.size for m in expert_modules]) if expert_modules else 256
-    gating_router = ModuleGene('gating_router', 'attention', int(avg_expert_size), 'gelu', 'layer', 0.1, 0.8, 0.6, '#FFD700', (1, 0, 0))
-    aggregator = ModuleGene('aggregator', 'mlp', int(avg_expert_size * 2), 'swish', 'layer', 0.15, 0.7, 0.5, '#8A2BE2', (3, 0, 0))
-    
-    for i, expert in enumerate(expert_modules):
-        angle = 2 * np.pi * i / num_experts
-        expert.position = (2, 2.5 * np.cos(angle), 2.5 * np.sin(angle))
+    # Start with a copy of the best individual as the template
+    master_arch = best_ind.copy()
+    master_arch.lineage_id = "SYNTHESIZED_MASTER"
+    master_arch.fitness = float(np.mean([ind.fitness for ind in top_individuals]))
+    master_arch.accuracy = float(np.mean([ind.accuracy for ind in top_individuals]))
+    master_arch.efficiency = float(np.mean([ind.efficiency for ind in top_individuals]))
+    master_arch.robustness = float(np.mean([ind.robustness for ind in top_individuals]))
 
-    final_modules = [input_module, gating_router, aggregator, output_module] + expert_modules
+    # --- 1. Parameter Averaging ---
     
-    # 5. Create connections
-    final_connections = []
-    final_connections.append(ConnectionGene(input_module.id, gating_router.id, 0.9, 'excitatory', 0.01, 'hebbian'))
-    for expert in expert_modules:
-        final_connections.append(ConnectionGene(gating_router.id, expert.id, 0.7, 'modulatory', 0.02, 'static'))
-    for expert in expert_modules:
-        final_connections.append(ConnectionGene(expert.id, aggregator.id, 0.8, 'excitatory', 0.01, 'stdp'))
-    final_connections.append(ConnectionGene(aggregator.id, output_module.id, 0.9, 'excitatory', 0.01, 'hebbian'))
-    final_connections.append(ConnectionGene(input_module.id, aggregator.id, 0.4, 'excitatory', 0.03, 'static'))
+    # Create lookups for faster access
+    all_modules_by_id = {ind.lineage_id: {m.id: m for m in ind.modules} for ind in top_individuals}
+    all_conns_by_key = {ind.lineage_id: {(c.source, c.target): c for c in ind.connections} for ind in top_individuals}
 
-    master_genotype = Genotype(
-        modules=final_modules, connections=final_connections, form_id=99,
-        generation=best_ind.generation, fitness=best_ind.fitness, accuracy=best_ind.accuracy,
-        efficiency=best_ind.efficiency, robustness=best_ind.robustness
-    )
-    master_genotype.complexity = master_genotype.compute_complexity()
-    master_genotype.lineage_id = "SYNTHESIZED_MASTER"
+    # Average module parameters
+    for master_module in master_arch.modules:
+        module_id = master_module.id
+        peers = [all_modules_by_id[ind.lineage_id].get(module_id) for ind in top_individuals]
+        peers = [p for p in peers if p is not None]
+        
+        if len(peers) > 1:
+            master_module.size = int(np.mean([p.size for p in peers]))
+            master_module.dropout_rate = float(np.mean([p.dropout_rate for p in peers]))
+            master_module.learning_rate_mult = float(np.mean([p.learning_rate_mult for p in peers]))
+            master_module.plasticity = float(np.mean([p.plasticity for p in peers]))
+
+    # Average connection parameters
+    for master_conn in master_arch.connections:
+        conn_key = (master_conn.source, master_conn.target)
+        peers = [all_conns_by_key[ind.lineage_id].get(conn_key) for ind in top_individuals]
+        peers = [p for p in peers if p is not None]
+        
+        if len(peers) > 1:
+            master_conn.weight = float(np.mean([p.weight for p in peers]))
+            plasticity_rules = [p.plasticity_rule for p in peers]
+            master_conn.plasticity_rule = Counter(plasticity_rules).most_common(1)[0][0]
+
+    # --- 2. Structural Voting (Add missing consensus connections) ---
+    connection_counts = Counter()
+    all_connections_map = {} 
+    for ind in top_individuals:
+        for conn in ind.connections:
+            key = (conn.source, conn.target)
+            connection_counts[key] += 1
+            if key not in all_connections_map:
+                all_connections_map[key] = conn
+
+    master_conn_keys = {(c.source, c.target) for c in master_arch.connections}
+    consensus_threshold = n / 2.0
     
-    return master_genotype
+    for conn_key, count in connection_counts.items():
+        if count > consensus_threshold and conn_key not in master_conn_keys:
+            source_id, target_id = conn_key
+            master_module_ids = {m.id for m in master_arch.modules}
+            if source_id in master_module_ids and target_id in master_module_ids:
+                template_conn = all_connections_map[conn_key]
+                peers = [all_conns_by_key[ind.lineage_id].get(conn_key) for ind in top_individuals]
+                peers = [p for p in peers if p is not None]
+                
+                if not peers: continue
+
+                avg_weight = float(np.mean([p.weight for p in peers]))
+                plasticity_rule = Counter([p.plasticity_rule for p in peers]).most_common(1)[0][0]
+                
+                new_conn = ConnectionGene(
+                    source=template_conn.source,
+                    target=template_conn.target,
+                    weight=avg_weight,
+                    connection_type=template_conn.connection_type,
+                    delay=template_conn.delay,
+                    plasticity_rule=plasticity_rule
+                )
+                master_arch.connections.append(new_conn)
+                
+    master_arch.complexity = master_arch.compute_complexity()
+    return master_arch
 
 # ==================== VISUALIZATION ====================
 
@@ -1753,9 +1748,9 @@ def main():
         st.markdown("---")
         st.header("🤖 Synthesized Master Architecture")
         st.markdown("""
-        Based on the principles of a Mixture-of-Experts (MoE) model, this final architecture is synthesized from the best-performing individuals in the final generation. It identifies the most successful "expert" modules and wires them together with a gating mechanism.
+        This final architecture is a **consensus design** synthesized from the best-performing individuals. It starts with the single best architecture and refines it by averaging its parameters (like module sizes and connection weights) with the other top individuals. It also adds structural elements (like new connections) that have strong consensus among the elite group.
         
-        Use the slider to select **'n'**, the number of top individuals to include in the synthesis pool. A higher 'n' creates a design based on a broader consensus of elite solutions.
+        Use the slider to select **'n'**, the number of top individuals to include in the synthesis pool. A higher 'n' creates a design based on a broader and more robust consensus.
         """)
 
         population = st.session_state.current_population
