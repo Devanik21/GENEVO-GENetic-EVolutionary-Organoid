@@ -612,7 +612,7 @@ def apply_developmental_rules(genotype: Genotype, stagnation_counter: int) -> Ge
     developed_genotype.complexity = developed_genotype.compute_complexity()
     return developed_genotype
 
-def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weights: Optional[Dict[str, float]] = None, enable_epigenetics: bool = False, enable_baldwin: bool = False) -> Tuple[float, Dict[str, float]]:
+def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weights: Optional[Dict[str, float]] = None, enable_epigenetics: bool = False, enable_baldwin: bool = False, epistatic_linkage_k: int = 0) -> Tuple[float, Dict[str, float]]:
     """
     Multi-objective fitness evaluation with realistic task simulation
     
@@ -751,6 +751,24 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
         current_aptitude = genotype.epigenetic_markers.get(aptitude_key, 0.0)
         genotype.epigenetic_markers[aptitude_key] = np.clip(current_aptitude + performance_marker, -0.15, 0.15)
     
+    # 7. Epistatic Contribution (NK Landscape Simulation)
+    # Models how gene interactions create a rugged fitness landscape.
+    epistatic_contribution = 0.0
+    if epistatic_linkage_k > 0 and len(genotype.modules) > epistatic_linkage_k:
+        num_modules = len(genotype.modules)
+        for i, module in enumerate(genotype.modules):
+            # Select K interacting genes (modules)
+            indices = list(range(num_modules))
+            indices.remove(i)
+            interacting_indices = random.sample(indices, k=epistatic_linkage_k)
+            
+            # Create a unique "genetic context" signature
+            context_signature = tuple([module.module_type] + [genotype.modules[j].module_type for j in interacting_indices])
+            
+            # Use a hash to create a deterministic, pseudo-random contribution for this context
+            hash_val = hash(context_signature)
+            epistatic_contribution += (hash_val % 2000 - 1000) / 10000.0 # Small contribution in [-0.1, 0.1]
+
     # Multi-objective fitness with task-dependent weights
     if weights is None:
         if 'ARC' in task_type:
@@ -759,6 +777,9 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             weights = {'task_accuracy': 0.6, 'efficiency': 0.2, 'robustness': 0.1, 'generalization': 0.1}
         
     total_fitness = sum(scores[k] * weights[k] for k in weights)
+    
+    # Apply epistatic effect to final fitness
+    total_fitness += epistatic_contribution
     
     # Store component scores
     genotype.accuracy = scores['task_accuracy']
@@ -1434,6 +1455,26 @@ def main():
         help="Rate of structural mutations"
     )
     
+    with st.sidebar.expander("👑 Advanced Speciation & Landscape Control", expanded=False):
+        st.markdown("Control the deep physics of the evolutionary ecosystem.")
+        epistatic_linkage_k = st.slider(
+            "Epistatic Linkage (K)", 0, 5, s.get('epistatic_linkage_k', 0), 1,
+            help="From NK models. K > 0 creates a 'rugged' fitness landscape where gene interactions matter. Higher K = more chaotic landscape."
+        )
+        gene_flow_rate = st.slider(
+            "Gene Flow (Hybridization)", 0.0, 0.1, s.get('gene_flow_rate', 0.01), 0.005,
+            help="Chance for crossover between different species, enabling major evolutionary leaps.",
+            disabled=not s.get('enable_speciation', True)
+        )
+        niche_competition_factor = st.slider(
+            "Niche Competition", 0.0, 2.0, s.get('niche_competition_factor', 1.0), 0.1,
+            help="How strongly species compete. >1 forces specialization; 0 removes fitness sharing.",
+            disabled=not s.get('enable_speciation', True)
+        )
+        st.info(
+            "These parameters are inspired by theoretical biology to simulate complex evolutionary dynamics like epistasis and niche partitioning."
+        )
+
     with st.sidebar.expander("🔬 Advanced Dynamics", expanded=True):
         st.markdown("These features add deep biological complexity. You can disable them for a more classical evolutionary run.")
         enable_development = st.checkbox("Enable Developmental Program", value=s.get('enable_development', True), help="Each generation, individuals execute their internal genetic programs, causing changes like synaptic pruning (removing weak connections) or module proliferation (growth during stagnation).")
@@ -1514,6 +1555,9 @@ def main():
         'enable_baldwin': enable_baldwin,
         'enable_epigenetics': enable_epigenetics,
         'endosymbiosis_rate': endosymbiosis_rate,
+        'epistatic_linkage_k': epistatic_linkage_k,
+        'gene_flow_rate': gene_flow_rate,
+        'niche_competition_factor': niche_competition_factor,
         'enable_endosymbiosis': enable_endosymbiosis,
         'mutation_schedule': mutation_schedule,
         'adaptive_mutation_strength': adaptive_mutation_strength,
@@ -1583,7 +1627,7 @@ def main():
             for individual in population:
                 # Pass the weights from the sidebar
                 # Pass the flags for advanced dynamics
-                fitness, component_scores = evaluate_fitness(individual, current_task, gen, fitness_weights, enable_epigenetics, enable_baldwin)
+                fitness, component_scores = evaluate_fitness(individual, current_task, gen, fitness_weights, enable_epigenetics, enable_baldwin, epistatic_linkage_k)
                 individual.fitness = fitness
                 individual.generation = gen
                 individual.age += 1
@@ -1652,7 +1696,7 @@ def main():
                     species_size = len(s['members'])
                     if species_size > 0:
                         for member in s['members']:
-                            member.adjusted_fitness = member.fitness / species_size
+                            member.adjusted_fitness = member.fitness / (species_size ** niche_competition_factor)
                 
                 population.sort(key=lambda x: x.adjusted_fitness, reverse=True)
                 selection_key = lambda x: x.adjusted_fitness
@@ -1674,12 +1718,17 @@ def main():
                 # Tournament selection using the appropriate fitness key
                 parent1 = max(random.sample(survivors, min(3, len(survivors))), key=selection_key)
                 
-                if random.random() < crossover_rate and len(survivors) > 1:
-                    # Select compatible parent (same form)
-                    compatible = [s for s in survivors if s.form_id == parent1.form_id and s.lineage_id != parent1.lineage_id]
-                    if compatible:
-                        parent2 = max(random.sample(compatible, min(2, len(compatible))), key=selection_key)
-                        child = crossover(parent1, parent2, crossover_rate)
+                if random.random() < crossover_rate:
+                    if enable_speciation and random.random() < gene_flow_rate and len(survivors) > 1:
+                        # Gene Flow: select any other survivor, ignoring species
+                        parent2 = random.choice([s for s in survivors if s.lineage_id != parent1.lineage_id])
+                    elif len(survivors) > 1:
+                        # Normal Crossover: select compatible parent
+                        compatible = [s for s in survivors if s.form_id == parent1.form_id and s.lineage_id != parent1.lineage_id]
+                        parent2 = max(random.sample(compatible, min(2, len(compatible))), key=selection_key) if compatible else parent1
+                    else:
+                        parent2 = parent1
+                    child = crossover(parent1, parent2, crossover_rate)
                     else:
                         child = parent1.copy()
                 else:
