@@ -684,7 +684,7 @@ def main():
         st.session_state.evolution_params = {}
     
     # Run evolution button
-    if st.sidebar.button("🚀 Start Evolution", type="primary"):
+    if st.sidebar.button("🚀 Start Evolution", type="primary", key="start_evolution"):
         st.session_state.history = []
         
         # Store parameters
@@ -845,7 +845,7 @@ def main():
         col1, col2, col3 = st.columns([1, 2, 1])
         
         with col2:
-            if st.button("📄 Generate PDF Report", type="primary", use_container_width=True):
+            if st.button("📄 Generate PDF Report", type="primary", use_container_width=True, key="generate_pdf"):
                 with st.spinner("Generating comprehensive PDF report..."):
                     # Generate PDF
                     pdf_buffer = generate_pdf_report(
@@ -866,7 +866,8 @@ def main():
                         data=pdf_buffer,
                         file_name=filename,
                         mime="application/pdf",
-                        use_container_width=True
+                        use_container_width=True,
+                        key="download_pdf"
                     )
                     
                     st.success("✅ PDF Report Generated Successfully!")
@@ -885,7 +886,8 @@ def main():
                 data=csv,
                 file_name=f"evolution_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
-                use_container_width=True
+                use_container_width=True,
+                key="download_csv_data"
             )
         
         with col2:
@@ -910,7 +912,8 @@ def main():
                 data=arch_csv,
                 file_name=f"architecture_details_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
-                use_container_width=True
+                use_container_width=True,
+                key="download_csv_arch"
             )
     
     else:
