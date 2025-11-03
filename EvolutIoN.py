@@ -25,13 +25,15 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Tuple, Optional, Set
 import random
 import time
 from scipy.stats import entropy, pearsonr
 from scipy.spatial.distance import pdist, squareform
 import networkx as nx
+import os
+from tinydb import TinyDB, Query
 
 # ==================== THEORETICAL FOUNDATIONS ====================
 
@@ -180,6 +182,20 @@ class Genotype:
         c_diversity = module_diversity / 10
         
         return (c_params + c_connections + c_diversity) / 3
+
+def genotype_to_dict(g: Genotype) -> Dict:
+    """Serializes a Genotype object to a dictionary."""
+    return asdict(g)
+
+def dict_to_genotype(d: Dict) -> Genotype:
+    """Deserializes a dictionary back into a Genotype object."""
+    # Reconstruct nested dataclasses
+    d['modules'] = [ModuleGene(**m) for m in d.get('modules', [])]
+    d['connections'] = [ConnectionGene(**c) for c in d.get('connections', [])]
+    d['developmental_rules'] = [DevelopmentalGene(**dr) for dr in d.get('developmental_rules', [])]
+    
+    # The Genotype dataclass can now be instantiated with the dictionary
+    return Genotype(**d)
 
 def genomic_distance(g1: Genotype, g2: Genotype, c1=1.0, c3=0.5) -> float:
     """
@@ -1093,6 +1109,38 @@ def main():
         initial_sidebar_state="expanded"
     )
     
+    # --- Database Setup for Persistence ---
+    # NOTE: You requested TinyDB, which requires an additional library.
+    # To install: pip install tinydb
+    db = TinyDB('genevo_db.json')
+    settings_table = db.table('settings')
+    results_table = db.table('results')
+
+    # --- Load previous state if available ---
+    if 'state_loaded' not in st.session_state:
+        # Load settings
+        saved_settings = settings_table.get(doc_id=1)
+        st.session_state.settings = saved_settings if saved_settings else {}
+        
+        # Load results
+        saved_results = results_table.get(doc_id=1)
+        if saved_results:
+            st.session_state.history = saved_results.get('history', [])
+            st.session_state.evolutionary_metrics = saved_results.get('evolutionary_metrics', [])
+            
+            # Deserialize population
+            pop_dicts = saved_results.get('current_population', [])
+            st.session_state.current_population = [dict_to_genotype(p) for p in pop_dicts] if pop_dicts else None
+            
+            st.toast("Loaded previous session data.", icon="💾")
+        else:
+            # Initialize if no saved data
+            st.session_state.history = []
+            st.session_state.evolutionary_metrics = []
+            st.session_state.current_population = None
+
+        st.session_state.state_loaded = True
+
     # Custom CSS
     st.markdown("""
     <style>
@@ -1131,6 +1179,16 @@ def main():
     # Sidebar
     st.sidebar.header("🎛️ Evolution Configuration")
     
+    # Get settings from session state, with hardcoded defaults as fallback
+    s = st.session_state.get('settings', {})
+
+    if st.sidebar.button("🗑️ Clear Saved State & Reset", use_container_width=True):
+        db.truncate() # Clear all tables
+        st.session_state.clear()
+        st.toast("Cleared all saved data. App has been reset.", icon="✨")
+        time.sleep(1) # Give time for toast to show
+        st.rerun()
+
     st.sidebar.markdown("### Task Environment")
     task_options = [
         'Abstract Reasoning (ARC-AGI-2)',
@@ -1139,41 +1197,42 @@ def main():
         'Sequential Prediction',
         'Multi-Task Learning'
     ]
+    default_task = s.get('task_type', 'Abstract Reasoning (ARC-AGI-2)')
     task_type = st.sidebar.selectbox(
         "Initial Task",
         task_options,
+        index=task_options.index(default_task) if default_task in task_options else 0,
         help="Environmental pressure determines which architectures survive"
     )
     
     with st.sidebar.expander("Dynamic Environment Settings"):
-        dynamic_environment = st.checkbox("Enable Dynamic Environment", value=True, help="If enabled, the task will change periodically.")
+        dynamic_environment = st.checkbox("Enable Dynamic Environment", value=s.get('dynamic_environment', True), help="If enabled, the task will change periodically.")
         env_change_frequency = st.slider(
             "Change Frequency (Generations)",
-            min_value=5, max_value=50, value=15,
+            min_value=5, max_value=50, value=s.get('env_change_frequency', 15),
             help="How often the task environment changes.",
             disabled=not dynamic_environment
         )
     
     st.sidebar.markdown("### Population Parameters")
     num_forms = st.sidebar.slider(
-        "Number of Architectural Forms (n)",
-        min_value=1, max_value=5, value=5,
+        "Number of Architectural Forms",
+        min_value=1, max_value=5, value=s.get('num_forms', 5),
         help="Morphological diversity: 1 ≤ n ≤ 5"
     )
     
     population_per_form = st.sidebar.slider(
-        "Population per Form",
-        min_value=3, max_value=15, value=8,
+        "Population per Form", min_value=3, max_value=15, value=s.get('population_per_form', 8),
         help="Larger populations increase genetic diversity"
     )
     
     st.sidebar.markdown("### Fitness Objectives")
     with st.sidebar.expander("Multi-Objective Weights", expanded=False):
         st.info("Define the importance of each fitness objective. Weights will be normalized.")
-        w_accuracy = st.slider("Accuracy Weight", 0.0, 1.0, 0.5)
-        w_efficiency = st.slider("Efficiency Weight", 0.0, 1.0, 0.2)
-        w_robustness = st.slider("Robustness Weight", 0.0, 1.0, 0.1)
-        w_generalization = st.slider("Generalization Weight", 0.0, 1.0, 0.2)
+        w_accuracy = st.slider("Accuracy Weight", 0.0, 1.0, s.get('w_accuracy', 0.5))
+        w_efficiency = st.slider("Efficiency Weight", 0.0, 1.0, s.get('w_efficiency', 0.2))
+        w_robustness = st.slider("Robustness Weight", 0.0, 1.0, s.get('w_robustness', 0.1))
+        w_generalization = st.slider("Generalization Weight", 0.0, 1.0, s.get('w_generalization', 0.2))
         
         total_w = w_accuracy + w_efficiency + w_robustness + w_generalization + 1e-9
         fitness_weights = {
@@ -1189,23 +1248,20 @@ def main():
     st.sidebar.markdown("### Evolutionary Operators")
     
     col1, col2 = st.sidebar.columns(2)
-    with col1:
-        mutation_rate = st.slider(
-            "Base Mutation Rate (μ)",
-            min_value=0.05, max_value=0.6, value=0.2, step=0.05,
-            help="Initial probability of genetic variation"
-        )
-    
-    with col2:
-        crossover_rate = st.slider(
-            "Crossover Rate",
-            min_value=0.3, max_value=0.9, value=0.7, step=0.1,
-            help="Probability of recombination"
-        )
+    mutation_rate = col1.slider(
+        "Base Mutation Rate (μ)",
+        min_value=0.05, max_value=0.6, value=s.get('mutation_rate', 0.2), step=0.05,
+        help="Initial probability of genetic variation"
+    )
+    crossover_rate = col2.slider(
+        "Crossover Rate",
+        min_value=0.3, max_value=0.9, value=s.get('crossover_rate', 0.7), step=0.1,
+        help="Probability of recombination"
+    )
     
     innovation_rate = st.sidebar.slider(
         "Innovation Rate (σ)",
-        min_value=0.01, max_value=0.2, value=0.05, step=0.01,
+        min_value=0.01, max_value=0.2, value=s.get('innovation_rate', 0.05), step=0.01,
         help="Rate of structural mutations"
     )
     
@@ -1213,28 +1269,27 @@ def main():
         mutation_schedule = st.selectbox(
             "Mutation Rate Schedule",
             ['Constant', 'Linear Decay', 'Adaptive'],
-            index=2,
+            index=['Constant', 'Linear Decay', 'Adaptive'].index(s.get('mutation_schedule', 'Adaptive')),
             help="How the mutation rate changes over generations."
         )
         adaptive_mutation_strength = st.slider(
             "Adaptive Strength",
-            min_value=0.1, max_value=1.0, value=0.5,
+            min_value=0.1, max_value=1.0, value=s.get('adaptive_mutation_strength', 0.5),
             help="How strongly mutation rate reacts to stagnation.",
             disabled=(mutation_schedule != 'Adaptive')
         )
     
     st.sidebar.markdown("### Selection Strategy")
     selection_pressure = st.sidebar.slider(
-        "Selection Pressure",
-        min_value=0.3, max_value=0.8, value=0.5, step=0.1,
+        "Selection Pressure", min_value=0.3, max_value=0.8, value=s.get('selection_pressure', 0.5), step=0.1,
         help="Fraction of population surviving each generation"
     )
     
     with st.sidebar.expander("Speciation (NEAT-style)", expanded=True):
-        enable_speciation = st.checkbox("Enable Speciation", value=True, help="Group similar individuals into species to protect innovation.")
+        enable_speciation = st.checkbox("Enable Speciation", value=s.get('enable_speciation', True), help="Group similar individuals into species to protect innovation.")
         compatibility_threshold = st.slider(
             "Compatibility Threshold",
-            min_value=1.0, max_value=10.0, value=4.0, step=0.5,
+            min_value=1.0, max_value=10.0, value=s.get('compatibility_threshold', 4.0), step=0.5,
             disabled=not enable_speciation,
             help="Genomic distance to be in the same species. Higher = fewer species."
         )
@@ -1243,23 +1298,47 @@ def main():
     st.sidebar.markdown("### Experiment Settings")
     num_generations = st.sidebar.slider(
         "Generations",
-        min_value=10, max_value=100, value=30,
+        min_value=10, max_value=100, value=s.get('num_generations', 30),
         help="Evolutionary timescale"
     )
     
+    complexity_options = ['minimal', 'medium', 'high']
     complexity_level = st.sidebar.select_slider(
         "Initial Complexity",
-        options=['minimal', 'medium', 'high'],
-        value='medium'
+        options=complexity_options,
+        value=s.get('complexity_level', 'medium')
     )
     
-    # Initialize session state
-    if 'history' not in st.session_state:
-        st.session_state.history = []
-    if 'current_population' not in st.session_state:
-        st.session_state.current_population = None
-    if 'evolutionary_metrics' not in st.session_state:
-        st.session_state.evolutionary_metrics = []
+    # --- Collect and save current settings ---
+    current_settings = {
+        'task_type': task_type,
+        'dynamic_environment': dynamic_environment,
+        'env_change_frequency': env_change_frequency,
+        'num_forms': num_forms,
+        'population_per_form': population_per_form,
+        'w_accuracy': w_accuracy,
+        'w_efficiency': w_efficiency,
+        'w_robustness': w_robustness,
+        'w_generalization': w_generalization,
+        'mutation_rate': mutation_rate,
+        'crossover_rate': crossover_rate,
+        'innovation_rate': innovation_rate,
+        'mutation_schedule': mutation_schedule,
+        'adaptive_mutation_strength': adaptive_mutation_strength,
+        'selection_pressure': selection_pressure,
+        'enable_speciation': enable_speciation,
+        'compatibility_threshold': compatibility_threshold,
+        'num_generations': num_generations,
+        'complexity_level': complexity_level
+    }
+    
+    # Save settings to DB if they have changed
+    if current_settings != st.session_state.settings:
+        st.session_state.settings = current_settings
+        settings_table.upsert(current_settings, doc_id=1)
+        st.toast("Settings saved.", icon="⚙️")
+
+    st.sidebar.markdown("---")
     
     # Run evolution button
     if st.sidebar.button("🚀 Initiate Evolution", type="primary", use_container_width=True):
@@ -1437,7 +1516,18 @@ def main():
             progress_container.progress((gen + 1) / num_generations)
         
         st.session_state.current_population = population
-        status_text.markdown("### ✅ Evolution Complete!")
+        
+        # --- Save results to DB ---
+        serializable_population = [genotype_to_dict(p) for p in population]
+        
+        results_to_save = {
+            'history': st.session_state.history,
+            'evolutionary_metrics': st.session_state.evolutionary_metrics,
+            'current_population': serializable_population
+        }
+        results_table.upsert(results_to_save, doc_id=1)
+        
+        status_text.markdown("### ✅ Evolution Complete! Results saved.")
         st.balloons()
     
     # Display results
