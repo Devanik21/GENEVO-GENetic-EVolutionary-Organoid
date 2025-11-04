@@ -1249,6 +1249,34 @@ class EvolvedArchitecture(tf.keras.Model):
 """
     return code.strip()
 
+def identify_pareto_frontier(individuals: List[Genotype]) -> List[Genotype]:
+    """
+    Identifies the Pareto frontier from a list of individuals based on multiple objectives.
+    Objectives are: accuracy, efficiency, robustness (all to be maximized).
+    """
+    if not individuals:
+        return []
+
+    pareto_frontier_indices = []
+    
+    for i, p in enumerate(individuals):
+        is_dominated = False
+        for j, q in enumerate(individuals):
+            if i == j:
+                continue
+            
+            # Check if q dominates p
+            # q must be better or equal on all objectives, and strictly better on at least one.
+            if (q.accuracy >= p.accuracy and q.efficiency >= p.efficiency and q.robustness >= p.robustness) and \
+               (q.accuracy > p.accuracy or q.efficiency > p.efficiency or q.robustness > p.robustness):
+                is_dominated = True
+                break
+        
+        if not is_dominated:
+            pareto_frontier_indices.append(i)
+            
+    return [individuals[i] for i in pareto_frontier_indices]
+
 # ==================== VISUALIZATION ====================
 
 def visualize_fitness_landscape(history_df: pd.DataFrame):
@@ -2806,41 +2834,175 @@ def main():
         # --- Pareto Frontier Analysis ---
         st.subheader("⚖️ Pareto Frontier: Analyzing Performance Trade-offs")
         st.markdown("""
-        Evolution rarely produces a single "best" solution. Instead, it yields a **Pareto Frontier**—a set of optimal solutions where improving one objective (e.g., accuracy) necessitates degrading another (e.g., efficiency). We analyze three archetypes from this frontier in the final population: the **High-Accuracy Specialist**, the **High-Efficiency Generalist**, and the **High-Robustness Sentinel**.
+        Evolution rarely produces a single "best" solution. Instead, it discovers a **Pareto Frontier**—a set of optimal solutions where no single objective can be improved without degrading another. This section provides a deep, interactive analysis of this frontier from the final population.
+
+        - **The Frontier:** Individuals on the frontier (highlighted in the plots) represent the best possible trade-offs found by the evolutionary process. Any individual *not* on the frontier is "dominated," meaning there is at least one other individual that is better in one objective and no worse in any other.
+        - **Archetypes:** We isolate four key archetypes from the frontier to understand the different strategies that emerged: the **High-Accuracy Specialist**, the **High-Efficiency Generalist**, the **High-Robustness Sentinel**, and the **Balanced Performer** (closest to the "utopia" point of perfect scores).
         """)
 
         # Find the archetypes
         final_gen_genotypes = [ind for ind in population if ind.generation == history_df['generation'].max()] if population else []
+        
         if final_gen_genotypes:
-            acc_specialist = max(final_gen_genotypes, key=lambda g: g.accuracy)
-            eff_generalist = max(final_gen_genotypes, key=lambda g: g.efficiency)
-            rob_sentinel = max(final_gen_genotypes, key=lambda g: g.robustness)
+            with st.spinner("Identifying Pareto frontier and analyzing archetypes..."):
+                pareto_individuals = identify_pareto_frontier(final_gen_genotypes)
+                pareto_lineage_ids = {p.lineage_id for p in pareto_individuals}
 
-            p_col1, p_col2, p_col3 = st.columns(3)
+                # Create a DataFrame for easier plotting
+                final_pop_df = pd.DataFrame([asdict(g) for g in final_gen_genotypes])
+                final_pop_df['is_pareto'] = final_pop_df['lineage_id'].isin(pareto_lineage_ids)
+                
+                pareto_df = final_pop_df[final_pop_df['is_pareto']]
+                dominated_df = final_pop_df[~final_pop_df['is_pareto']]
 
-            with p_col1:
-                st.markdown("##### 🎯 High-Accuracy Specialist")
-                st.markdown(f"**Form:** `{acc_specialist.form_id}` | **Fitness:** `{acc_specialist.fitness:.3f}`")
-                st.markdown(f"**Accuracy:** `{acc_specialist.accuracy:.3f}` (Top)")
-                st.markdown(f"**Efficiency:** `{acc_specialist.efficiency:.3f}`")
-                st.markdown(f"**Params:** `{sum(m.size for m in acc_specialist.modules):,}`")
-                st.info("This genotype prioritized task performance above all else, likely developing a large, complex architecture to maximize its score, sacrificing computational cost.")
+            tab1, tab2 = st.tabs(["Interactive Frontier Visualization", "Archetype Deep Dive"])
 
-            with p_col2:
-                st.markdown("##### ⚡ High-Efficiency Generalist")
-                st.markdown(f"**Form:** `{eff_generalist.form_id}` | **Fitness:** `{eff_generalist.fitness:.3f}`")
-                st.markdown(f"**Accuracy:** `{eff_generalist.accuracy:.3f}`")
-                st.markdown(f"**Efficiency:** `{eff_generalist.efficiency:.3f}` (Top)")
-                st.markdown(f"**Params:** `{sum(m.size for m in eff_generalist.modules):,}`")
-                st.info("This compact genotype is optimized for low computational overhead. It achieves respectable accuracy with minimal parameters, making it ideal for resource-constrained environments.")
+            with tab1:
+                st.markdown("#### **3D Interactive Pareto Frontier**")
+                st.markdown("This 3D scatter plot shows all individuals from the final generation. The larger, brighter points form the discovered Pareto Frontier, representing the optimal trade-offs between Accuracy, Efficiency, and Robustness.")
+                
+                # 3D Plot
+                fig_3d = go.Figure()
+                # Dominated points
+                fig_3d.add_trace(go.Scatter3d(
+                    x=dominated_df['accuracy'], y=dominated_df['efficiency'], z=dominated_df['robustness'],
+                    mode='markers',
+                    marker=dict(size=5, color='lightgrey', opacity=0.5),
+                    name='Dominated Solutions',
+                    hovertext="Lineage: " + dominated_df['lineage_id'] + "<br>Fitness: " + dominated_df['fitness'].round(3).astype(str),
+                    hoverinfo='text+x+y+z'
+                ))
+                # Pareto points
+                fig_3d.add_trace(go.Scatter3d(
+                    x=pareto_df['accuracy'], y=pareto_df['efficiency'], z=pareto_df['robustness'],
+                    mode='markers',
+                    marker=dict(
+                        size=9,
+                        color=pareto_df['fitness'],
+                        colorscale='Viridis',
+                        colorbar=dict(title='Fitness'),
+                        showscale=True,
+                        line=dict(width=1, color='black')
+                    ),
+                    name='Pareto Frontier',
+                    hovertext="Lineage: " + pareto_df['lineage_id'] + "<br>Fitness: " + pareto_df['fitness'].round(3).astype(str),
+                    hoverinfo='text+x+y+z'
+                ))
+                fig_3d.update_layout(
+                    title='<b>Final Population vs. Pareto Frontier</b>',
+                    scene=dict(
+                        xaxis_title='Accuracy',
+                        yaxis_title='Efficiency',
+                        zaxis_title='Robustness',
+                        camera=dict(eye=dict(x=1.8, y=1.8, z=1.8))
+                    ),
+                    height=600,
+                    margin=dict(l=0, r=0, b=0, t=40)
+                )
+                st.plotly_chart(fig_3d, use_container_width=True)
 
-            with p_col3:
-                st.markdown("##### 🛡️ High-Robustness Sentinel")
-                st.markdown(f"**Form:** `{rob_sentinel.form_id}` | **Fitness:** `{rob_sentinel.fitness:.3f}`")
-                st.markdown(f"**Accuracy:** `{rob_sentinel.accuracy:.3f}`")
-                st.markdown(f"**Efficiency:** `{rob_sentinel.efficiency:.3f}`")
-                st.markdown(f"**Robustness:** `{rob_sentinel.robustness:.3f}` (Top)")
-                st.info("This architecture evolved for stability. Its structure, likely featuring redundancy and moderate plasticity, is resilient to perturbations and noise, ensuring reliable performance.")
+                st.markdown("---")
+                st.markdown("#### **2D Trade-off Projections**")
+                st.markdown("These plots show 2D projections of the frontier. The 'Utopia Point' (top-right) represents an ideal but likely unreachable solution. The lines from each Pareto point to Utopia illustrate the trade-off space.")
+
+                fig_2d_matrix = make_subplots(
+                    rows=1, cols=3,
+                    subplot_titles=('Accuracy vs. Efficiency', 'Accuracy vs. Robustness', 'Efficiency vs. Robustness')
+                )
+
+                objectives = [('accuracy', 'efficiency'), ('accuracy', 'robustness'), ('efficiency', 'robustness')]
+                for i, (obj1, obj2) in enumerate(objectives):
+                    # Dominated
+                    fig_2d_matrix.add_trace(go.Scatter(
+                        x=dominated_df[obj1], y=dominated_df[obj2], mode='markers',
+                        marker=dict(color='lightgrey', size=6, opacity=0.6),
+                        name='Dominated', showlegend=(i==0)
+                    ), row=1, col=i+1)
+                    # Pareto
+                    fig_2d_matrix.add_trace(go.Scatter(
+                        x=pareto_df[obj1], y=pareto_df[obj2], mode='markers',
+                        marker=dict(color=pareto_df['fitness'], colorscale='Viridis', size=10, line=dict(width=1, color='black')),
+                        name='Pareto', showlegend=(i==0)
+                    ), row=1, col=i+1)
+                    # Utopia Point
+                    fig_2d_matrix.add_trace(go.Scatter(
+                        x=[1], y=[1], mode='markers',
+                        marker=dict(symbol='star', color='gold', size=15, line=dict(width=1, color='black')),
+                        name='Utopia Point', showlegend=(i==0)
+                    ), row=1, col=i+1)
+                    
+                    # Lines to Utopia
+                    for _, row in pareto_df.iterrows():
+                        fig_2d_matrix.add_shape(type="line",
+                            x0=row[obj1], y0=row[obj2], x1=1, y1=1,
+                            line=dict(color="rgba(200,200,200,0.3)", width=1, dash="dot"),
+                            row=1, col=i+1
+                        )
+
+                    fig_2d_matrix.update_xaxes(title_text=obj1.capitalize(), range=[0, 1.05], row=1, col=i+1)
+                    fig_2d_matrix.update_yaxes(title_text=obj2.capitalize(), range=[0, 1.05], row=1, col=i+1)
+
+                fig_2d_matrix.update_layout(height=450, title_text="<b>2D Pareto Trade-off Analysis</b>", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                st.plotly_chart(fig_2d_matrix, use_container_width=True)
+
+            with tab2:
+                # Find the archetypes
+                acc_specialist = max(final_gen_genotypes, key=lambda g: g.accuracy)
+                eff_generalist = max(final_gen_genotypes, key=lambda g: g.efficiency)
+                rob_sentinel = max(final_gen_genotypes, key=lambda g: g.robustness)
+                
+                # Find balanced performer
+                utopia_point = np.array([1.0, 1.0, 1.0])
+                distances = []
+                for ind in pareto_individuals:
+                    point = np.array([ind.accuracy, ind.efficiency, ind.robustness])
+                    dist = np.linalg.norm(utopia_point - point)
+                    distances.append((dist, ind))
+
+                balanced_performer = min(distances, key=lambda x: x[0])[1] if distances else None
+
+                archetypes = {
+                    "🎯 High-Accuracy Specialist": acc_specialist,
+                    "⚡ High-Efficiency Generalist": eff_generalist,
+                    "🛡️ High-Robustness Sentinel": rob_sentinel,
+                    "⚖️ Balanced Performer": balanced_performer
+                }
+
+                p_cols = st.columns(len([a for a in archetypes.values() if a is not None]))
+                col_idx = 0
+                for name, archetype in archetypes.items():
+                    if archetype is None: continue
+                    with p_cols[col_idx]:
+                        st.markdown(f"##### {name}")
+                        st.markdown(f"**Lineage:** `{archetype.lineage_id}`")
+                        
+                        stats_df = pd.DataFrame({
+                            "Metric": ["Fitness", "Accuracy", "Efficiency", "Robustness", "Params"],
+                            "Value": [
+                                f"{archetype.fitness:.3f}",
+                                f"{archetype.accuracy:.3f}",
+                                f"{archetype.efficiency:.3f}",
+                                f"{archetype.robustness:.3f}",
+                                f"{sum(m.size for m in archetype.modules):,}"
+                            ]
+                        }).set_index("Metric")
+                        st.dataframe(stats_df, use_container_width=True)
+
+                        interpretation = ""
+                        if "Accuracy" in name:
+                            interpretation = "This genotype prioritized task performance above all else, likely developing a large, complex architecture to maximize its score, sacrificing computational cost."
+                        elif "Efficiency" in name:
+                            interpretation = "This compact genotype is optimized for low computational overhead. It achieves respectable accuracy with minimal parameters, making it ideal for resource-constrained environments."
+                        elif "Robustness" in name:
+                            interpretation = "This architecture evolved for stability. Its structure, likely featuring redundancy and moderate plasticity, is resilient to perturbations and noise, ensuring reliable performance."
+                        elif "Balanced" in name:
+                            interpretation = "This genotype represents the best overall compromise found on the Pareto frontier. It doesn't excel at any single objective but provides a strong, balanced performance across all three, making it a robust, all-around solution."
+                        st.info(interpretation)
+
+                        with st.expander("View Architecture"):
+                            st.plotly_chart(visualize_genotype_2d(archetype), use_container_width=True, key=f"pareto_2d_{archetype.lineage_id}")
+                    col_idx += 1
+
         else:
             st.warning("Could not perform Pareto analysis on the final generation.")
 
