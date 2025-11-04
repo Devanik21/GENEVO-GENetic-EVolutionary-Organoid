@@ -3655,19 +3655,27 @@ def main():
                     st.info("Final population is too small to analyze the genotypic landscape.")
 
         st.markdown("---")
-        st.header("Dynamic Concluding Remarks")
-        
-        takeaways = []
+        st.header("🔬 Final Synthesis: Deconstructing the Evolutionary Narrative")
+        st.markdown("""
+        This final section synthesizes the entire evolutionary run into a cohesive narrative, identifying the dominant strategic themes and interpreting the final outcome based on quantitative evidence from the population's trajectory. It serves as the executive summary of the experiment.
+        """)
 
-        # 1. Emergent Specialization
+        # --- Data Gathering for Synthesis ---
+        takeaways = []
+        dominant_form_id = "N/A"
+        dominance_pct = 0
+        complexity_change = 0
+        diversity_change = 0
+        mean_selection_differential = 0
+        task_type = st.session_state.settings['task_type']
+
         if not final_gen.empty and not final_gen['form_id'].value_counts().empty:
             form_counts = final_gen['form_id'].value_counts()
             dominant_form_id = form_counts.index[0]
             dominance_pct = (form_counts.iloc[0] / form_counts.sum()) * 100
             if dominance_pct > 60:
-                takeaways.append(f"**Strong Emergent Specialization:** The simulation demonstrated clear convergent evolution, with **Form {int(dominant_form_id)}** becoming the dominant morphology, comprising **{dominance_pct:.1f}%** of the final population. This indicates its foundational topology provided a significant adaptive advantage for the '{st.session_state.settings['task_type']}' task.")
+                takeaways.append(f"**Strong Emergent Specialization:** The simulation demonstrated clear convergent evolution, with **Form {int(dominant_form_id)}** becoming the dominant morphology, comprising **{dominance_pct:.1f}%** of the final population. This indicates its foundational topology provided a significant adaptive advantage for the '{task_type}' task.")
 
-        # 2. Complexity Dynamics
         if not history_df.empty and not final_gen.empty:
             initial_complexity = history_df[history_df['generation'] == 0]['complexity'].mean()
             final_complexity = final_gen['complexity'].mean()
@@ -3677,25 +3685,88 @@ def main():
             elif complexity_change < -20:
                 takeaways.append(f"**Parsimonious Selection:** The evolutionary pressure strongly favored simplicity, leading to a **{abs(complexity_change):.1f}%** decrease in mean architectural complexity, indicating a successful search for efficient, minimalist solutions.")
 
-        # 3. Pareto Optimality & Trade-offs
-        if final_gen_genotypes and acc_specialist and eff_generalist:
+        if 'final_gen_genotypes' in locals() and final_gen_genotypes and 'acc_specialist' in locals() and acc_specialist and 'eff_generalist' in locals() and eff_generalist:
             if acc_specialist.efficiency < eff_generalist.efficiency * 0.8 and eff_generalist.accuracy < acc_specialist.accuracy * 0.8:
                 takeaways.append(f"**Clear Performance Trade-offs:** The final population illustrates a classic Pareto frontier. The top accuracy specialist (Acc: {acc_specialist.accuracy:.3f}) was significantly less efficient than the top efficiency generalist (Eff: {eff_generalist.efficiency:.3f}), which in turn had lower accuracy (Acc: {eff_generalist.accuracy:.3f}).")
             else:
                 takeaways.append("**Evidence of Pareto Optimality:** The final population represents a set of solutions with varying strengths across multiple objectives. No single architecture dominated all others, which is characteristic of a successful multi-objective search.")
 
-        # 4. Innovation and Exploration vs. Convergence
-        if 'diversity_change' in locals() and diversity_change < -50:
-             takeaways.append(f"**Convergent Evolution Dominates:** Despite mechanisms for innovation, the population showed strong convergence towards a specific set of high-performing genotypes, indicated by a significant drop in genetic diversity (**{diversity_change:.1f}%**). The search effectively exploited a promising region of the fitness landscape.")
-        elif 'diversity_change' in locals() and diversity_change > -10:
-             takeaways.append(f"**Sustained Exploration and Innovation:** The population maintained high genetic diversity. This suggests that structural mutations (innovation rate: {st.session_state.settings['innovation_rate']}) were crucial for continually discovering novel architectural motifs and avoiding premature convergence.")
+        if not metrics_df.empty and len(metrics_df) > 1:
+            initial_diversity = metrics_df.iloc[0]['diversity']
+            final_diversity = metrics_df.iloc[-1]['diversity']
+            diversity_change = ((final_diversity / initial_diversity) - 1) * 100 if initial_diversity > 0 else 0
+            if diversity_change < -50:
+                 takeaways.append(f"**Convergent Evolution Dominates:** Despite mechanisms for innovation, the population showed strong convergence towards a specific set of high-performing genotypes, indicated by a significant drop in genetic diversity (**{diversity_change:+.1f}%**). The search effectively exploited a promising region of the fitness landscape.")
+            elif diversity_change > -10:
+                 takeaways.append(f"**Sustained Exploration and Innovation:** The population maintained high genetic diversity. This suggests that structural mutations (innovation rate: {st.session_state.settings['innovation_rate']}) were crucial for continually discovering novel architectural motifs and avoiding premature convergence.")
 
-        # Display the takeaways
+        # --- Identify Dominant Strategy ---
+        strategy = "Balanced Exploration"
+        if dominance_pct > 60 and diversity_change < -40:
+            strategy = "Convergent Specialization"
+        elif diversity_change > -10 and dominance_pct < 40:
+            strategy = "Divergent Exploration"
+        elif complexity_change < -20:
+            strategy = "Parsimonious Optimization"
+        elif complexity_change > 20:
+            strategy = "Constructive Complexification"
+
+        st.subheader(f"Dominant Evolutionary Strategy: **{strategy}**")
+
+        strategy_narratives = {
+            "Convergent Specialization": f"The evolutionary process was characterized by a powerful **convergent** force. The population rapidly identified the superior inductive bias of **Form {int(dominant_form_id)}** and aggressively exploited it, leading to its overwhelming dominance ({dominance_pct:.1f}%). This was coupled with a significant reduction in genetic diversity ({diversity_change:+.1f}%), indicating the search honed in on a narrow, highly-fit region of the landscape. The system prioritized **exploitation over exploration**.",
+            "Divergent Exploration": f"The run was defined by **divergent exploration** and the maintenance of biodiversity. No single architectural form achieved dominance, and genetic diversity remained high ({diversity_change:+.1f}%). This suggests the fitness landscape is either rugged with many viable peaks or that the multi-objective pressures were strong enough to support multiple, distinct strategies (niches) simultaneously. The system prioritized **exploration and niche discovery**.",
+            "Parsimonious Optimization": f"The primary driver of this run was a strong selective pressure for **efficiency and simplicity**. This is evidenced by a significant decrease in mean architectural complexity ({complexity_change:+.1f}%) across the population. The system successfully identified minimalist yet effective solutions, demonstrating a **parsimonious optimization** strategy.",
+            "Constructive Complexification": f"This run was a clear example of a **constructive evolutionary ratchet**, where increasing complexity was consistently rewarded. The population saw a significant growth in mean architectural complexity ({complexity_change:+.1f}%), suggesting the task environment contained deep, intricate structures that could only be captured by more sophisticated models. The system favored **additive innovation**.",
+            "Balanced Exploration": "The system demonstrated a **balanced strategy**, avoiding premature convergence while still making consistent fitness gains. It maintained a moderate level of genetic diversity and did not allow any single architectural form to completely dominate, suggesting a healthy dynamic between exploiting known solutions and exploring for new ones."
+        }
+        st.markdown(strategy_narratives.get(strategy, "The evolutionary dynamics of this run were complex and multifaceted."))
+
+        # --- Key Quantitative Insights ---
+        st.subheader("Key Quantitative Insights")
+        if not history_df.empty:
+            selection_diff_data = []
+            selection_pressure_param = st.session_state.settings['selection_pressure']
+            for gen in sorted(history_df['generation'].unique()):
+                gen_data = history_df[history_df['generation'] == gen]
+                if len(gen_data) > 2:
+                    fitness_array = gen_data['fitness'].values
+                    num_survivors = max(2, int(len(gen_data) * selection_pressure_param))
+                    selected_idx = np.argpartition(fitness_array, -num_survivors)[-num_survivors:]
+                    diff = EvolutionaryTheory.selection_differential(fitness_array, selected_idx)
+                    selection_diff_data.append({'generation': gen, 'selection_diff': diff})
+            if selection_diff_data:
+                mean_selection_differential = pd.DataFrame(selection_diff_data)['selection_diff'].mean()
+
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Form Dominance", f"Form {int(dominant_form_id)}" if dominant_form_id != "N/A" else "N/A", f"{dominance_pct:.1f}% of Pop.")
+            col2.metric("Complexity Shift", f"{complexity_change:+.1f}%", help="Change in mean complexity from Gen 0 to final.")
+            col3.metric("Diversity Change", f"{diversity_change:+.1f}%", help="Change in Shannon entropy from Gen 0 to final.")
+            col4.metric("Mean Selection Δ", f"{mean_selection_differential:.3f}", help="Average selection pressure across all generations.")
+
+        # --- Final Concluding Remarks ---
+        st.subheader("Concluding Remarks & Implications")
         if takeaways:
-            st.info(
-                "This simulation demonstrates the power of multi-objective neuroevolution. Key takeaways from this specific run include:\n\n" + 
-                "\n".join([f"- {item}" for item in takeaways])
-            )
+            st.markdown("Based on the quantitative evidence, the key conclusions from this run are:")
+            takeaway_markdown = ""
+            for item in takeaways:
+                parts = item.split('**')
+                if len(parts) > 2:
+                    takeaway_markdown += f"- **{parts[1]}**: {parts[2]}\n"
+            st.markdown(takeaway_markdown)
+
+            implication_text = {
+                "Convergent Specialization": f"for the '{task_type}' problem, identifying and refining a specific architectural prior (like that of Form {int(dominant_form_id)}) is a highly effective path to a solution. The problem space appears to have a dominant, steep peak.",
+                "Divergent Exploration": f"the '{task_type}' problem is best solved by a portfolio of diverse strategies. The fitness landscape is likely multi-modal, and forcing convergence to a single architecture would be suboptimal. A multi-model ensemble would likely yield the best results.",
+                "Parsimonious Optimization": f"the '{task_type}' problem does not require immense complexity. Overly complex models may overfit or be inefficient without providing significant benefits. The search for compact, elegant solutions is a fruitful direction.",
+                "Constructive Complexification": f"the '{task_type}' problem has a deep, hierarchical structure that rewards increasingly complex models. Simple architectures are insufficient, and future efforts should focus on enabling further growth in model scale and intricacy.",
+                "Balanced Exploration": f"for the '{task_type}' problem, a steady, iterative refinement process is effective. There is no single 'silver bullet' architecture, but consistent, small improvements across a diverse population can reliably navigate the fitness landscape."
+            }
+            st.markdown(f"""
+            **Implications:** The success of the **{strategy}** strategy suggests that {implication_text.get(strategy, "the problem is complex.")} Future runs could build on this by either intensifying the discovered strategy (e.g., seeding the entire population with the dominant form) or by challenging it (e.g., introducing dynamic environmental shifts to test the robustness of the converged solution).
+            """)
+        else:
+            st.warning("Could not generate dynamic concluding remarks due to insufficient data.")
 
         # --- Synthesized Master Architecture ---
         st.markdown("---")
