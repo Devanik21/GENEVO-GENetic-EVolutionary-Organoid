@@ -3961,6 +3961,106 @@ def main():
                     st.info(interpretation_text)
 
     st.sidebar.markdown("---")
+
+    st.markdown("---")
+    st.header("🏁 Epilogue: Reflections on the Evolutionary Journey and Future Directions")
+    st.markdown("""
+    As we reach the culmination of this evolutionary simulation, it is crucial to reflect on the journey undertaken, acknowledge the limitations inherent in our model, and chart a course for future research directions. This epilogue serves as a reflective summary of the entire process.
+    """)
+
+    st.subheader("Key Insights and Observations")
+    st.markdown("""
+    The simulation has provided several key insights into the dynamics of neuroevolution:
+
+    1.  **The Power of Multi-Objective Optimization:** The Pareto frontier analysis demonstrates the importance of balancing multiple objectives (accuracy, efficiency, robustness) to achieve a diverse set of high-performing solutions.
+    2.  **The Significance of Architectural Forms:** The comparative form analysis highlights the impact of initial architectural biases on the evolutionary trajectory and the final population structure.
+    3.  **The Role of Ecosystem Dynamics:** The inclusion of ecosystem dynamics (cataclysms, Red Queen) has shown how external pressures can shape the evolutionary process and drive adaptation.
+    4.  **The Importance of Developmental Programs:** The developmental trajectory analysis reveals how genetic programs can influence the growth and complexity of neural architectures.
+    """)
+
+    st.subheader("Limitations and Caveats")
+    st.markdown("""
+    It is important to acknowledge the limitations of the current simulation:
+
+    1.  **Simplified Fitness Evaluation:** The fitness evaluation is based on simplified simulations of task performance and does not capture the full complexity of real-world tasks.
+    2.  **Limited Architectural Diversity:** The initial set of architectural forms is limited and may not represent the full range of possible neural architectures.
+    3.  **Abstracted Evolutionary Operators:** The evolutionary operators (mutation, crossover) are simplified and do not fully capture the intricacies of biological evolution.
+    4.  **Computational Constraints:** The simulation is limited by computational resources, which restricts the population size, number of generations, and complexity of the architectures.
+    """)
+
+    st.subheader("Future Research Directions")
+    st.markdown("""
+    Based on the insights and limitations of the current simulation, several future research directions can be identified:
+
+    1.  **Enhanced Fitness Evaluation:** Develop more realistic and comprehensive fitness evaluation methods that incorporate real-world datasets and task complexities.
+    2.  **Expanded Architectural Diversity:** Explore a wider range of architectural forms and allow for the emergence of novel architectural motifs through more flexible evolutionary operators.
+    3.  **Incorporation of Biological Realism:** Integrate more biologically realistic mechanisms into the evolutionary operators, such as gene duplication, horizontal gene transfer, and epigenetic regulation.
+    4.  **Scalability and Parallelization:** Improve the scalability of the simulation to handle larger populations, more complex architectures, and longer evolutionary timescales.
+    5.  **Integration with Real-World Systems:** Bridge the gap between simulation and reality by transferring evolved architectures to real-world robotic systems and evaluating their performance in physical environments.
+    6.  **Explainable AI (XAI) Analysis:** Apply XAI techniques to understand the inner workings of evolved architectures and identify the key factors that contribute to their success.
+    """)
+
+    st.subheader("Concluding Thoughts")
+    st.markdown("""
+    This evolutionary simulation represents a step towards understanding the principles of neuroevolution and its potential for creating intelligent systems. By continuing to refine our models, incorporate biological realism, and explore new research directions, we can unlock the full potential of evolutionary algorithms to design and optimize complex neural architectures for a wide range of applications.
+
+    Thank you for joining us on this evolutionary journey!
+    """)
+
+    st.markdown("""
+    <style>
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: #f0f2f6;
+        color: grey;
+        text-align: center;
+        padding: 5px;
+        font-size: small;
+    }
+    </style>
+    <div class="footer">
+        GENEVO: Genetic Evolution of Neural Architectures | A Research Prototype
+    </div>
+    """, unsafe_allow_html=True)
+
+    # --- Download all data ---
+    st.subheader("Download Experiment Data")
+    st.markdown("Download all experiment data, including settings, history, evolutionary metrics, and the final population, for offline analysis and reproducibility.")
+
+    # Prepare data for download
+    all_data = {
+        'settings': st.session_state.settings,
+        'history': st.session_state.history,
+        'evolutionary_metrics': st.session_state.evolutionary_metrics,
+        'final_population': [genotype_to_dict(p) for p in st.session_state.current_population] if st.session_state.current_population else []
+    }
+    all_data_json = json.dumps(all_data, indent=2)
+
+    # Create download button
+    st.download_button(
+        label="Download All Experiment Data (JSON)",
+        data=all_data_json,
+        file_name="genevo_experiment_data.json",
+        mime="application/json",
+        key="download_all_data_button"
+    )
+
+    st.markdown("""
+    <style>
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: #f0f2f6;
+        color: grey;
+        text-align: center;
+        padding: 5px;
+        font-size: small;
+    }
     st.sidebar.info(
         "**GENEVO** is a research prototype demonstrating advanced concepts in neuroevolution. "
         "Architectures are simulated and not trained on real data."
