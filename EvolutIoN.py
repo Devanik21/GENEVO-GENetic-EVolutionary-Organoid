@@ -2349,53 +2349,167 @@ def main():
                 visualize_phase_space_portraits(metrics_df)
         
         st.markdown("<hr style='margin-top: 2rem; margin-bottom: 2rem;'>", unsafe_allow_html=True)
-        st.markdown("### Run Summary Metrics")
-        # --- END ADVANCED VISUALIZATIONS ---
 
+        # --- NEW DETAILED ANALYSIS SECTION ---
+
+        # Data preparation for analysis
         final_gen = history_df[history_df['generation'] == history_df['generation'].max()]
-        best_individual_idx = final_gen['fitness'].idxmax()
-        best_individual_data = final_gen.loc[best_individual_idx]
-        
-        col1, col2, col3, col4, col5 = st.columns(5)
-        
-        with col1:
-            st.metric(
-                "Peak Fitness",
-                f"{best_individual_data['fitness']:.4f}",
-                delta=f"+{(best_individual_data['fitness'] - history_df['fitness'].min()):.3f}"
-            )
-        
-        with col2:
-            st.metric(
-                "Task Accuracy",
-                f"{best_individual_data['accuracy']:.3f}",
-                delta=f"+{(best_individual_data['accuracy'] - history_df['accuracy'].min()):.3f}"
-            )
-        
-        with col3:
-            st.metric(
-                "Efficiency Score",
-                f"{best_individual_data['efficiency']:.3f}"
-            )
-        
-        with col4:
-            st.metric(
-                "Dominant Form",
-                f"Form {int(final_gen['form_id'].mode()[0])}"
-            )
-        
-        with col5:
-            improvement = ((best_individual_data['fitness'] - history_df[history_df['generation']==0]['fitness'].mean()) / 
-                          history_df[history_df['generation']==0]['fitness'].mean() * 100)
-            st.metric(
-                "Improvement",
-                f"{improvement:.1f}%"
-            )
-        
-        # Comprehensive dashboard
+        population = st.session_state.current_population
+        population.sort(key=lambda x: x.fitness, reverse=True)
+        best_individual_genotype = population[0] if population else None
+        metrics_df = pd.DataFrame(st.session_state.get('evolutionary_metrics', []))
+
+        st.markdown("### Executive Summary: Evolutionary Trajectory and Outcome")
+        if best_individual_genotype and not history_df.empty:
+            st.markdown(f"""
+            The evolutionary process spanned **{history_df['generation'].max() + 1} generations**, culminating in a population of specialized genotypes adapted to the **'{st.session_state.settings['task_type']}'** task environment. The simulation began with a mean population fitness of `{history_df[history_df['generation']==0]['fitness'].mean():.3f}` and concluded with a peak fitness of **`{best_individual_genotype.fitness:.4f}`**, representing a **`{((best_individual_genotype.fitness / history_df[history_df['generation']==0]['fitness'].mean()) - 1) * 100:.1f}%`** relative improvement in the champion lineage.
+
+            The fitness landscape visualization reveals the population's trajectory through the search space of complexity versus parameter count. The phase-space portraits indicate that the system reached a state of **{'quasi-equilibrium (low dH/dt)' if len(metrics_df) > 1 and 'diversity_delta' in metrics_df.columns and abs(metrics_df.iloc[-1]['diversity_delta']) < 0.01 else 'dynamic flux (high dH/dt)'}**, suggesting that the population has {'converged on a set of high-performing solutions.' if len(metrics_df) > 1 and 'diversity_delta' in metrics_df.columns and abs(metrics_df.iloc[-1]['diversity_delta']) < 0.01 else 'is still actively exploring the search space.'}
+
+            The following sections provide a granular analysis of the final population, the discovered trade-offs, and the architectural characteristics of the most successful genotypes.
+            """)
+
+        st.markdown("---")
+
+        # --- Deep Dive on the Apex Genotype ---
+        st.subheader("🔬 In-Depth Analysis of the Apex Genotype")
+        if best_individual_genotype:
+            st.markdown(f"The highest-performing individual (Lineage ID: `{best_individual_genotype.lineage_id}`) from Form `{best_individual_genotype.form_id}` achieved a paramount fitness score. This section deconstructs its quantitative and qualitative characteristics.")
+
+            apex_col1, apex_col2 = st.columns([1, 2])
+
+            with apex_col1:
+                st.markdown("##### **Quantitative Profile**")
+                st.metric("Final Fitness", f"{best_individual_genotype.fitness:.4f}")
+                st.metric("Task Accuracy (Sim.)", f"{best_individual_genotype.accuracy:.3f}")
+                st.metric("Efficiency Score", f"{best_individual_genotype.efficiency:.3f}")
+                st.metric("Robustness Score", f"{best_individual_genotype.robustness:.3f}")
+                st.metric("Architectural Complexity", f"{best_individual_genotype.complexity:.3f}")
+
+            with apex_col2:
+                st.markdown("##### **Architectural Blueprint & Interpretation**")
+                total_params = sum(m.size for m in best_individual_genotype.modules)
+                module_counts = Counter(m.module_type for m in best_individual_genotype.modules)
+                
+                st.markdown(f"""
+                - **Total Parameters:** `{total_params:,}`
+                - **Module Count:** `{len(best_individual_genotype.modules)}`
+                - **Connection Count:** `{len(best_individual_genotype.connections)}`
+                - **Composition:** 
+                """)
+                for mtype, count in module_counts.items():
+                    st.markdown(f"  - `{count}` x **{mtype.capitalize()}** modules")
+
+                # Interpretation
+                interpretation_text = "This genotype's success can be attributed to several factors. "
+                if 'attention' in module_counts and st.session_state.settings['task_type'] in ['Language (MMLU-Pro)', 'Abstract Reasoning (ARC-AGI-2)']:
+                    interpretation_text += "Its significant reliance on **attention mechanisms** is well-suited for capturing long-range dependencies inherent in the task. "
+                if 'conv' in module_counts and st.session_state.settings['task_type'] == 'Vision (ImageNet)':
+                    interpretation_text += "The strong presence of **convolutional modules** provides a powerful inductive bias for spatial feature extraction. "
+                if best_individual_genotype.complexity > 0.5:
+                    interpretation_text += "Its relatively high complexity suggests that the fitness landscape rewarded intricate, deep architectures over simpler ones. "
+                if best_individual_genotype.efficiency < 0.5:
+                    interpretation_text += "However, this performance comes at the cost of computational efficiency, indicating a trade-off was made in favor of raw accuracy."
+                
+                st.info(f"**Interpretation:** {interpretation_text}")
+        else:
+            st.warning("No best individual found to analyze.")
+
+        st.markdown("---")
+
+        # --- Pareto Frontier Analysis ---
+        st.subheader("⚖️ Pareto Frontier: Analyzing Performance Trade-offs")
+        st.markdown("""
+        Evolution rarely produces a single "best" solution. Instead, it yields a **Pareto Frontier**—a set of optimal solutions where improving one objective (e.g., accuracy) necessitates degrading another (e.g., efficiency). We analyze three archetypes from this frontier in the final population: the **High-Accuracy Specialist**, the **High-Efficiency Generalist**, and the **High-Robustness Sentinel**.
+        """)
+
+        # Find the archetypes
+        final_gen_genotypes = [ind for ind in population if ind.generation == history_df['generation'].max()] if population else []
+        if final_gen_genotypes:
+            acc_specialist = max(final_gen_genotypes, key=lambda g: g.accuracy)
+            eff_generalist = max(final_gen_genotypes, key=lambda g: g.efficiency)
+            rob_sentinel = max(final_gen_genotypes, key=lambda g: g.robustness)
+
+            p_col1, p_col2, p_col3 = st.columns(3)
+
+            with p_col1:
+                st.markdown("##### 🎯 High-Accuracy Specialist")
+                st.markdown(f"**Form:** `{acc_specialist.form_id}` | **Fitness:** `{acc_specialist.fitness:.3f}`")
+                st.markdown(f"**Accuracy:** `{acc_specialist.accuracy:.3f}` (Top)")
+                st.markdown(f"**Efficiency:** `{acc_specialist.efficiency:.3f}`")
+                st.markdown(f"**Params:** `{sum(m.size for m in acc_specialist.modules):,}`")
+                st.info("This genotype prioritized task performance above all else, likely developing a large, complex architecture to maximize its score, sacrificing computational cost.")
+
+            with p_col2:
+                st.markdown("##### ⚡ High-Efficiency Generalist")
+                st.markdown(f"**Form:** `{eff_generalist.form_id}` | **Fitness:** `{eff_generalist.fitness:.3f}`")
+                st.markdown(f"**Accuracy:** `{eff_generalist.accuracy:.3f}`")
+                st.markdown(f"**Efficiency:** `{eff_generalist.efficiency:.3f}` (Top)")
+                st.markdown(f"**Params:** `{sum(m.size for m in eff_generalist.modules):,}`")
+                st.info("This compact genotype is optimized for low computational overhead. It achieves respectable accuracy with minimal parameters, making it ideal for resource-constrained environments.")
+
+            with p_col3:
+                st.markdown("##### 🛡️ High-Robustness Sentinel")
+                st.markdown(f"**Form:** `{rob_sentinel.form_id}` | **Fitness:** `{rob_sentinel.fitness:.3f}`")
+                st.markdown(f"**Accuracy:** `{rob_sentinel.accuracy:.3f}`")
+                st.markdown(f"**Efficiency:** `{rob_sentinel.efficiency:.3f}`")
+                st.markdown(f"**Robustness:** `{rob_sentinel.robustness:.3f}` (Top)")
+                st.info("This architecture evolved for stability. Its structure, likely featuring redundancy and moderate plasticity, is resilient to perturbations and noise, ensuring reliable performance.")
+        else:
+            st.warning("Could not perform Pareto analysis on the final generation.")
+
+        st.markdown("---")
+
+        # --- Population-Level Insights ---
+        st.subheader("🌍 Population-Level Dynamics & Conclusions")
+        st.markdown("The characteristics of the entire final population provide insights into the overall evolutionary pressures and the convergence of architectural forms.")
+
+        pop_col1, pop_col2 = st.columns(2)
+
+        with pop_col1:
+            st.markdown("##### Form Dominance")
+            if not final_gen.empty:
+                form_counts = final_gen['form_id'].value_counts()
+                dominant_form = form_counts.index[0]
+                dominance_pct = (form_counts.iloc[0] / form_counts.sum()) * 100
+                st.markdown(f"**Form `{int(dominant_form)}`** emerged as the dominant morphology, comprising **`{dominance_pct:.1f}%`** of the final population. This indicates that its foundational topology provided a significant adaptive advantage in the given task environment.")
+                
+                fig = px.pie(
+                    values=form_counts.values,
+                    names=[f"Form {i}" for i in form_counts.index],
+                    title='Final Population Distribution by Form',
+                    color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                fig.update_layout(height=300, margin=dict(t=40, b=20, l=20, r=20))
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("No final generation data to analyze form dominance.")
+
+        with pop_col2:
+            st.markdown("##### Genetic Diversity & Convergence")
+            if len(metrics_df) > 1:
+                final_diversity = metrics_df.iloc[-1]['diversity']
+                initial_diversity = metrics_df.iloc[0]['diversity']
+                diversity_change = ((final_diversity / initial_diversity) - 1) * 100 if initial_diversity > 0 else 0
+                
+                st.metric("Final Genetic Diversity (H)", f"{final_diversity:.3f}", f"{diversity_change:.1f}% vs. Initial")
+                
+                if diversity_change < -50:
+                    st.info("The significant drop in diversity indicates strong **convergent evolution**. The population has collectively identified a narrow set of highly effective genotypes, pruning away less successful variations.")
+                elif diversity_change > -10:
+                    st.info("Diversity was largely maintained, suggesting **divergent evolution** or a complex fitness landscape with multiple viable peaks. The population retains a broad range of solutions, which is beneficial for adapting to future environmental shifts.")
+                else:
+                    st.info("The population has undergone moderate convergence, balancing exploration with exploitation. A healthy level of diversity remains while honing in on promising regions of the search space.")
+            else:
+                st.info("Not enough data to analyze diversity trends.")
+
+        # --- Finally, show the dashboard ---
+        st.markdown("---")
+        st.subheader("📈 Comprehensive Evolutionary Dashboard")
+        st.markdown("The following dashboard provides a holistic view of the key metrics tracked across all generations, comparing the performance and evolution of different architectural forms.")
         st.plotly_chart(
             create_evolution_dashboard(history_df, st.session_state.current_population),
-            width='stretch'
+            use_container_width=True
         )
         
         # Best evolved architectures
