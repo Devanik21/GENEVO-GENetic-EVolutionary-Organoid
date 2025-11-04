@@ -1401,33 +1401,117 @@ def visualize_fitness_landscape(history_df: pd.DataFrame):
     )
     st.plotly_chart(fig, width='stretch', key="fitness_landscape_3d")
 
-def visualize_phase_space_portraits(metrics_df: pd.DataFrame):
-    """Plots phase-space portraits of key evolutionary metrics."""
-    st.markdown("### Phase-Space Portraits of Evolutionary Dynamics")
+def visualize_phase_space_portraits(history_df: pd.DataFrame, metrics_df: pd.DataFrame):
+    """
+    Plots highly detailed phase-space portraits of key evolutionary dynamics,
+    including velocity vectors to show system acceleration.
+    """
+    st.markdown("### Phase-Space Portraits: The Physics of Evolution")
     st.markdown("""
-    Inspired by dynamical systems theory, these plots visualize the evolution's trajectory in a "phase space". Each point represents a generation, showing a system metric (like diversity) versus its own rate of change. This reveals the stability and nature of the evolutionary process:
-    - **Trajectories moving towards the `y=0` line** indicate stabilization (an equilibrium).
-    - **Spirals** suggest damped oscillations around an equilibrium point.
-    - **Large `y` values** indicate rapid change or instability.
+    This visualization, deeply rooted in **dynamical systems theory**, models the evolution as a particle moving through a multi-dimensional "phase space." Each plot represents a 2D slice of this space, showing a key system property versus its own rate of change. This transforms the generational data into a continuous trajectory, revealing the underlying "physics" of the evolutionary process.
+
+    - **Points & Trajectory:** Each point is a generation, and the line connecting them shows the system's path through time.
+    - **The `y=0` Line (Nullcline):** This is the line of equilibrium. If the trajectory crosses this line, the system's property stops changing at that instant.
+    - **Acceleration Vectors (Arrows):** The small arrows attached to each point represent the system's "acceleration" vector `(d(X)/dt, d²(X)/dt²)`. They show the direction and magnitude of the "force" acting on the system at that moment, indicating where the trajectory is being pulled next.
+    
+    **How to Interpret the Dynamics:**
+    - **Spiraling Inward:** If the trajectory spirals towards a point on the `y=0` line, it indicates a **stable equilibrium** or **attractor**. The system is converging to a stable state (e.g., peak fitness, optimal diversity).
+    - **Spiraling Outward:** A trajectory spiraling away from a point indicates an **unstable equilibrium** or **repeller**. The system is actively moving away from that state.
+    - **Closed Loops:** A repeating loop is a **limit cycle**, representing a stable, periodic behavior in the system (e.g., predator-prey dynamics between different strategies).
+    - **Fast Transients:** Large vectors indicate periods of rapid change and instability, often following an environmental shift or a major innovation.
     """)
 
-    metrics_df['diversity_delta'] = metrics_df['diversity'].diff()
-    metrics_df['mean_fitness_delta'] = metrics_df['mean_fitness'].diff()
+    # --- Data Preparation ---
+    if len(metrics_df) < 3:
+        st.info("Not enough generational data to compute phase-space dynamics (requires at least 3 generations).")
+        return
 
-    fig = make_subplots(rows=1, cols=2, subplot_titles=('Diversity Phase Space (H vs dH/dt)', 'Fitness Phase Space (F vs dF/dt)'))
+    # Calculate additional metrics from history_df
+    arch_stats = history_df.groupby('generation')[['complexity']].mean().reset_index()
+    
+    selection_diff_data = []
+    for gen in sorted(history_df['generation'].unique()):
+        gen_data = history_df[history_df['generation'] == gen]
+        if len(gen_data) > 5:
+            fitness_array = gen_data['fitness'].values
+            num_survivors = max(2, int(len(gen_data) * 0.5)) # Assuming 50% pressure for this calc
+            selected_idx = np.argpartition(fitness_array, -num_survivors)[-num_survivors:]
+            diff = EvolutionaryTheory.selection_differential(fitness_array, selected_idx)
+            selection_diff_data.append({'generation': gen, 'selection_diff': diff})
+    
+    sel_df = pd.DataFrame(selection_diff_data)
 
-    # Diversity Plot
-    fig.add_trace(go.Scatter(x=metrics_df['diversity'], y=metrics_df['diversity_delta'], mode='lines+markers', marker=dict(color=metrics_df['generation'], colorscale='plasma', showscale=False, size=8), line=dict(color='rgba(128,128,128,0.5)'), hovertext=[f"Gen: {g}" for g in metrics_df['generation']]), row=1, col=1)
-    fig.add_hline(y=0, line_width=1, line_dash="dash", line_color="grey", row=1, col=1)
+    # Merge all data
+    df = metrics_df.merge(arch_stats, on='generation', how='left')
+    if not sel_df.empty:
+        df = df.merge(sel_df, on='generation', how='left')
+    
+    df = df.fillna(method='ffill').fillna(method='bfill') # Fill any gaps
 
-    # Fitness Plot
-    fig.add_trace(go.Scatter(x=metrics_df['mean_fitness'], y=metrics_df['mean_fitness_delta'], mode='lines+markers', marker=dict(color=metrics_df['generation'], colorscale='plasma', showscale=True, colorbar=dict(title='Generation'), size=8), line=dict(color='rgba(128,128,128,0.5)'), hovertext=[f"Gen: {g}" for g in metrics_df['generation']]), row=1, col=2)
-    fig.add_hline(y=0, line_width=1, line_dash="dash", line_color="grey", row=1, col=2)
+    metrics_to_plot = {
+        'mean_fitness': 'Mean Fitness (F)',
+        'diversity': 'Genetic Diversity (H)',
+        'complexity': 'Mean Complexity (C)',
+        'selection_diff': 'Selection Pressure (S)'
+    }
+    
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=[f'<b>{v}</b> vs d/dt' for v in metrics_to_plot.values()],
+        vertical_spacing=0.15,
+        horizontal_spacing=0.1
+    )
+    
+    plot_positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
 
-    fig.update_xaxes(title_text="Genetic Diversity (H)", row=1, col=1); fig.update_yaxes(title_text="Rate of Change (dH/dt)", row=1, col=1)
-    fig.update_xaxes(title_text="Mean Fitness (F)", row=1, col=2); fig.update_yaxes(title_text="Rate of Change (dF/dt)", row=1, col=2)
-    fig.update_layout(height=500, title_text="<b>Evolutionary Dynamics in Phase Space</b>", title_x=0.5, showlegend=False)
-    st.plotly_chart(fig, width='stretch', key="phase_space_portraits")
+    for (metric, title), (r, c) in zip(metrics_to_plot.items(), plot_positions):
+        if metric not in df.columns or df[metric].isnull().all():
+            fig.add_annotation(text=f"Data for '{title}' not available", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, row=r, col=c)
+            continue
+
+        # Calculate derivatives
+        x_data = df[metric]
+        y_data = df[metric].diff()
+        y_data_prime = y_data.diff() # Second derivative of the metric
+
+        # Main trajectory trace
+        fig.add_trace(go.Scatter(
+            x=x_data, y=y_data,
+            mode='lines+markers',
+            marker=dict(color=df['generation'], colorscale='plasma', showscale=(r==1 and c==1), colorbar=dict(title='Gen')),
+            line=dict(color='rgba(128,128,128,0.3)'),
+            hovertext=[f"Gen: {g}<br>{title.split(' ')[1]}: {x:.3f}<br>d/dt: {y:.3f}" for g, x, y in zip(df['generation'], x_data, y_data)],
+            hoverinfo='text',
+            name=title
+        ), row=r, col=c)
+
+        # Vector field (acceleration vectors)
+        x_range = x_data.max() - x_data.min()
+        y_range = y_data.max() - y_data.min()
+        if len(df) > 2 and x_range > 1e-9 and y_range > 1e-9:
+            arrow_len_fraction = 0.05
+            arrow_len_x = x_range * arrow_len_fraction
+            arrow_traces_x, arrow_traces_y = [], []
+
+            for i in range(2, len(df)):
+                x_pos, y_pos = x_data.iloc[i], y_data.iloc[i]
+                u, v = y_data.iloc[i], y_data_prime.iloc[i]
+                if pd.isna(u) or pd.isna(v): continue
+
+                angle = np.arctan2(v / y_range, u / x_range)
+                arrow_dx = arrow_len_x * np.cos(angle)
+                arrow_dy = arrow_len_x * np.sin(angle) * (y_range / x_range)
+                arrow_traces_x.extend([x_pos, x_pos + arrow_dx, None])
+                arrow_traces_y.extend([y_pos, y_pos + arrow_dy, None])
+
+            fig.add_trace(go.Scatter(x=arrow_traces_x, y=arrow_traces_y, mode='lines', line=dict(color='rgba(255,0,0,0.7)', width=1.5), hoverinfo='none', showlegend=False), row=r, col=c)
+
+        fig.add_hline(y=0, line_width=1, line_dash="dash", line_color="grey", row=r, col=c)
+        fig.update_xaxes(title_text=title, row=r, col=c)
+        fig.update_yaxes(title_text=f"d({title.split('(')[1][0]})/dt", row=r, col=c)
+
+    fig.update_layout(height=800, title_text="<b>Evolutionary Dynamics in Phase Space with Acceleration Vectors</b>", title_x=0.5, showlegend=False)
+    st.plotly_chart(fig, width='stretch', key="phase_space_portraits_complex")
 
 def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     """Advanced 3D network visualization"""
@@ -2455,7 +2539,7 @@ def main():
         if 'evolutionary_metrics' in st.session_state and st.session_state.evolutionary_metrics:
             metrics_df = pd.DataFrame(st.session_state.evolutionary_metrics)
             if len(metrics_df) > 1:
-                visualize_phase_space_portraits(metrics_df)
+                visualize_phase_space_portraits(history_df, metrics_df)
         
         st.markdown("<hr style='margin-top: 2rem; margin-bottom: 2rem;'>", unsafe_allow_html=True)
 
