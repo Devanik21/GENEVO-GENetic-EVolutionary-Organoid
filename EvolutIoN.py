@@ -2141,6 +2141,11 @@ def main():
             help="Chance to reintroduce an individual from the 'infinite' gene pool archive, simulating a vast population's memory and preventing permanent loss of innovation.",
             key="reintroduction_rate_slider"
         )
+        max_archive_size = st.slider(
+            "Max Gene Archive Size", 1000, 50000, s.get('max_archive_size', 10000), 1000,
+            help="The maximum size of the 'infinite' gene pool archive. A larger archive provides more long-term genetic memory but consumes more RAM.",
+            key="max_archive_size_slider"
+        )
         st.info(
             "These parameters are inspired by theoretical biology to simulate complex evolutionary dynamics like epistasis and niche partitioning."
         )
@@ -2271,6 +2276,7 @@ def main():
         'epistatic_linkage_k': epistatic_linkage_k,
         'gene_flow_rate': gene_flow_rate,
         'niche_competition_factor': niche_competition_factor,
+        'max_archive_size': max_archive_size,
         'reintroduction_rate': reintroduction_rate,
         'enable_cataclysms': enable_cataclysms,
         'cataclysm_probability': cataclysm_probability,
@@ -2524,6 +2530,10 @@ def main():
                             child.generation = gen + 1
                             offspring.append(child)
                             st.session_state.gene_archive.append(child.copy()) # Add new viable child to archive
+                            # Prune archive if it exceeds max size to manage memory
+                            max_size = st.session_state.settings.get('max_archive_size', 10000)
+                            if len(st.session_state.gene_archive) > max_size:
+                                st.session_state.gene_archive = random.sample(st.session_state.gene_archive, max_size)
                             break # Found a viable child, move to next offspring
                     else: # for-else: runs if the loop finished without break
                         # Fallback if no viable child was found after many attempts
