@@ -242,6 +242,50 @@ def genomic_distance(g1: Genotype, g2: Genotype, c1=1.0, c3=0.5) -> float:
     
     return distance
 
+def is_viable(genotype: Genotype) -> bool:
+    """
+    Checks if a genotype is structurally viable, meaning it has a path
+    from an input node to an output node. This prevents non-functional
+    architectures from entering the population.
+    """
+    if not genotype.modules or not genotype.connections:
+        return False
+
+    G = nx.DiGraph()
+    module_ids = {m.id for m in genotype.modules}
+    
+    for conn in genotype.connections:
+        # Ensure connections are between existing modules
+        if conn.source in module_ids and conn.target in module_ids:
+            G.add_edge(conn.source, conn.target)
+
+    if G.number_of_nodes() < 2: # Need at least two nodes to form a path
+        return False
+
+    # Identify input nodes (in-degree == 0) and output nodes (out-degree == 0)
+    input_nodes = [node for node, in_degree in G.in_degree() if in_degree == 0]
+    output_nodes = [node for node, out_degree in G.out_degree() if out_degree == 0]
+
+    # If there are no clear input/output nodes (e.g., a cycle), use heuristics
+    if not input_nodes:
+        potential_inputs = [m.id for m in genotype.modules if 'input' in m.id or 'embed' in m.id or 'V1' in m.id]
+        input_nodes = [node for node in potential_inputs if node in G.nodes]
+
+    if not output_nodes:
+        potential_outputs = [m.id for m in genotype.modules if 'output' in m.id or 'PFC' in m.id]
+        output_nodes = [node for node in potential_outputs if node in G.nodes]
+
+    if not input_nodes or not output_nodes:
+        return False # Cannot determine a start or end point
+
+    # Check for a path from any input to any output
+    for start_node in input_nodes:
+        for end_node in output_nodes:
+            if start_node in G and end_node in G and nx.has_path(G, start_node, end_node):
+                return True
+
+    return False
+
 # ==================== ADVANCED INITIALIZATION ====================
 
 def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genotype:
@@ -791,6 +835,11 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
                 vulnerability_score += 0.1 # Each matching module increases vulnerability
         
         total_fitness *= (1.0 - min(vulnerability_score, 0.5)) # Max 50% fitness reduction
+
+    # Apply a small fitness floor. This prevents complete zeros for viable but
+    # poorly performing individuals, which can help maintain diversity and
+    # prevent numerical issues in some selection schemes.
+    total_fitness = max(total_fitness, 1e-6)
 
     # Store component scores
     genotype.accuracy = scores['task_accuracy']
@@ -2197,32 +2246,43 @@ def main():
             # Reproduction
             offspring = []
             while len(offspring) < len(population) - len(survivors):
-                # Tournament selection using the appropriate fitness key
-                parent1 = max(random.sample(survivors, min(3, len(survivors))), key=selection_key)
-                
-                if random.random() < crossover_rate:
-                    if enable_speciation and random.random() < gene_flow_rate and len(survivors) > 1:
-                        # Gene Flow: select any other survivor, ignoring species
-                        parent2 = random.choice([s for s in survivors if s.lineage_id != parent1.lineage_id])
-                    elif len(survivors) > 1:
-                        # Normal Crossover: select compatible parent
-                        compatible = [s for s in survivors if s.form_id == parent1.form_id and s.lineage_id != parent1.lineage_id]
-                        parent2 = max(random.sample(compatible, min(2, len(compatible))), key=selection_key) if compatible else parent1 # type: ignore
+                # --- Create one viable child, with retries to prevent duds ---
+                max_attempts = 20
+                for _ in range(max_attempts):
+                    # Tournament selection using the appropriate fitness key
+                    parent1 = max(random.sample(survivors, min(3, len(survivors))), key=selection_key)
+                    
+                    if random.random() < crossover_rate:
+                        if enable_speciation and random.random() < gene_flow_rate and len(survivors) > 1:
+                            # Gene Flow: select any other survivor, ignoring species
+                            parent2_candidates = [s for s in survivors if s.lineage_id != parent1.lineage_id]
+                            parent2 = random.choice(parent2_candidates) if parent2_candidates else parent1
+                        elif len(survivors) > 1:
+                            # Normal Crossover: select compatible parent
+                            compatible = [s for s in survivors if s.form_id == parent1.form_id and s.lineage_id != parent1.lineage_id]
+                            parent2 = max(random.sample(compatible, min(2, len(compatible))), key=selection_key) if compatible else parent1 # type: ignore
+                        else:
+                            parent2 = parent1
+                        child = crossover(parent1, parent2, crossover_rate)
                     else:
-                        parent2 = parent1
-                    child = crossover(parent1, parent2, crossover_rate)
-                else:
-                    child = parent1.copy()
-                
-                # Mutation
-                child = mutate(child, current_mutation_rate, innovation_rate)
-                child.generation = gen + 1
-
-                # Endosymbiotic Transfer (Horizontal Gene Transfer)
-                if enable_endosymbiosis and random.random() < endosymbiosis_rate and survivors:
-                    child = apply_endosymbiosis(child, survivors)
-
-                offspring.append(child)
+                        child = parent1.copy()
+                    
+                    # Mutation and other operators
+                    child = mutate(child, current_mutation_rate, innovation_rate)
+                    if enable_endosymbiosis and random.random() < endosymbiosis_rate and survivors:
+                        child = apply_endosymbiosis(child, survivors)
+                    
+                    # Viability Selection: Ensure the child is a functional network
+                    if is_viable(child):
+                        child.generation = gen + 1
+                        offspring.append(child)
+                        break # Found a viable child, move to next offspring
+                else: # for-else: runs if the loop finished without break
+                    # Fallback if no viable child was found after many attempts
+                    parent1 = max(random.sample(survivors, min(3, len(survivors))), key=selection_key)
+                    child = mutate(parent1.copy(), current_mutation_rate, innovation_rate)
+                    child.generation = gen + 1
+                    offspring.append(child)
             
             # Clean up temporary attribute
             if enable_speciation:
