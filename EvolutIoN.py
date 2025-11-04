@@ -3117,7 +3117,7 @@ def main():
                             st.write(f"- `{count}` x **{mtype.capitalize()}**")
                         
                         st.markdown("###### Meta-Parameters:")
-                        st.json({k: f"{v:.4f}" for k, v in individual.meta_parameters.items()})
+                        st.json({k: f"{v:.4f}" for k, v in individual.meta_parameters.items()}, key=f"elite_meta_params_{individual.lineage_id}")
 
                     st.markdown("---")
                     st.markdown("#### Visualizations")
