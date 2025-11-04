@@ -2522,9 +2522,10 @@ def main():
         # --- Finally, show the dashboard ---
         st.markdown("---")
         st.subheader("📈 Comprehensive Evolutionary Dashboard")
-        st.markdown("The following dashboard provides a holistic view of the key metrics tracked across all generations, comparing the performance and evolution of different architectural forms.")
+        st.markdown("This dashboard provides a holistic, multi-faceted view of the key metrics tracked across all generations, deconstructing the run's performance, population dynamics, and underlying evolutionary forces.")
+        metrics_df = pd.DataFrame(st.session_state.get('evolutionary_metrics', []))
         st.plotly_chart(
-            create_evolution_dashboard(history_df, st.session_state.current_population),
+            create_evolution_dashboard(history_df, st.session_state.current_population, metrics_df),
             use_container_width=True
         )
         
