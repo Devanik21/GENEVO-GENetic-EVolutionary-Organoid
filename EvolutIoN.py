@@ -1324,7 +1324,7 @@ def visualize_fitness_landscape(history_df: pd.DataFrame):
         height=700,
         margin=dict(l=0, r=0, b=0, t=40)
     )
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, width='stretch', key="fitness_landscape_3d")
 
 def visualize_phase_space_portraits(metrics_df: pd.DataFrame):
     """Plots phase-space portraits of key evolutionary metrics."""
@@ -1352,7 +1352,7 @@ def visualize_phase_space_portraits(metrics_df: pd.DataFrame):
     fig.update_xaxes(title_text="Genetic Diversity (H)", row=1, col=1); fig.update_yaxes(title_text="Rate of Change (dH/dt)", row=1, col=1)
     fig.update_xaxes(title_text="Mean Fitness (F)", row=1, col=2); fig.update_yaxes(title_text="Rate of Change (dF/dt)", row=1, col=2)
     fig.update_layout(height=500, title_text="<b>Evolutionary Dynamics in Phase Space</b>", title_x=0.5, showlegend=False)
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, width='stretch', key="phase_space_portraits")
 
 def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     """Advanced 3D network visualization"""
@@ -1647,7 +1647,8 @@ def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genoty
     fig.update_layout(
         height=1200,
         showlegend=True,
-        
+        title_text="<b>Evolutionary Dynamics Dashboard</b>",
+        title_x=0.5,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         margin=dict(l=20, r=20, t=100, b=20)
     )
@@ -1790,7 +1791,7 @@ def main():
     # Sidebar
     st.sidebar.header("🎛️ Evolution Configuration")
     
-    if st.sidebar.button("⚙️ Reset to Optimal Defaults", width='stretch', help="Resets all parameters to a configuration optimized for robust and high-performance evolution."):
+    if st.sidebar.button("⚙️ Reset to Optimal Defaults", width='stretch', help="Resets all parameters to a configuration optimized for robust and high-performance evolution.", key="reset_defaults_button"):
         # This configuration is designed for stability and achieving high accuracy.
         optimal_defaults = {
             'task_type': 'Abstract Reasoning (ARC-AGI-2)',
@@ -1831,7 +1832,7 @@ def main():
     # Get settings from session state, with hardcoded defaults as fallback
     s = st.session_state.get('settings', {})
 
-    if st.sidebar.button("🗑️ Clear Saved State & Reset", width='stretch'):
+    if st.sidebar.button("🗑️ Clear Saved State & Reset", width='stretch', key="clear_state_button"):
         db.truncate() # Clear all tables
         st.session_state.clear()
         st.toast("Cleared all saved data. App has been reset.", icon="🗑️")
@@ -1851,37 +1852,41 @@ def main():
         "Initial Task",
         task_options,
         index=task_options.index(default_task) if default_task in task_options else 0,
-        help="Environmental pressure determines which architectures survive"
+        help="Environmental pressure determines which architectures survive",
+        key="task_type_selectbox"
     )
     
     with st.sidebar.expander("Dynamic Environment Settings"):
-        dynamic_environment = st.checkbox("Enable Dynamic Environment", value=s.get('dynamic_environment', True), help="If enabled, the task will change periodically.")
+        dynamic_environment = st.checkbox("Enable Dynamic Environment", value=s.get('dynamic_environment', True), help="If enabled, the task will change periodically.", key="dynamic_env_checkbox")
         env_change_frequency = st.slider(
             "Change Frequency (Generations)",
             min_value=5, max_value=50, value=s.get('env_change_frequency', 15),
             help="How often the task environment changes.",
-            disabled=not dynamic_environment
+            disabled=not dynamic_environment,
+            key="env_change_freq_slider"
         )
     
     st.sidebar.markdown("### Population Parameters")
     num_forms = st.sidebar.slider(
         "Number of Architectural Forms",
         min_value=1, max_value=5, value=s.get('num_forms', 5),
-        help="Morphological diversity: 1 ≤ n ≤ 5"
+        help="Morphological diversity: 1 ≤ n ≤ 5",
+        key="num_forms_slider"
     )
     
     population_per_form = st.sidebar.slider(
         "Population per Form", min_value=3, max_value=15, value=s.get('population_per_form', 8),
-        help="Larger populations increase genetic diversity"
+        help="Larger populations increase genetic diversity",
+        key="pop_per_form_slider"
     )
     
     st.sidebar.markdown("### Fitness Objectives")
     with st.sidebar.expander("Multi-Objective Weights", expanded=False):
         st.info("Define the importance of each fitness objective. Weights will be normalized.")
-        w_accuracy = st.slider("Accuracy Weight", 0.0, 1.0, s.get('w_accuracy', 0.5))
-        w_efficiency = st.slider("Efficiency Weight", 0.0, 1.0, s.get('w_efficiency', 0.2))
-        w_robustness = st.slider("Robustness Weight", 0.0, 1.0, s.get('w_robustness', 0.1))
-        w_generalization = st.slider("Generalization Weight", 0.0, 1.0, s.get('w_generalization', 0.2))
+        w_accuracy = st.slider("Accuracy Weight", 0.0, 1.0, s.get('w_accuracy', 0.5), key="w_accuracy_slider")
+        w_efficiency = st.slider("Efficiency Weight", 0.0, 1.0, s.get('w_efficiency', 0.2), key="w_efficiency_slider")
+        w_robustness = st.slider("Robustness Weight", 0.0, 1.0, s.get('w_robustness', 0.1), key="w_robustness_slider")
+        w_generalization = st.slider("Generalization Weight", 0.0, 1.0, s.get('w_generalization', 0.2), key="w_generalization_slider")
         
         total_w = w_accuracy + w_efficiency + w_robustness + w_generalization + 1e-9
         fitness_weights = {
@@ -1900,35 +1905,41 @@ def main():
     mutation_rate = col1.slider(
         "Base Mutation Rate (μ)",
         min_value=0.05, max_value=0.6, value=s.get('mutation_rate', 0.2), step=0.05,
-        help="Initial probability of genetic variation"
+        help="Initial probability of genetic variation",
+        key="mutation_rate_slider"
     )
     crossover_rate = col2.slider(
         "Crossover Rate",
         min_value=0.3, max_value=0.9, value=s.get('crossover_rate', 0.7), step=0.1,
-        help="Probability of recombination"
+        help="Probability of recombination",
+        key="crossover_rate_slider"
     )
     
     innovation_rate = st.sidebar.slider(
         "Innovation Rate (σ)",
         min_value=0.01, max_value=0.2, value=s.get('innovation_rate', 0.05), step=0.01,
-        help="Rate of structural mutations"
+        help="Rate of structural mutations",
+        key="innovation_rate_slider"
     )
     
     with st.sidebar.expander("🏔️ Landscape & Speciation Control", expanded=False):
         st.markdown("Control the deep physics of the evolutionary ecosystem.")
         epistatic_linkage_k = st.slider(
             "Epistatic Linkage (K)", 0, 5, s.get('epistatic_linkage_k', 0), 1,
-            help="From NK models. K > 0 creates a 'rugged' fitness landscape where gene interactions matter. Higher K = more chaotic landscape."
+            help="From NK models. K > 0 creates a 'rugged' fitness landscape where gene interactions matter. Higher K = more chaotic landscape.",
+            key="epistatic_linkage_slider"
         )
         gene_flow_rate = st.slider(
             "Gene Flow (Hybridization)", 0.0, 0.1, s.get('gene_flow_rate', 0.01), 0.005,
             help="Chance for crossover between different species, enabling major evolutionary leaps.",
-            disabled=not s.get('enable_speciation', True)
+            disabled=not s.get('enable_speciation', True),
+            key="gene_flow_rate_slider"
         )
         niche_competition_factor = st.slider(
             "Niche Competition", 0.0, 2.0, s.get('niche_competition_factor', 1.0), 0.1,
             help="How strongly species compete. >1 forces specialization; 0 removes fitness sharing.",
-            disabled=not s.get('enable_speciation', True)
+            disabled=not s.get('enable_speciation', True),
+            key="niche_competition_slider"
         )
         st.info(
             "These parameters are inspired by theoretical biology to simulate complex evolutionary dynamics like epistasis and niche partitioning."
@@ -1947,7 +1958,7 @@ def main():
         )
 
         # Import button and logic
-        uploaded_file = st.file_uploader("Import Experiment Config", type="json")
+        uploaded_file = st.file_uploader("Import Experiment Config", type="json", key="import_config_uploader")
         if uploaded_file is not None:
             new_settings = json.load(uploaded_file)
             st.session_state.settings = new_settings
@@ -1956,13 +1967,14 @@ def main():
 
     with st.sidebar.expander("🌋 Ecosystem Shocks & Dynamics", expanded=False):
         st.markdown("Introduce high-level ecosystem pressures.")
-        enable_cataclysms = st.checkbox("Enable Cataclysms", value=s.get('enable_cataclysms', True), help="Enable rare, random mass-extinction or environmental collapse events.")
+        enable_cataclysms = st.checkbox("Enable Cataclysms", value=s.get('enable_cataclysms', True), help="Enable rare, random mass-extinction or environmental collapse events.", key="enable_cataclysms_checkbox")
         cataclysm_probability = st.slider(
             "Cataclysm Probability", 0.0, 0.1, s.get('cataclysm_probability', 0.02), 0.005,
             help="Per-generation chance of a cataclysmic event.",
-            disabled=not enable_cataclysms
+            disabled=not enable_cataclysms,
+            key="cataclysm_prob_slider"
         )
-        enable_red_queen = st.checkbox("Enable Red Queen Dynamics", value=s.get('enable_red_queen', True), help="A co-evolving 'parasite' creates an arms race by targeting common traits, forcing continuous adaptation.")
+        enable_red_queen = st.checkbox("Enable Red Queen Dynamics", value=s.get('enable_red_queen', True), help="A co-evolving 'parasite' creates an arms race by targeting common traits, forcing continuous adaptation.", key="enable_red_queen_checkbox")
         st.info(
             "These features test the ecosystem's resilience and ability to escape static equilibria through external shocks and internal arms races."
         )
@@ -1970,16 +1982,17 @@ def main():
 
     with st.sidebar.expander("🔬 Advanced Dynamics", expanded=True):
         st.markdown("These features add deep biological complexity. You can disable them for a more classical evolutionary run.")
-        enable_development = st.checkbox("Enable Developmental Program", value=s.get('enable_development', True), help="Each generation, individuals execute their internal genetic programs, causing changes like synaptic pruning (removing weak connections) or module proliferation (growth during stagnation).")
-        enable_baldwin = st.checkbox("Enable Baldwin Effect", value=s.get('enable_baldwin', True), help="An individual's `plasticity` score allows it to 'learn' during its lifetime, boosting its final fitness. This creates a selective pressure for architectures that are not just good, but also good at learning.")
-        enable_epigenetics = st.checkbox("Enable Epigenetic Inheritance", value=s.get('enable_epigenetics', True), help="Individuals pass down partially heritable 'aptitude' for tasks they performed well on, creating a fast, non-genetic adaptation layer.")
-        enable_endosymbiosis = st.checkbox("Enable Endosymbiosis", value=s.get('enable_endosymbiosis', True), help="A rare event where an architecture acquires a pre-evolved, successful module from an elite individual, allowing for major leaps in complexity.")
+        enable_development = st.checkbox("Enable Developmental Program", value=s.get('enable_development', True), help="Each generation, individuals execute their internal genetic programs, causing changes like synaptic pruning (removing weak connections) or module proliferation (growth during stagnation).", key="enable_development_checkbox")
+        enable_baldwin = st.checkbox("Enable Baldwin Effect", value=s.get('enable_baldwin', True), help="An individual's `plasticity` score allows it to 'learn' during its lifetime, boosting its final fitness. This creates a selective pressure for architectures that are not just good, but also good at learning.", key="enable_baldwin_checkbox")
+        enable_epigenetics = st.checkbox("Enable Epigenetic Inheritance", value=s.get('enable_epigenetics', True), help="Individuals pass down partially heritable 'aptitude' for tasks they performed well on, creating a fast, non-genetic adaptation layer.", key="enable_epigenetics_checkbox")
+        enable_endosymbiosis = st.checkbox("Enable Endosymbiosis", value=s.get('enable_endosymbiosis', True), help="A rare event where an architecture acquires a pre-evolved, successful module from an elite individual, allowing for major leaps in complexity.", key="enable_endosymbiosis_checkbox")
         
         endosymbiosis_rate = st.slider(
             "Endosymbiosis Rate",
             min_value=0.0, max_value=0.05, value=s.get('endosymbiosis_rate', 0.01), step=0.005,
             help="Chance for an individual to acquire a module from an elite parent.",
-            disabled=not enable_endosymbiosis
+            disabled=not enable_endosymbiosis,
+            key="endosymbiosis_rate_slider"
         )
 
         st.info(
@@ -1991,28 +2004,32 @@ def main():
             "Mutation Rate Schedule",
             ['Constant', 'Linear Decay', 'Adaptive'],
             index=['Constant', 'Linear Decay', 'Adaptive'].index(s.get('mutation_schedule', 'Adaptive')),
-            help="How the mutation rate changes over generations."
+            help="How the mutation rate changes over generations.",
+            key="mutation_schedule_selectbox"
         )
         adaptive_mutation_strength = st.slider(
             "Adaptive Strength",
             min_value=0.1, max_value=1.0, value=s.get('adaptive_mutation_strength', 0.5),
             help="How strongly mutation rate reacts to stagnation.",
-            disabled=(mutation_schedule != 'Adaptive')
+            disabled=(mutation_schedule != 'Adaptive'),
+            key="adaptive_mutation_strength_slider"
         )
     
     st.sidebar.markdown("### Selection Strategy")
     selection_pressure = st.sidebar.slider(
         "Selection Pressure", min_value=0.3, max_value=0.8, value=s.get('selection_pressure', 0.5), step=0.1,
-        help="Fraction of population surviving each generation"
+        help="Fraction of population surviving each generation",
+        key="selection_pressure_slider"
     )
     
     with st.sidebar.expander("Speciation (NEAT-style)", expanded=True):
-        enable_speciation = st.checkbox("Enable Speciation", value=s.get('enable_speciation', True), help="Group similar individuals into species to protect innovation.")
+        enable_speciation = st.checkbox("Enable Speciation", value=s.get('enable_speciation', True), help="Group similar individuals into species to protect innovation.", key="enable_speciation_checkbox")
         compatibility_threshold = st.slider(
             "Compatibility Threshold",
             min_value=1.0, max_value=10.0, value=s.get('compatibility_threshold', 4.0), step=0.5,
             disabled=not enable_speciation,
-            help="Genomic distance to be in the same species. Higher = fewer species."
+            help="Genomic distance to be in the same species. Higher = fewer species.",
+            key="compatibility_threshold_slider"
         )
         st.info("Speciation uses a genomic distance metric based on form, module/connection differences, and parameter differences.")
 
@@ -2020,14 +2037,16 @@ def main():
     num_generations = st.sidebar.slider(
         "Generations",
         min_value=10, max_value=100, value=s.get('num_generations', 30),
-        help="Evolutionary timescale"
+        help="Evolutionary timescale",
+        key="num_generations_slider"
     )
     
     complexity_options = ['minimal', 'medium', 'high']
     complexity_level = st.sidebar.select_slider(
         "Initial Complexity",
         options=complexity_options,
-        value=s.get('complexity_level', 'medium')
+        value=s.get('complexity_level', 'medium'),
+        key="complexity_level_select_slider"
     )
     
     # --- Collect and save current settings ---
@@ -2076,7 +2095,7 @@ def main():
     st.sidebar.markdown("---")
     
     # Run evolution button
-    if st.sidebar.button("⚡ Initiate Evolution", type="primary", width='stretch'):
+    if st.sidebar.button("⚡ Initiate Evolution", type="primary", width='stretch', key="initiate_evolution_button"):
         st.session_state.history = []
         st.session_state.evolutionary_metrics = []
         
@@ -2498,7 +2517,7 @@ def main():
                     color_discrete_sequence=px.colors.qualitative.Set3
                 )
                 fig.update_layout(height=300, margin=dict(t=40, b=20, l=20, r=20))
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, key="form_dominance_pie")
             else:
                 st.info("No final generation data to analyze form dominance.")
 
@@ -2526,7 +2545,7 @@ def main():
         st.markdown("This dashboard provides a holistic, multi-faceted view of the key metrics tracked across all generations, deconstructing the run's performance, population dynamics, and underlying evolutionary forces.")
         metrics_df = pd.DataFrame(st.session_state.get('evolutionary_metrics', []))
         st.plotly_chart(
-            create_evolution_dashboard(history_df, st.session_state.current_population, metrics_df),
+            create_evolution_dashboard(history_df, st.session_state.current_population, metrics_df), # type: ignore
             width='stretch'
         )
         
@@ -2573,7 +2592,8 @@ def main():
                     "🔬 Causal & Structural Analysis", 
                     "🧬 Evolutionary & Developmental Potential",
                     "🌳 Genealogy & Ancestry",
-                    "💻 Code Export"
+                    "💻 Code Export",
+                    key=f"elite_tabs_{individual.lineage_id}"
                 ])
 
                 # --- TAB 1: Vitals & Architecture ---
@@ -2687,7 +2707,7 @@ def main():
                         fig = px.histogram(dist_df, x="Fitness Change", nbins=20, title="Distribution of Mutational Effects")
                         fig.add_vline(x=0, line_width=2, line_dash="dash", line_color="grey")
                         fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
-                        st.plotly_chart(fig, width='stretch')
+                        st.plotly_chart(fig, width='stretch', key=f"mutational_effects_hist_{individual.lineage_id}")
 
                     with evo_col2:
                         st.subheader("Developmental Trajectory")
@@ -2698,7 +2718,7 @@ def main():
                         
                         fig = px.line(dev_traj_df, x="step", y=["total_params", "num_connections"], title="Simulated Developmental Trajectory")
                         fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                        st.plotly_chart(fig, width='stretch')
+                        st.plotly_chart(fig, width='stretch', key=f"dev_trajectory_line_{individual.lineage_id}")
 
                 # --- TAB 4: Genealogy & Ancestry ---
                 with tab_ancestry:
@@ -2777,7 +2797,7 @@ def main():
                 title='Final Population Distribution',
                 color_discrete_sequence=px.colors.qualitative.Set3
             )
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, width='stretch', key="final_pop_dist_pie")
         
         # Time series analysis
         st.markdown("---")
@@ -2795,7 +2815,7 @@ def main():
                 title='Network Size Evolution',
                 labels={'total_params': 'Mean Parameters', 'generation': 'Generation'}
             )
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, width='stretch', key="network_size_evo_line")
         
         with col2:
             # Complexity trajectory
@@ -2807,7 +2827,7 @@ def main():
                 title='Architectural Complexity Trajectory',
                 labels={'complexity': 'Complexity Score', 'generation': 'Generation'}
             )
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, width='stretch', key="complexity_traj_line")
         
         # Evolutionary metrics
         if st.session_state.evolutionary_metrics:
@@ -2838,7 +2858,7 @@ def main():
             fig.update_yaxes(title_text="I(θ)", row=1, col=2)
             fig.update_layout(height=400, showlegend=False)
             
-            st.plotly_chart(fig, width='stretch')
+            st.plotly_chart(fig, width='stretch', key="pop_genetics_chart")
 
         st.markdown("---")
         st.header("Dynamic Concluding Remarks")
@@ -2905,7 +2925,8 @@ def main():
             min_value=1,
             max_value=min(10, len(population)),
             value=min(3, len(population)),
-            step=1
+            step=1,
+            key="n_for_synthesis_slider"
         )
 
         top_n_individuals = population[:n_for_synthesis]
@@ -2915,7 +2936,7 @@ def main():
                 master_architecture = synthesize_master_architecture(top_n_individuals)
             
             if master_architecture:
-                tab1, tab2 = st.tabs(["3D Interactive View", "2D Static View & Download"])
+                tab1, tab2 = st.tabs(["3D Interactive View", "2D Static View & Download"], key="master_arch_tabs")
 
                 with tab1:
                     st.plotly_chart(visualize_genotype_3d(master_architecture), width='stretch', key="master_3d")
@@ -2990,7 +3011,7 @@ def main():
                     fig = px.histogram(dist_df, x="Fitness Change", nbins=20, title="Distribution of Mutational Effects")
                     fig.add_vline(x=0, line_width=2, line_dash="dash", line_color="grey")
                     fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
-                    st.plotly_chart(fig, width='stretch')
+                    st.plotly_chart(fig, width='stretch', key="master_mutational_effects_hist")
 
                 with analysis_col4:
                     st.subheader("Genetic Load & Neutrality")
@@ -3015,7 +3036,7 @@ def main():
                     
                     fig = px.line(dev_traj_df, x="step", y=["total_params", "num_connections"], title="Simulated Developmental Trajectory")
                     fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                    st.plotly_chart(fig, width='stretch')
+                    st.plotly_chart(fig, width='stretch', key="master_dev_trajectory_line")
 
                 with analysis_col6:
                     st.subheader("Phylogenetic Signal (Pagel's λ)")
@@ -3034,7 +3055,7 @@ def main():
                         })
                         fig = px.scatter(phylo_df, x='Phylogenetic Distance', y='Phenotypic Distance', trendline="ols", title="Phylogenetic vs. Phenotypic Distance")
                         fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
-                        st.plotly_chart(fig, width='stretch')
+                        st.plotly_chart(fig, width='stretch', key="master_phylo_signal_scatter")
                     else:
                         st.info("Not enough data for phylogenetic signal analysis.")
 
