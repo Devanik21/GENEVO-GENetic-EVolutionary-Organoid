@@ -3391,7 +3391,6 @@ def main():
                     final_gen.sort_values('form'), # Sort to group colors
                     color="form",
                     dimensions=['accuracy', 'efficiency', 'robustness', 'generalization', 'complexity'],
-                    color_discrete_sequence=px.colors.qualitative.Plotly,
                     labels={
                         "accuracy": "Accuracy", "efficiency": "Efficiency",
                         "robustness": "Robustness", "generalization": "Generalization",
