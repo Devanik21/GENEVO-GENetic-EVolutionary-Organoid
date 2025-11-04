@@ -2800,7 +2800,7 @@ def main():
                             st.metric("Complexity Change", f"{complexity_delta:+.3f}", delta_color="off")
 
                             st.plotly_chart(visualize_genotype_2d(parent), use_container_width=True, key=f"apex_parent_2d_{parent.lineage_id}")
-
+                            
             # --- TAB 5: Code Export ---
             with tab_export:
                 st.markdown("The genotype can be translated into functional code for deep learning frameworks, providing a direct path from discovery to application.")
@@ -3010,7 +3010,7 @@ def main():
                         st.info(interpretation)
 
                         with st.expander("View Architecture"):
-                            st.plotly_chart(visualize_genotype_2d(archetype), use_container_width=True, key=f"pareto_2d_{archetype.lineage_id}")
+                            st.plotly_chart(visualize_genotype_2d(archetype), use_container_width=True, key=f"pareto_archetype_2d_{name}")
                     col_idx += 1
 
         else:
@@ -3119,23 +3119,23 @@ def main():
                         st.markdown("###### Meta-Parameters:")
                         st.json({k: f"{v:.4f}" for k, v in individual.meta_parameters.items()}, key=f"elite_meta_params_{individual.lineage_id}")
 
-                    st.markdown("---")
-                    st.markdown("#### Visualizations")
-                    vis_col1, vis_col2 = st.columns(2)
-                    with vis_col1:
-                        st.markdown("###### 3D Interactive View")
-                        st.plotly_chart(
-                            visualize_genotype_3d(individual),
-                            width='stretch',
-                            key=f"elite_3d_{individual.lineage_id}"
-                        )
-                    with vis_col2:
-                        st.markdown("###### 2D Static View")
-                        st.plotly_chart(
-                            visualize_genotype_2d(individual),
-                            width='stretch',
-                            key=f"elite_2d_{individual.lineage_id}"
-                        )
+                st.markdown("---")
+                st.markdown("#### Visualizations")
+                vis_col1, vis_col2 = st.columns(2)
+                with vis_col1:
+                    st.markdown("###### 3D Interactive View")
+                    st.plotly_chart(
+                        visualize_genotype_3d(individual),
+                        use_container_width=True,
+                        key=f"elite_3d_{i}_{individual.lineage_id}"
+                    )
+                with vis_col2:
+                    st.markdown("###### 2D Static View")
+                    st.plotly_chart(
+                        visualize_genotype_2d(individual),
+                        use_container_width=True,
+                        key=f"elite_2d_{i}_{individual.lineage_id}"
+                    )
 
                 # --- TAB 2: Causal & Structural Analysis ---
                 with tab_causal:
@@ -3203,8 +3203,8 @@ def main():
                         dist_df = pd.DataFrame(evo_robust_data['distribution'], columns=['Fitness Change'])
                         fig = px.histogram(dist_df, x="Fitness Change", nbins=20, title="Distribution of Mutational Effects")
                         fig.add_vline(x=0, line_width=2, line_dash="dash", line_color="grey")
-                        fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
-                        st.plotly_chart(fig, width='stretch', key=f"mutational_effects_hist_{individual.lineage_id}")
+                        fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20), showlegend=False)
+                        st.plotly_chart(fig, use_container_width=True, key=f"mutational_effects_hist_{i}_{individual.lineage_id}")
 
                     with evo_col2:
                         st.subheader("Developmental Trajectory")
@@ -3214,8 +3214,8 @@ def main():
                             dev_traj_df = analyze_developmental_trajectory(individual)
                         
                         fig = px.line(dev_traj_df, x="step", y=["total_params", "num_connections"], title="Simulated Developmental Trajectory")
-                        fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                        st.plotly_chart(fig, width='stretch', key=f"dev_trajectory_line_{individual.lineage_id}")
+                        fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1), showlegend=False)
+                        st.plotly_chart(fig, use_container_width=True, key=f"dev_trajectory_line_{i}_{individual.lineage_id}")
 
                 # --- TAB 4: Genealogy & Ancestry ---
                 with tab_ancestry:
@@ -3249,8 +3249,8 @@ def main():
                                 # Visualize parent
                                 st.plotly_chart(
                                     visualize_genotype_2d(parent),
-                                    width='stretch',
-                                    key=f"parent_2d_{parent.lineage_id}_for_{individual.lineage_id}"
+                                    use_container_width=True,
+                                    key=f"parent_2d_{i}_{k}_{parent.lineage_id}_for_{individual.lineage_id}"
                                 )
 
                 # --- TAB 5: Code Export ---
