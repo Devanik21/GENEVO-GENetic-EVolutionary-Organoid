@@ -1504,78 +1504,118 @@ def visualize_genotype_2d(genotype: Genotype) -> go.Figure:
                              yaxis=dict(showgrid=False, zeroline=False, showticklabels=False), height=600, plot_bgcolor='white'))
     return fig
 
-def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype]) -> go.Figure:
-    """Comprehensive evolution analytics dashboard"""
+def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype], evolutionary_metrics_df: pd.DataFrame) -> go.Figure:
+    """Extremely advanced, comprehensive evolution analytics dashboard"""
     
     fig = make_subplots(
-        rows=2, cols=3,
+        rows=3, cols=3,
         subplot_titles=(
-            'Fitness Evolution by Form',
-            'Pareto Front: Accuracy vs Efficiency',
-            'Population Diversity',
-            'Selection Pressure',
-            'Complexity Evolution',
-            'Heritability Over Time'
+            '<b>Fitness Evolution by Form</b>',
+            '<b>Component Score Trajectories</b>',
+            '<b>Final Pareto Frontier (3D)</b>',
+            '<b>Form Dominance Over Time</b>',
+            '<b>Genetic Diversity (H) & Heritability (h²)</b>',
+            '<b>Phenotypic Divergence (σ)</b>',
+            '<b>Selection Pressure (Δ) & Mutation Rate (μ)</b>',
+            '<b>Complexity & Parameter Growth</b>',
+            '<b>Epigenetic Adaptation (Lamarckian Learning)</b>'
         ),
         specs=[
-            [{'type': 'scatter'}, {'type': 'scatter'}, {'type': 'scatter'}],
-            [{'type': 'scatter'}, {'type': 'scatter'}, {'type': 'scatter'}]
-        ]
+            [{}, {}, {'type': 'scatter3d'}],
+            [{}, {'secondary_y': True}, {}],
+            [{'secondary_y': True}, {'secondary_y': True}, {}]
+        ],
+        vertical_spacing=0.15,
+        horizontal_spacing=0.1
     )
     
-    # 1. Fitness evolution
+    # --- Plot 1: Fitness Evolution (Enhanced) ---
+    fitness_stats = history_df.groupby(['generation', 'form'])['fitness'].agg(['mean', 'std']).reset_index()
     for form in sorted(history_df['form'].unique()):
         form_data = history_df[history_df['form'] == form]
+        mean_fitness = form_data['mean']
+        std_fitness = form_data['std'].fillna(0)
+        
+        # Add shaded area for std dev
+        fig.add_trace(go.Scatter(
+            x=np.concatenate([form_data['generation'], form_data['generation'][::-1]]),
+            y=np.concatenate([mean_fitness + std_fitness, (mean_fitness - std_fitness)[::-1]]),
+            fill='toself',
+            fillcolor=px.colors.qualitative.Plotly[history_df['form_id'].max() % len(px.colors.qualitative.Plotly)],
+            opacity=0.1,
+            line=dict(color='rgba(255,255,255,0)'),
+            hoverinfo="skip",
+            showlegend=False,
+            legendgroup=form
+        ), row=1, col=1)
+
+        # Add mean line
         fig.add_trace(
-            go.Scatter(
-                x=form_data['generation'],
-                y=form_data['fitness'],
-                mode='lines+markers',
-                name=form,
-                legendgroup=form
-            ),
+            go.Scatter(x=form_data['generation'], y=mean_fitness, mode='lines', name=form, legendgroup=form),
             row=1, col=1
         )
     
-    # 2. Pareto front
+    # --- Plot 2: Component Score Evolution ---
+    component_scores = history_df.groupby('generation')[['accuracy', 'efficiency', 'robustness']].mean().reset_index()
+    fig.add_trace(go.Scatter(x=component_scores['generation'], y=component_scores['accuracy'], name='Accuracy', line=dict(color='blue')), row=1, col=2)
+    fig.add_trace(go.Scatter(x=component_scores['generation'], y=component_scores['efficiency'], name='Efficiency', line=dict(color='green')), row=1, col=2)
+    fig.add_trace(go.Scatter(x=component_scores['generation'], y=component_scores['robustness'], name='Robustness', line=dict(color='red')), row=1, col=2)
+
+    # --- Plot 3: Pareto Front (3D) ---
     final_gen = history_df[history_df['generation'] == history_df['generation'].max()]
-    fig.add_trace(
-        go.Scatter(
-            x=final_gen['accuracy'],
-            y=final_gen['efficiency'],
-            mode='markers',
-            marker=dict(
-                size=10,
-                color=final_gen['fitness'],
-                colorscale='Viridis',
-                showscale=True,
-                colorbar=dict(x=0.65, len=0.4)
-            ),
-            text=[f"Form {int(f)}" for f in final_gen['form_id']],
-            showlegend=False
+    fig.add_trace(go.Scatter3d(
+        x=final_gen['accuracy'], y=final_gen['efficiency'], z=final_gen['robustness'],
+        mode='markers',
+        marker=dict(
+            size=8,
+            color=final_gen['fitness'],
+            colorscale='Viridis',
+            colorbar=dict(title='Fitness', x=1.0, len=0.6),
+            showscale=True
         ),
-        row=1, col=2
-    )
+        text=[f"Form {int(f)}" for f in final_gen['form_id']],
+        hoverinfo='text+x+y+z'
+    ), row=1, col=3)
     
-    # 3. Diversity over time
-    diversity_by_gen = history_df.groupby('generation').agg({
-        'total_params': 'std',
-        'fitness': 'std'
-    }).reset_index()
-    
-    fig.add_trace(
-        go.Scatter(
-            x=diversity_by_gen['generation'],
-            y=diversity_by_gen['fitness'],
-            mode='lines+markers',
-            name='Fitness Diversity',
-            line=dict(color='purple'),
+    # --- Plot 4: Form Dominance ---
+    form_counts = history_df.groupby(['generation', 'form']).size().unstack(fill_value=0)
+    form_percentages = form_counts.apply(lambda x: x / x.sum(), axis=1)
+    for form in form_percentages.columns:
+        fig.add_trace(go.Scatter(
+            x=form_percentages.index, y=form_percentages[form],
+            hoverinfo='x+y', mode='lines', name=form,
+            stackgroup='one', groupnorm='percent',
             showlegend=False
-        ),
-        row=1, col=3
-    )
-    
-    # 4. Selection differential
+        ), row=2, col=1)
+
+    # --- Plot 5: Genetic Diversity & Heritability ---
+    if not evolutionary_metrics_df.empty:
+        fig.add_trace(go.Scatter(
+            x=evolutionary_metrics_df['generation'], y=evolutionary_metrics_df['diversity'],
+            name='Diversity (H)', line=dict(color='purple')
+        ), secondary_y=False, row=2, col=2)
+
+    heritabilities = []
+    if history_df['generation'].max() > 1:
+        for gen in range(1, history_df['generation'].max()):
+            parent_gen = history_df[history_df['generation'] == gen - 1]
+            offspring_gen = history_df[history_df['generation'] == gen]
+            if len(parent_gen) > 2 and len(offspring_gen) > 2:
+                h2 = EvolutionaryTheory.heritability(parent_gen['fitness'].values, offspring_gen['fitness'].values)
+                heritabilities.append({'generation': gen, 'heritability': h2})
+    if heritabilities:
+        h2_df = pd.DataFrame(heritabilities)
+        fig.add_trace(go.Scatter(
+            x=h2_df['generation'], y=h2_df['heritability'],
+            name='Heritability (h²)', line=dict(color='green', dash='dash')
+        ), secondary_y=True, row=2, col=2)
+
+    # --- Plot 6: Phenotypic Divergence ---
+    pheno_divergence = history_df.groupby('generation')[['total_params', 'complexity']].std().reset_index()
+    fig.add_trace(go.Scatter(x=pheno_divergence['generation'], y=pheno_divergence['total_params'], name='σ (Params)'), row=2, col=3)
+    fig.add_trace(go.Scatter(x=pheno_divergence['generation'], y=pheno_divergence['complexity'], name='σ (Complexity)'), row=2, col=3)
+
+    # --- Plot 7: Selection Pressure & Mutation Rate ---
     selection_diff = []
     for gen in sorted(history_df['generation'].unique()):
         gen_data = history_df[history_df['generation'] == gen]
@@ -1583,81 +1623,57 @@ def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genoty
             top_50_pct = gen_data.nlargest(len(gen_data) // 2, 'fitness')
             diff = top_50_pct['fitness'].mean() - gen_data['fitness'].mean()
             selection_diff.append({'generation': gen, 'selection_diff': diff})
-    
     if selection_diff:
         sel_df = pd.DataFrame(selection_diff)
-        fig.add_trace(
-            go.Scatter(
-                x=sel_df['generation'],
-                y=sel_df['selection_diff'],
-                mode='lines+markers',
-                line=dict(color='red'),
-                showlegend=False
-            ),
-            row=2, col=1
-        )
-    
-    # 5. Complexity evolution
-    complexity_stats = history_df.groupby('generation')['complexity'].agg(['mean', 'std']).reset_index()
-    
-    fig.add_trace(
-        go.Scatter(
-            x=complexity_stats['generation'],
-            y=complexity_stats['mean'],
-            mode='lines+markers',
-            name='Mean Complexity',
-            line=dict(color='orange'),
-            showlegend=False
-        ),
-        row=2, col=2
-    )
-    
-    # 6. Heritability estimate
-    if len(history_df) > 20:
-        heritabilities = []
-        for gen in range(1, history_df['generation'].max()):
-            parent_gen = history_df[history_df['generation'] == gen]
-            offspring_gen = history_df[history_df['generation'] == gen + 1]
-            
-            if len(parent_gen) > 2 and len(offspring_gen) > 2:
-                parent_fit = parent_gen['fitness'].values
-                offspring_fit = offspring_gen['fitness'].values
-                h2 = EvolutionaryTheory.heritability(parent_fit, offspring_fit)
-                heritabilities.append({'generation': gen, 'heritability': h2})
-        
-        if heritabilities:
-            h2_df = pd.DataFrame(heritabilities)
-            fig.add_trace(
-                go.Scatter(
-                    x=h2_df['generation'],
-                    y=h2_df['heritability'],
-                    mode='lines+markers',
-                    line=dict(color='green'),
-                    showlegend=False
-                ),
-                row=2, col=3
-            )
-    
-    fig.update_xaxes(title_text="Generation", row=1, col=1)
-    fig.update_xaxes(title_text="Task Accuracy", row=1, col=2)
-    fig.update_xaxes(title_text="Generation", row=1, col=3)
-    fig.update_xaxes(title_text="Generation", row=2, col=1)
-    fig.update_xaxes(title_text="Generation", row=2, col=2)
-    fig.update_xaxes(title_text="Generation", row=2, col=3)
-    
-    fig.update_yaxes(title_text="Fitness", row=1, col=1)
-    fig.update_yaxes(title_text="Efficiency", row=1, col=2)
-    fig.update_yaxes(title_text="Fitness σ", row=1, col=3)
-    fig.update_yaxes(title_text="Selection Δ", row=2, col=1)
-    fig.update_yaxes(title_text="Complexity", row=2, col=2)
-    fig.update_yaxes(title_text="h²", row=2, col=3)
-    
+        fig.add_trace(go.Scatter(x=sel_df['generation'], y=sel_df['selection_diff'], name='Selection Δ', line=dict(color='red')), secondary_y=False, row=3, col=1)
+    if not evolutionary_metrics_df.empty and 'mutation_rate' in evolutionary_metrics_df.columns:
+        fig.add_trace(go.Scatter(x=evolutionary_metrics_df['generation'], y=evolutionary_metrics_df['mutation_rate'], name='Mutation Rate μ', line=dict(color='orange', dash='dash')), secondary_y=True, row=3, col=1)
+
+    # --- Plot 8: Complexity & Parameter Growth ---
+    arch_stats = history_df.groupby('generation')[['complexity', 'total_params']].mean().reset_index()
+    fig.add_trace(go.Scatter(x=arch_stats['generation'], y=arch_stats['complexity'], name='Mean Complexity', line=dict(color='cyan')), secondary_y=False, row=3, col=2)
+    fig.add_trace(go.Scatter(x=arch_stats['generation'], y=arch_stats['total_params'], name='Mean Params', line=dict(color='magenta', dash='dash')), secondary_y=True, row=3, col=2)
+
+    # --- Plot 9: Epigenetic Adaptation ---
+    if 'epigenetic_aptitude' in history_df.columns and history_df['epigenetic_aptitude'].abs().sum() > 1e-6:
+        epigenetic_trend = history_df.groupby('generation')['epigenetic_aptitude'].mean().reset_index()
+        fig.add_trace(go.Scatter(x=epigenetic_trend['generation'], y=epigenetic_trend['epigenetic_aptitude'], name='Avg. Aptitude', line=dict(color='gold')), row=3, col=3)
+    else:
+        fig.add_annotation(text="Epigenetics Disabled or No Adaptation", xref="paper", yref="paper", x=0.85, y=0.1, showarrow=False, row=3, col=3)
+
+    # --- Layout and Axis Updates ---
     fig.update_layout(
-        height=800,
+        height=1200,
         showlegend=True,
         title_text="<b>Evolutionary Dynamics Dashboard</b>",
-        title_x=0.5
+        title_x=0.5,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=20, r=20, t=100, b=20)
     )
+    
+    # Update axes titles
+    fig.update_yaxes(title_text="Fitness", row=1, col=1)
+    fig.update_yaxes(title_text="Mean Score", row=1, col=2)
+    fig.update_scenes(
+        xaxis_title_text='Accuracy', 
+        yaxis_title_text='Efficiency', 
+        zaxis_title_text='Robustness',
+        row=1, col=3
+    )
+    fig.update_yaxes(title_text="Population %", row=2, col=1)
+    fig.update_yaxes(title_text="Diversity (H)", secondary_y=False, row=2, col=2)
+    fig.update_yaxes(title_text="Heritability (h²)", secondary_y=True, row=2, col=2)
+    fig.update_yaxes(title_text="Std. Dev (σ)", row=2, col=3)
+    fig.update_yaxes(title_text="Selection Δ", secondary_y=False, row=3, col=1)
+    fig.update_yaxes(title_text="Mutation Rate μ", secondary_y=True, row=3, col=1)
+    fig.update_yaxes(title_text="Complexity", secondary_y=False, row=3, col=2)
+    fig.update_yaxes(title_text="Parameters", secondary_y=True, row=3, col=2)
+    fig.update_yaxes(title_text="Aptitude Marker", row=3, col=3)
+
+    for i in range(1, 4):
+        for j in range(1, 4):
+            fig.update_xaxes(title_text="Generation", row=i, col=j)
+    fig.update_xaxes(title_text="Accuracy", row=1, col=3) # For 3D plot
     
     return fig
 
