@@ -2592,10 +2592,8 @@ def main():
                     "🔬 Causal & Structural Analysis", 
                     "🧬 Evolutionary & Developmental Potential",
                     "🌳 Genealogy & Ancestry",
-                    "💻 Code Export",
-                    key=f"elite_tabs_{individual.lineage_id}"
+                    "💻 Code Export"
                 ])
-
                 # --- TAB 1: Vitals & Architecture ---
                 with tab_vitals:
                     vitals_col1, vitals_col2 = st.columns([1, 1])
@@ -2936,8 +2934,7 @@ def main():
                 master_architecture = synthesize_master_architecture(top_n_individuals)
             
             if master_architecture:
-                tab1, tab2 = st.tabs(["3D Interactive View", "2D Static View & Download"], key="master_arch_tabs")
-
+                tab1, tab2 = st.tabs(["3D Interactive View", "2D Static View & Download"])
                 with tab1:
                     st.plotly_chart(visualize_genotype_3d(master_architecture), width='stretch', key="master_3d")
                 
