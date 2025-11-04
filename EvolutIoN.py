@@ -4014,8 +4014,8 @@ def main():
         left: 0;
         bottom: 0;
         width: 100%;
-        background-color: #f0f2f6;
-        color: grey;
+        background-color: #0E1117;
+        color: rgba(250, 250, 250, 0.7);
         text-align: center;
         padding: 5px;
         font-size: small;
@@ -4048,25 +4048,10 @@ def main():
         key="download_all_data_button"
     )
 
-    st.markdown("""
-    <style>
-    .footer {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: #f0f2f6;
-        color: grey;
-        text-align: center;
-        padding: 5px;
-        font-size: small;
-    }
     st.sidebar.info(
         "**GENEVO** is a research prototype demonstrating advanced concepts in neuroevolution. "
         "Architectures are simulated and not trained on real data."
-    ))
-    </div>
-    """, unsafe_allow_html=True)
+    )
 
 
 if __name__ == "__main__":
