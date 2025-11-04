@@ -4064,7 +4064,10 @@ def main():
     st.sidebar.info(
         "**GENEVO** is a research prototype demonstrating advanced concepts in neuroevolution. "
         "Architectures are simulated and not trained on real data."
-    )
+    ))
+    </div>
+    """, unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     main()
