@@ -1531,17 +1531,22 @@ def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genoty
     
     # --- Plot 1: Fitness Evolution (Enhanced) ---
     fitness_stats = history_df.groupby(['generation', 'form'])['fitness'].agg(['mean', 'std']).reset_index()
-    for form in sorted(history_df['form'].unique()):
-        form_data = history_df[history_df['form'] == form]
+    form_names = sorted(history_df['form'].unique())
+    for i, form in enumerate(form_names):
+        form_data = fitness_stats[fitness_stats['form'] == form]
+        if form_data.empty:
+            continue
+
         mean_fitness = form_data['mean']
         std_fitness = form_data['std'].fillna(0)
+        plot_color = px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
         
         # Add shaded area for std dev
         fig.add_trace(go.Scatter(
             x=np.concatenate([form_data['generation'], form_data['generation'][::-1]]),
             y=np.concatenate([mean_fitness + std_fitness, (mean_fitness - std_fitness)[::-1]]),
             fill='toself',
-            fillcolor=px.colors.qualitative.Plotly[history_df['form_id'].max() % len(px.colors.qualitative.Plotly)],
+            fillcolor=plot_color,
             opacity=0.1,
             line=dict(color='rgba(255,255,255,0)'),
             hoverinfo="skip",
@@ -1550,10 +1555,7 @@ def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genoty
         ), row=1, col=1)
 
         # Add mean line
-        fig.add_trace(
-            go.Scatter(x=form_data['generation'], y=mean_fitness, mode='lines', name=form, legendgroup=form),
-            row=1, col=1
-        )
+        fig.add_trace(go.Scatter(x=form_data['generation'], y=mean_fitness, mode='lines', name=form, legendgroup=form, line=dict(color=plot_color)), row=1, col=1)
     
     # --- Plot 2: Component Score Evolution ---
     component_scores = history_df.groupby('generation')[['accuracy', 'efficiency', 'robustness']].mean().reset_index()
