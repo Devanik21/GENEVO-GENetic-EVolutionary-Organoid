@@ -2079,6 +2079,13 @@ def main():
 
     )
     
+    # Add a dynamic display for total population with a warning
+    total_population = num_forms * population_per_form
+    st.sidebar.metric("Total Initial Population", f"{total_population:,}")
+    if total_population > 200:
+        st.sidebar.warning(f"High total population ({total_population}). This will be very slow and may crash the app on Streamlit Cloud.")
+
+    
     st.sidebar.markdown("### Fitness Objectives")
     with st.sidebar.expander("Multi-Objective Weights", expanded=False):
         st.info("Define the importance of each fitness objective. Weights will be normalized.")
