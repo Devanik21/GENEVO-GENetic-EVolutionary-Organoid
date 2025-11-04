@@ -2153,7 +2153,7 @@ def main():
             key="reintroduction_rate_slider"
         )
         max_archive_size = st.slider(
-            "Max Gene Archive Size", 1000, 50000, s.get('max_archive_size', 10000), 1000,
+            "Max Gene Archive Size", 1000, 100000, s.get('max_archive_size', 40000), 10000,
             help="The maximum size of the 'infinite' gene pool archive. A larger archive provides more long-term genetic memory but consumes more RAM.",
             key="max_archive_size_slider"
         )
@@ -2239,6 +2239,17 @@ def main():
         key="selection_pressure_slider"
     )
     
+    enable_diversity_pressure = st.sidebar.checkbox(
+        "Enable Diversity-Pressured Selection", value=s.get('enable_diversity_pressure', True), 
+        help="Rewards novel architectures during selection to prevent premature convergence and encourage diverse solutions."
+    )
+    diversity_weight = st.sidebar.slider(
+        "Diversity Weight", 0.0, 1.0, s.get('diversity_weight', 0.3), 0.05,
+        disabled=not enable_diversity_pressure,
+        help="How much to prioritize novelty vs. raw fitness. Higher values lead to more diverse, exploratory evolution.",
+        key="diversity_weight_slider"
+    )
+    
     with st.sidebar.expander("Speciation (NEAT-style)", expanded=True):
         enable_speciation = st.checkbox("Enable Speciation", value=s.get('enable_speciation', True), help="Group similar individuals into species to protect innovation.", key="enable_speciation_checkbox")
         compatibility_threshold = st.slider(
@@ -2297,6 +2308,8 @@ def main():
         'adaptive_mutation_strength': adaptive_mutation_strength,
         'selection_pressure': selection_pressure,
         'enable_speciation': enable_speciation,
+        'enable_diversity_pressure': enable_diversity_pressure,
+        'diversity_weight': diversity_weight,
         'compatibility_threshold': compatibility_threshold,
         'num_generations': num_generations,
         'complexity_level': complexity_level
@@ -2471,18 +2484,57 @@ def main():
                 species_metric.metric("Species Count", f"{len(species)}")
                 
                 # Apply fitness sharing
+                # Also calculate novelty if diversity pressure is on
                 for s in species:
                     species_size = len(s['members'])
                     if species_size > 0:
                         for member in s['members']:
                             member.adjusted_fitness = member.fitness / (species_size ** niche_competition_factor)
                 
-                population.sort(key=lambda x: x.adjusted_fitness, reverse=True)
-                selection_key = lambda x: x.adjusted_fitness
+                if enable_diversity_pressure:
+                    # Calculate novelty for each individual across the whole population
+                    for ind in population:
+                        distances = [genomic_distance(ind, other) for other in population if ind.lineage_id != other.lineage_id]
+                        distances = [d for d in distances if d != float('inf')]
+                        if distances:
+                            k = min(10, len(distances))
+                            distances.sort()
+                            ind.novelty_score = np.mean(distances[:k])
+                        else:
+                            ind.novelty_score = 0.0
+                    
+                    max_novelty = max((ind.novelty_score for ind in population), default=1.0)
+                    if max_novelty > 0:
+                        for ind in population:
+                            ind.selection_score = ind.adjusted_fitness + diversity_weight * (ind.novelty_score / max_novelty)
+                    else:
+                        for ind in population:
+                            ind.selection_score = ind.adjusted_fitness
+                    
+                    selection_key = lambda x: x.selection_score
+                else:
+                    selection_key = lambda x: x.adjusted_fitness
+
             else:
                 species_metric.metric("Species Count", f"{len(set(ind.form_id for ind in population))}")
-                population.sort(key=lambda x: x.fitness, reverse=True)
-                selection_key = lambda x: x.fitness
+                if enable_diversity_pressure:
+                    for ind in population:
+                        distances = [genomic_distance(ind, other) for other in population if ind.lineage_id != other.lineage_id]
+                        distances = [d for d in distances if d != float('inf')]
+                        if distances:
+                            k = min(10, len(distances))
+                            distances.sort()
+                            ind.novelty_score = np.mean(distances[:k])
+                        else:
+                            ind.novelty_score = 0.0
+                    max_novelty = max((ind.novelty_score for ind in population), default=1.0)
+                    for ind in population:
+                        ind.selection_score = ind.fitness + diversity_weight * (ind.novelty_score / (max_novelty + 1e-9))
+                    selection_key = lambda x: x.selection_score
+                else:
+                    selection_key = lambda x: x.fitness
+
+            population.sort(key=selection_key, reverse=True)
 
             num_survivors = max(2, int(len(population) * selection_pressure))
             survivors = population[:num_survivors]
@@ -2555,9 +2607,9 @@ def main():
             
             # Clean up temporary attribute
             if enable_speciation:
-                for ind in population:
-                    if hasattr(ind, 'adjusted_fitness'):
-                        del ind.adjusted_fitness
+                for ind in population: # Clean up all temporary scores
+                    for attr in ['adjusted_fitness', 'novelty_score', 'selection_score']:
+                        if hasattr(ind, attr): delattr(ind, attr)
 
             # Update mutation rate for next generation
             if mutation_schedule == 'Linear Decay':
