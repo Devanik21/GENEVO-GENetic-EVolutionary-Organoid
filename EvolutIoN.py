@@ -1724,6 +1724,44 @@ def main():
     # Sidebar
     st.sidebar.header("🎛️ Evolution Configuration")
     
+    if st.sidebar.button("⚙️ Reset to Optimal Defaults", width='stretch', help="Resets all parameters to a configuration optimized for robust and high-performance evolution."):
+        # This configuration is designed for stability and achieving high accuracy.
+        optimal_defaults = {
+            'task_type': 'Abstract Reasoning (ARC-AGI-2)',
+            'dynamic_environment': False, # Stable environment for focused optimization
+            'env_change_frequency': 20,
+            'num_forms': 5, # Max diversity
+            'population_per_form': 10, # Larger population
+            'w_accuracy': 0.6, # Prioritize accuracy
+            'w_efficiency': 0.1,
+            'w_robustness': 0.15,
+            'w_generalization': 0.15,
+            'mutation_rate': 0.15, # Slightly lower for stability
+            'crossover_rate': 0.8, # High crossover
+            'innovation_rate': 0.04, # Controlled innovation
+            'enable_development': True,
+            'enable_baldwin': True,
+            'enable_epigenetics': True,
+            'endosymbiosis_rate': 0.01,
+            'epistatic_linkage_k': 1, # Mildly rugged landscape
+            'gene_flow_rate': 0.01,
+            'niche_competition_factor': 1.0,
+            'enable_cataclysms': False, # Disabled for predictable runs
+            'cataclysm_probability': 0.02,
+            'enable_red_queen': True, # Keep pressure against local optima
+            'enable_endosymbiosis': True,
+            'mutation_schedule': 'Adaptive', # Best schedule
+            'adaptive_mutation_strength': 0.5,
+            'selection_pressure': 0.5,
+            'enable_speciation': True,
+            'compatibility_threshold': 4.0,
+            'num_generations': 50, # A solid run length
+            'complexity_level': 'medium'
+        }
+        st.session_state.settings = optimal_defaults
+        st.toast("Parameters reset to optimal defaults!", icon="⚙️")
+        st.rerun()
+
     # Get settings from session state, with hardcoded defaults as fallback
     s = st.session_state.get('settings', {})
 
