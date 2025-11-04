@@ -3520,35 +3520,137 @@ def main():
                 st.plotly_chart(fig_rates, use_container_width=True)
         
         # Evolutionary metrics
-        if st.session_state.evolutionary_metrics:
-            st.markdown("---")
-            st.header("🧬 Population Genetics")
-            
+        st.markdown("---")
+        st.header("🧬 Population Genetics: The Engine of Adaptation")
+        st.markdown("""
+        This section delves into the quantitative measures of evolutionary dynamics, treating the population as a statistical ensemble. By analyzing metrics like heritability, selection pressure, and genetic distance, we can dissect the fundamental forces that shape the adaptive trajectory and understand the 'engine' driving the evolutionary process.
+        """)
+
+        if not st.session_state.evolutionary_metrics or history_df.empty:
+            st.warning("Insufficient data for population genetics analysis.")
+        else:
+            # --- Data Preparation ---
             metrics_df = pd.DataFrame(st.session_state.evolutionary_metrics)
-            
-            fig = make_subplots(
-                rows=1, cols=2,
-                subplot_titles=('Genetic Diversity (Shannon Entropy)', 'Fisher Information')
-            )
-            
-            fig.add_trace(
-                go.Scatter(x=metrics_df['generation'], y=metrics_df['diversity'],
-                          mode='lines+markers', name='Diversity', line=dict(color='purple')),
-                row=1, col=1
-            )
-            
-            fig.add_trace(
-                go.Scatter(x=metrics_df['generation'], y=metrics_df['fisher_info'],
-                          mode='lines+markers', name='Fisher Info', line=dict(color='orange')),
-                row=1, col=2
-            )
-            
-            fig.update_xaxes(title_text="Generation")
-            fig.update_yaxes(title_text="H", row=1, col=1)
-            fig.update_yaxes(title_text="I(θ)", row=1, col=2)
-            fig.update_layout(height=400, showlegend=False)
-            
-            st.plotly_chart(fig, width='stretch', key="pop_genetics_chart")
+            final_population = st.session_state.current_population
+
+            with st.spinner("Calculating advanced population genetics metrics..."):
+                # Heritability (h²)
+                heritabilities = []
+                if history_df['generation'].max() > 0:
+                    for gen in range(1, history_df['generation'].max() + 1):
+                        parent_gen_df = history_df[history_df['generation'] == gen - 1]
+                        offspring_gen_df = history_df[history_df['generation'] == gen]
+                        if not parent_gen_df.empty and not offspring_gen_df.empty:
+                            h2 = EvolutionaryTheory.heritability(parent_gen_df['fitness'].values, offspring_gen_df['fitness'].values)
+                            heritabilities.append({'generation': gen, 'heritability': h2})
+                h2_df = pd.DataFrame(heritabilities)
+                if not h2_df.empty:
+                    metrics_df = pd.merge(metrics_df, h2_df, on='generation', how='left')
+
+                # Selection Differential (S)
+                selection_diffs = []
+                selection_pressure = st.session_state.settings.get('selection_pressure', 0.5)
+                for gen in sorted(history_df['generation'].unique()):
+                    gen_data = history_df[history_df['generation'] == gen]
+                    if len(gen_data) > 2:
+                        fitness_array = gen_data['fitness'].values
+                        num_survivors = max(2, int(len(gen_data) * selection_pressure))
+                        selected_idx = np.argpartition(fitness_array, -num_survivors)[-num_survivors:]
+                        diff = EvolutionaryTheory.selection_differential(fitness_array, selected_idx)
+                        selection_diffs.append({'generation': gen, 'selection_differential': diff})
+                sel_df = pd.DataFrame(selection_diffs)
+                if not sel_df.empty:
+                    metrics_df = pd.merge(metrics_df, sel_df, on='generation', how='left')
+
+                # Response to Selection (R)
+                metrics_df['response_to_selection'] = metrics_df['mean_fitness'].diff()
+                
+                # Predicted Response (R_pred = h² * S)
+                if 'heritability' in metrics_df.columns and 'selection_differential' in metrics_df.columns:
+                    metrics_df['predicted_response'] = metrics_df['heritability'] * metrics_df['selection_differential']
+                
+                metrics_df = metrics_df.fillna(0)
+
+            tab1, tab2, tab3 = st.tabs([
+                "📈 Core Evolutionary Forces",
+                "⚙️ The Breeder's Equation",
+                "🗺️ Genotypic Landscape"
+            ])
+
+            with tab1:
+                st.markdown("#### **Temporal Evolution of Core Genetic Metrics**")
+                st.markdown("These metrics quantify the key forces governing adaptation over time. **Diversity (H)** is the raw material for evolution. **Heritability (h²)** is the degree to which fitness is passed on. **Selection Differential (S)** is the strength of selection. **Fisher Information (I)** is the potential for adaptation.")
+                fig_core = make_subplots(rows=2, cols=2, subplot_titles=("Genetic Diversity (H)", "Heritability (h²)", "Selection Differential (S)", "Fisher Information (I)"), vertical_spacing=0.15)
+
+                fig_core.add_trace(go.Scatter(x=metrics_df['generation'], y=metrics_df['diversity'], name='Diversity', line=dict(color='purple')), row=1, col=1)
+                if 'heritability' in metrics_df.columns:
+                    fig_core.add_trace(go.Scatter(x=metrics_df['generation'], y=metrics_df['heritability'], name='Heritability', line=dict(color='green')), row=1, col=2)
+                if 'selection_differential' in metrics_df.columns:
+                    fig_core.add_trace(go.Scatter(x=metrics_df['generation'], y=metrics_df['selection_differential'], name='Selection Differential', line=dict(color='red')), row=2, col=1)
+                fig_core.add_trace(go.Scatter(x=metrics_df['generation'], y=metrics_df['fisher_info'], name='Fisher Information', line=dict(color='orange')), row=2, col=2)
+
+                fig_core.update_yaxes(title_text="Value", range=[0, max(1, metrics_df['diversity'].max()) if not metrics_df.empty else 1], row=1, col=1)
+                fig_core.update_yaxes(title_text="h²", range=[0, 1], row=1, col=2)
+                fig_core.update_yaxes(title_text="Δ Fitness", row=2, col=1)
+                fig_core.update_yaxes(title_text="1/σ²", row=2, col=2)
+                fig_core.update_layout(height=600, showlegend=False, title_text="Evolution of Core Population Genetic Metrics")
+                st.plotly_chart(fig_core, use_container_width=True)
+
+            with tab2:
+                st.markdown("#### **Validating the Breeder's Equation: R = h²S**")
+                st.markdown("The Breeder's Equation is a cornerstone of quantitative genetics, predicting the evolutionary response (R) based on heritability (h²) and selection strength (S). Here we test this prediction against the observed reality of our simulation.")
+                
+                if 'predicted_response' in metrics_df.columns:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        fig_breeder = go.Figure()
+                        fig_breeder.add_trace(go.Scatter(x=metrics_df['generation'], y=metrics_df['response_to_selection'], name='Actual Response (R)', mode='lines+markers', line=dict(color='blue')))
+                        fig_breeder.add_trace(go.Scatter(x=metrics_df['generation'], y=metrics_df['predicted_response'], name='Predicted Response (h²S)', mode='lines', line=dict(color='red', dash='dash')))
+                        fig_breeder.update_layout(title="Actual vs. Predicted Evolutionary Response", xaxis_title="Generation", yaxis_title="Change in Mean Fitness", height=400, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                        st.plotly_chart(fig_breeder, use_container_width=True)
+                    with col2:
+                        corr_df = metrics_df[metrics_df['response_to_selection'] != 0]
+                        fig_corr = px.scatter(corr_df, x='predicted_response', y='response_to_selection', trendline='ols', title="Correlation of Predicted vs. Actual Response", labels={'predicted_response': 'Predicted R (h²S)', 'response_to_selection': 'Actual R'})
+                        fig_corr.update_layout(height=400)
+                        st.plotly_chart(fig_corr, use_container_width=True)
+                else:
+                    st.info("Not enough data to validate the Breeder's Equation.")
+
+            with tab3:
+                st.markdown("#### **Structure of the Final Genotypic Landscape**")
+                st.markdown("This analysis examines the distribution of genotypes in the final population, revealing patterns of diversity, speciation, and the relationship between genetic similarity and fitness.")
+
+                if final_population and len(final_population) > 10:
+                    with st.spinner("Calculating pairwise genomic distances for the final population..."):
+                        pop_size = len(final_population)
+                        genomic_distances = []
+                        fitness_deltas = []
+                        for i in range(pop_size):
+                            for j in range(i + 1, pop_size):
+                                g1 = final_population[i]
+                                g2 = final_population[j]
+                                dist = genomic_distance(g1, g2)
+                                if dist != float('inf'): # Only compare within the same form
+                                    genomic_distances.append(dist)
+                                    fitness_deltas.append(abs(g1.fitness - g2.fitness))
+                    
+                    if genomic_distances:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            fig_dist_hist = px.histogram(pd.DataFrame({'distance': genomic_distances}), x='distance', nbins=50, title="Distribution of Pairwise Genomic Distances")
+                            fig_dist_hist.update_layout(height=400, yaxis_title="Count", xaxis_title="Genomic Distance")
+                            st.plotly_chart(fig_dist_hist, use_container_width=True)
+                            st.markdown("A multi-modal distribution can indicate distinct species have formed.")
+                        with col2:
+                            dist_corr_df = pd.DataFrame({'genomic_dist': genomic_distances, 'fitness_delta': fitness_deltas})
+                            fig_dist_corr = px.scatter(dist_corr_df, x='genomic_dist', y='fitness_delta', trendline='ols', title="Genomic Distance vs. Fitness Difference", labels={'genomic_dist': 'Genomic Distance', 'fitness_delta': 'Absolute Fitness Difference'})
+                            fig_dist_corr.update_layout(height=400)
+                            st.plotly_chart(fig_dist_corr, use_container_width=True)
+                            st.markdown("A positive correlation suggests a smooth landscape where similar genotypes have similar fitness.")
+                    else:
+                        st.info("No comparable genotypes found to analyze the genotypic landscape.")
+                else:
+                    st.info("Final population is too small to analyze the genotypic landscape.")
 
         st.markdown("---")
         st.header("Dynamic Concluding Remarks")
