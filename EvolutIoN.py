@@ -3942,7 +3942,7 @@ def main():
                     st.subheader("Synthesized Interpretation of the Master Architecture")
                     
                     dominant_module_type = Counter(m.module_type for m in master_architecture.modules).most_common(1)[0][0]
-                    critical_component, fitness_drop = (sorted_criticality[-1] if sorted_criticality else (["N/A"], 0))
+                    critical_component_tuple = sorted_criticality[-1] if sorted_criticality else ("N/A", 0)
                     centrality_score = (sorted_centrality[-1][1] if sorted_centrality else 0)
                     
                     interpretation_text = f"""
@@ -3950,7 +3950,7 @@ def main():
 
                     1.  **Convergent Design Principles:** The architecture's structure, dominated by **{dominant_module_type}** modules, confirms this motif as a critical building block for the **'{task_type}'** task. The synthesis process, by averaging parameters and voting on connections, has filtered out idiosyncratic noise, retaining only the high-conviction elements shared by the elite.
 
-                    2.  **Identified Causal Backbone:** The causal analysis provides a blueprint of functional importance. The high lesion sensitivity of **{critical_component[0]}** (fitness drop: `{critical_component[1]:.4f}`) and its significant information flow centrality (`{centrality_score:.3f}`) identify it as an indispensable hub. This is not just a collection of parts; it's a network with a clear processing core, validated by consensus.
+                    2.  **Identified Causal Backbone:** The causal analysis provides a blueprint of functional importance. The high lesion sensitivity of **{critical_component_tuple[0]}** (fitness drop: `{critical_component_tuple[1]:.4f}`) and its significant information flow centrality (`{centrality_score:.3f}`) identify it as an indispensable hub. This is not just a collection of parts; it's a network with a clear processing core, validated by consensus.
 
                     3.  **A Platform for Future Evolution:** The analysis of the mutational landscape reveals a genotype poised for further adaptation. Its robustness score (`{evo_robust_data['robustness']:.4f}`) indicates a resilience to random genetic drift, while its non-zero evolvability score (`{evo_robust_data['evolvability']:.4f}`) shows it has not reached an evolutionary dead-end. The presence of `{load_data['neutral_component_count']}` neutral components provides a reservoir of 'junk DNA' that can be co-opted for future functional innovation.
 
