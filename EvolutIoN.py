@@ -3260,30 +3260,147 @@ def main():
         # Form comparison
         st.markdown("---")
         st.header("🔬 Comparative Form Analysis")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Performance by form
-            form_performance = final_gen.groupby('form').agg({
-                'fitness': ['mean', 'max', 'std'],
-                'accuracy': 'mean',
-                'efficiency': 'mean'
-            }).round(4)
+        st.markdown("""
+        The initial population is seeded with distinct architectural 'forms'—foundational templates with unique inductive biases (e.g., hierarchical convolutional vs. recurrent memory). This analysis dissects how these different morphological starting points fared in the evolutionary race. By comparing their performance, dominance, and emergent traits, we can infer which architectural priors were most advantageous for the given task environment.
+        """)
+
+        if final_gen.empty:
+            st.warning("No final generation data available for form comparison.")
+        else:
+            # Prepare data
+            form_names = sorted(final_gen['form'].unique())
             
-            st.markdown("### Performance Metrics by Form")
-            st.dataframe(form_performance, width='stretch')
-        
-        with col2:
-            # Population distribution
-            form_counts = final_gen['form'].value_counts().sort_index()
-            fig = px.pie(
-                values=form_counts.values,
-                names=form_counts.index,
-                title='Final Population Distribution',
-                color_discrete_sequence=px.colors.qualitative.Set3
-            )
-            st.plotly_chart(fig, width='stretch', key="final_pop_dist_pie")
+            tab1, tab2, tab3 = st.tabs([
+                "📊 Performance & Dominance", 
+                "🧬 Phenotypic Trait Comparison", 
+                "⚖️ Multi-Objective Strategy Profile"
+            ])
+
+            with tab1:
+                st.markdown("#### **How did each form perform and which became dominant?**")
+                col1, col2 = st.columns([1.2, 1])
+
+                with col1:
+                    st.markdown("###### **Overall Performance Statistics**")
+                    # More detailed performance aggregation
+                    form_performance = final_gen.groupby('form').agg(
+                        mean_fitness=('fitness', 'mean'),
+                        median_fitness=('fitness', 'median'),
+                        max_fitness=('fitness', 'max'),
+                        std_fitness=('fitness', 'std'),
+                        mean_accuracy=('accuracy', 'mean'),
+                        population_count=('fitness', 'size')
+                    ).round(4).reset_index()
+                    st.dataframe(form_performance, use_container_width=True)
+
+                with col2:
+                    st.markdown("###### **Final Population Dominance**")
+                    # Bar chart showing count and colored by mean fitness
+                    dominance_data = form_performance[['form', 'population_count', 'mean_fitness']]
+                    fig_dom = px.bar(
+                        dominance_data,
+                        x='form',
+                        y='population_count',
+                        color='mean_fitness',
+                        labels={'form': 'Architectural Form', 'population_count': 'Number of Individuals', 'mean_fitness': 'Mean Fitness'},
+                        title='Form Dominance by Count and Mean Fitness',
+                        color_continuous_scale=px.colors.sequential.Viridis
+                    )
+                    fig_dom.update_layout(height=300, margin=dict(t=40, b=20, l=20, r=20))
+                    st.plotly_chart(fig_dom, use_container_width=True)
+
+                st.markdown("---")
+                st.markdown("###### **Fitness Distribution by Form**")
+                st.markdown("This plot shows the full distribution of fitness scores for each form, revealing not just the average but also the spread, median, and presence of high-performing outliers.")
+                fig_box = px.box(
+                    final_gen,
+                    x='form',
+                    y='fitness',
+                    color='form',
+                    points='all', # Show all individuals
+                    title='Fitness Distribution Across Architectural Forms',
+                    labels={'form': 'Architectural Form', 'fitness': 'Fitness Score'}
+                )
+                fig_box.update_layout(showlegend=False)
+                st.plotly_chart(fig_box, use_container_width=True)
+
+            with tab2:
+                st.markdown("#### **Did forms develop different physical characteristics?**")
+                st.markdown("Here we compare the distribution of key phenotypic traits—network size (total parameters) and architectural complexity—that evolved within each form.")
+                
+                trait_col1, trait_col2 = st.columns(2)
+                with trait_col1:
+                    fig_params = px.box(
+                        final_gen,
+                        x='form',
+                        y='total_params',
+                        color='form',
+                        title='Network Size (Parameters) by Form',
+                        labels={'form': 'Architectural Form', 'total_params': 'Total Parameters'}
+                    )
+                    fig_params.update_layout(showlegend=False)
+                    st.plotly_chart(fig_params, use_container_width=True)
+
+                with trait_col2:
+                    fig_complexity = px.box(
+                        final_gen,
+                        x='form',
+                        y='complexity',
+                        color='form',
+                        title='Architectural Complexity by Form',
+                        labels={'form': 'Architectural Form', 'complexity': 'Complexity Score'}
+                    )
+                    fig_complexity.update_layout(showlegend=False)
+                    st.plotly_chart(fig_complexity, use_container_width=True)
+
+            with tab3:
+                st.markdown("#### **How did each form approach the multi-objective problem?**")
+                st.markdown("This analysis reveals the different strategies each form adopted to balance the competing objectives of accuracy, efficiency, robustness, and generalization.")
+
+                # Find the champion for each form
+                champions = final_gen.loc[final_gen.groupby('form')['fitness'].idxmax()]
+                
+                st.markdown("###### **Strategy Profile of Form Champions**")
+                st.markdown("The radar chart compares the objective scores of the single best individual from each form, highlighting their specialized strengths.")
+                
+                if not champions.empty:
+                    objectives = ['accuracy', 'efficiency', 'robustness', 'generalization']
+                    fig_radar = go.Figure()
+                    for _, champion in champions.iterrows():
+                        fig_radar.add_trace(go.Scatterpolar(
+                            r=[champion[obj] for obj in objectives] + [champion[objectives[0]]], # Close the loop
+                            theta=[obj.capitalize() for obj in objectives] + [objectives[0].capitalize()],
+                            fill='toself',
+                            name=champion['form']
+                        ))
+                    
+                    fig_radar.update_layout(
+                        polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+                        showlegend=True,
+                        title="Multi-Objective Profile of Form Champions",
+                        height=450,
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                    )
+                    st.plotly_chart(fig_radar, use_container_width=True)
+
+                st.markdown("---")
+                st.markdown("###### **Population-Wide Objective Space Occupation**")
+                st.markdown("The parallel coordinates plot visualizes the entire final population. Each line is an individual, and the 'bands' of color show how the population of each form is distributed across the different objective dimensions. This reveals whether forms occupy distinct niches in the solution space.")
+                
+                fig_parallel = px.parallel_coordinates(
+                    final_gen.sort_values('form'), # Sort to group colors
+                    color="form",
+                    dimensions=['accuracy', 'efficiency', 'robustness', 'generalization', 'complexity'],
+                    color_discrete_sequence=px.colors.qualitative.Plotly,
+                    labels={
+                        "accuracy": "Accuracy", "efficiency": "Efficiency",
+                        "robustness": "Robustness", "generalization": "Generalization",
+                        "complexity": "Complexity", "form": "Form"
+                    },
+                    title="Multi-Objective Niche Occupation by Form"
+                )
+                fig_parallel.update_layout(height=500)
+                st.plotly_chart(fig_parallel, use_container_width=True)
         
         # Time series analysis
         st.markdown("---")
