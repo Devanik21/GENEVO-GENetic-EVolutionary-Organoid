@@ -2139,7 +2139,8 @@ def main():
             data=json.dumps(st.session_state.settings, indent=2),
             file_name="genevo_config.json",
             mime="application/json",
-            width='stretch'
+            width='stretch',
+            key="export_config_button"
         )
 
         # Import button and logic
@@ -2706,11 +2707,11 @@ def main():
                         "Apex Value": [f"{best_individual_genotype.fitness:.4f}", f"{best_individual_genotype.accuracy:.3f}", f"{best_individual_genotype.complexity:.3f}", f"{sum(m.size for m in best_individual_genotype.modules):,}"],
                         "Population Mean": [f"{pop_mean_fitness:.4f}", f"{pop_mean_accuracy:.3f}", f"{pop_mean_complexity:.3f}", f"{pop_mean_params:,.0f}"]
                     }
-                    st.dataframe(pd.DataFrame(comparison_data).set_index("Metric"), use_container_width=True)
+                    st.dataframe(pd.DataFrame(comparison_data).set_index("Metric"), use_container_width=True, key="apex_vitals_df")
 
                     st.markdown("##### Module Composition")
                     module_data = [{"ID": m.id, "Type": m.module_type, "Size": m.size, "Activation": m.activation, "Plasticity": f"{m.plasticity:.2f}"} for m in best_individual_genotype.modules]
-                    st.dataframe(module_data, height=200, use_container_width=True)
+                    st.dataframe(module_data, height=200, use_container_width=True, key="apex_modules_df")
 
                 with vitals_col2:
                     st.markdown("#### Architectural Visualization")
@@ -2899,7 +2900,7 @@ def main():
                     height=600,
                     margin=dict(l=0, r=0, b=0, t=40)
                 )
-                st.plotly_chart(fig_3d, use_container_width=True)
+                st.plotly_chart(fig_3d, use_container_width=True, key="pareto_3d_plot")
 
                 st.markdown("---")
                 st.markdown("#### **2D Trade-off Projections**")
@@ -2943,7 +2944,7 @@ def main():
                     fig_2d_matrix.update_yaxes(title_text=obj2.capitalize(), range=[0, 1.05], row=1, col=i+1)
 
                 fig_2d_matrix.update_layout(height=450, title_text="<b>2D Pareto Trade-off Analysis</b>", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                st.plotly_chart(fig_2d_matrix, use_container_width=True)
+                st.plotly_chart(fig_2d_matrix, use_container_width=True, key="pareto_2d_matrix_plot")
 
             with tab2:
                 # Find the archetypes
@@ -2986,7 +2987,7 @@ def main():
                                 f"{sum(m.size for m in archetype.modules):,}"
                             ]
                         }).set_index("Metric")
-                        st.dataframe(stats_df, use_container_width=True)
+                        st.dataframe(stats_df, use_container_width=True, key=f"pareto_archetype_df_{name}")
 
                         interpretation = ""
                         if "Accuracy" in name:
@@ -3058,7 +3059,8 @@ def main():
         metrics_df = pd.DataFrame(st.session_state.get('evolutionary_metrics', []))
         st.plotly_chart(
             create_evolution_dashboard(history_df, st.session_state.current_population, metrics_df), # type: ignore
-            width='stretch'
+            width='stretch',
+            key="main_dashboard_plot"
         )
 
         # Best evolved architectures
@@ -3291,7 +3293,7 @@ def main():
                         mean_accuracy=('accuracy', 'mean'),
                         population_count=('fitness', 'size')
                     ).round(4).reset_index()
-                    st.dataframe(form_performance, use_container_width=True)
+                    st.dataframe(form_performance, use_container_width=True, key="form_perf_stats_df")
 
                 with col2:
                     st.markdown("###### **Final Population Dominance**")
@@ -3307,7 +3309,7 @@ def main():
                         color_continuous_scale=px.colors.sequential.Viridis
                     )
                     fig_dom.update_layout(height=300, margin=dict(t=40, b=20, l=20, r=20))
-                    st.plotly_chart(fig_dom, use_container_width=True)
+                    st.plotly_chart(fig_dom, use_container_width=True, key="form_dominance_bar")
 
                 st.markdown("---")
                 st.markdown("###### **Fitness Distribution by Form**")
@@ -3322,7 +3324,7 @@ def main():
                     labels={'form': 'Architectural Form', 'fitness': 'Fitness Score'}
                 )
                 fig_box.update_layout(showlegend=False)
-                st.plotly_chart(fig_box, use_container_width=True)
+                st.plotly_chart(fig_box, use_container_width=True, key="form_fitness_dist_box")
 
             with tab2:
                 st.markdown("#### **Did forms develop different physical characteristics?**")
@@ -3339,7 +3341,7 @@ def main():
                         labels={'form': 'Architectural Form', 'total_params': 'Total Parameters'}
                     )
                     fig_params.update_layout(showlegend=False)
-                    st.plotly_chart(fig_params, use_container_width=True)
+                    st.plotly_chart(fig_params, use_container_width=True, key="form_params_box")
 
                 with trait_col2:
                     fig_complexity = px.box(
@@ -3351,7 +3353,7 @@ def main():
                         labels={'form': 'Architectural Form', 'complexity': 'Complexity Score'}
                     )
                     fig_complexity.update_layout(showlegend=False)
-                    st.plotly_chart(fig_complexity, use_container_width=True)
+                    st.plotly_chart(fig_complexity, use_container_width=True, key="form_complexity_box")
 
             with tab3:
                 st.markdown("#### **How did each form approach the multi-objective problem?**")
@@ -3381,7 +3383,7 @@ def main():
                         height=450,
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
                     )
-                    st.plotly_chart(fig_radar, use_container_width=True)
+                    st.plotly_chart(fig_radar, use_container_width=True, key="form_champions_radar")
 
                 st.markdown("---")
                 st.markdown("###### **Population-Wide Objective Space Occupation**")
@@ -3399,7 +3401,7 @@ def main():
                     title="Multi-Objective Niche Occupation by Form"
                 )
                 fig_parallel.update_layout(height=500)
-                st.plotly_chart(fig_parallel, use_container_width=True)
+                st.plotly_chart(fig_parallel, use_container_width=True, key="form_parallel_coords")
         
         # Time series analysis
         st.markdown("---")
@@ -3444,7 +3446,7 @@ def main():
                             x=form_data['generation'], y=mean_params, mode='lines', name=form_name, legendgroup=form_name, line=dict(color=color)
                         ))
                     fig_params.update_layout(title='Mean Parameter Count Evolution by Form', xaxis_title='Generation', yaxis_title='Mean Total Parameters', yaxis_type="log", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                    st.plotly_chart(fig_params, use_container_width=True)
+                    st.plotly_chart(fig_params, use_container_width=True, key="temporal_params_line")
 
                 with col2:
                     st.markdown("###### Architectural Complexity (Mean Score)")
@@ -3467,7 +3469,7 @@ def main():
                             x=form_data['generation'], y=mean_complexity, mode='lines', name=form_name, legendgroup=form_name, line=dict(color=color)
                         ))
                     fig_complexity.update_layout(title='Mean Complexity Score Evolution by Form', xaxis_title='Generation', yaxis_title='Mean Complexity Score', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                    st.plotly_chart(fig_complexity, use_container_width=True)
+                    st.plotly_chart(fig_complexity, use_container_width=True, key="temporal_complexity_line")
 
             with tab2:
                 st.markdown("#### **Evolution of Multi-Objective Performance**")
@@ -3491,7 +3493,7 @@ def main():
                     fig_objectives.update_xaxes(title_text="Generation", row=row, col=col)
                     
                 fig_objectives.update_layout(height=700, title_text="Mean Objective Score Evolution by Form", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                st.plotly_chart(fig_objectives, use_container_width=True)
+                st.plotly_chart(fig_objectives, use_container_width=True, key="temporal_objectives_matrix")
 
             with tab3:
                 st.markdown("#### **Analysis of Evolutionary Rates**")
@@ -3517,7 +3519,7 @@ def main():
 
                 fig_rates.update_xaxes(title_text="Generation")
                 fig_rates.update_layout(height=400, title_text="Rates of Change for Population Mean Metrics", showlegend=False)
-                st.plotly_chart(fig_rates, use_container_width=True)
+                st.plotly_chart(fig_rates, use_container_width=True, key="temporal_rates_line")
         
         # Evolutionary metrics
         st.markdown("---")
@@ -3594,7 +3596,7 @@ def main():
                 fig_core.update_yaxes(title_text="Δ Fitness", row=2, col=1)
                 fig_core.update_yaxes(title_text="1/σ²", row=2, col=2)
                 fig_core.update_layout(height=600, showlegend=False, title_text="Evolution of Core Population Genetic Metrics")
-                st.plotly_chart(fig_core, use_container_width=True)
+                st.plotly_chart(fig_core, use_container_width=True, key="popgen_core_forces_plot")
 
             with tab2:
                 st.markdown("#### **Validating the Breeder's Equation: R = h²S**")
@@ -3607,12 +3609,12 @@ def main():
                         fig_breeder.add_trace(go.Scatter(x=metrics_df['generation'], y=metrics_df['response_to_selection'], name='Actual Response (R)', mode='lines+markers', line=dict(color='blue')))
                         fig_breeder.add_trace(go.Scatter(x=metrics_df['generation'], y=metrics_df['predicted_response'], name='Predicted Response (h²S)', mode='lines', line=dict(color='red', dash='dash')))
                         fig_breeder.update_layout(title="Actual vs. Predicted Evolutionary Response", xaxis_title="Generation", yaxis_title="Change in Mean Fitness", height=400, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                        st.plotly_chart(fig_breeder, use_container_width=True)
+                        st.plotly_chart(fig_breeder, use_container_width=True, key="popgen_breeder_eq_plot")
                     with col2:
                         corr_df = metrics_df[metrics_df['response_to_selection'] != 0]
                         fig_corr = px.scatter(corr_df, x='predicted_response', y='response_to_selection', trendline='ols', title="Correlation of Predicted vs. Actual Response", labels={'predicted_response': 'Predicted R (h²S)', 'response_to_selection': 'Actual R'})
                         fig_corr.update_layout(height=400)
-                        st.plotly_chart(fig_corr, use_container_width=True)
+                        st.plotly_chart(fig_corr, use_container_width=True, key="popgen_breeder_corr_plot")
                 else:
                     st.info("Not enough data to validate the Breeder's Equation.")
 
@@ -3639,13 +3641,13 @@ def main():
                         with col1:
                             fig_dist_hist = px.histogram(pd.DataFrame({'distance': genomic_distances}), x='distance', nbins=50, title="Distribution of Pairwise Genomic Distances")
                             fig_dist_hist.update_layout(height=400, yaxis_title="Count", xaxis_title="Genomic Distance")
-                            st.plotly_chart(fig_dist_hist, use_container_width=True)
+                            st.plotly_chart(fig_dist_hist, use_container_width=True, key="popgen_dist_hist_plot")
                             st.markdown("A multi-modal distribution can indicate distinct species have formed.")
                         with col2:
                             dist_corr_df = pd.DataFrame({'genomic_dist': genomic_distances, 'fitness_delta': fitness_deltas})
                             fig_dist_corr = px.scatter(dist_corr_df, x='genomic_dist', y='fitness_delta', trendline='ols', title="Genomic Distance vs. Fitness Difference", labels={'genomic_dist': 'Genomic Distance', 'fitness_delta': 'Absolute Fitness Difference'})
                             fig_dist_corr.update_layout(height=400)
-                            st.plotly_chart(fig_dist_corr, use_container_width=True)
+                            st.plotly_chart(fig_dist_corr, use_container_width=True, key="popgen_dist_corr_plot")
                             st.markdown("A positive correlation suggests a smooth landscape where similar genotypes have similar fitness.")
                     else:
                         st.info("No comparable genotypes found to analyze the genotypic landscape.")
