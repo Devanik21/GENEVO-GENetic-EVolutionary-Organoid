@@ -3008,386 +3008,197 @@ def main():
 
         st.markdown("---")
 
-        # --- Population-Level Insights ---
+        # --- NEW, CONSOLIDATED POPULATION DYNAMICS SECTION ---
         st.subheader("🌍 Population-Level Dynamics & Conclusions")
-        st.markdown("The characteristics of the entire final population provide insights into the overall evolutionary pressures and the convergence of architectural forms.")
-
-        pop_col1, pop_col2 = st.columns(2)
-
-        with pop_col1:
-            st.markdown("##### Form Dominance")
-            if not final_gen.empty:
-                form_counts = final_gen['form_id'].value_counts()
-                dominant_form = form_counts.index[0]
-                dominance_pct = (form_counts.iloc[0] / form_counts.sum()) * 100
-                st.markdown(f"**Form `{int(dominant_form)}`** emerged as the dominant morphology, comprising **`{dominance_pct:.1f}%`** of the final population. This indicates that its foundational topology provided a significant adaptive advantage in the given task environment.")
-                
-                fig = px.pie(
-                    values=form_counts.values,
-                    names=[f"Form {i}" for i in form_counts.index],
-                    title='Final Population Distribution by Form',
-                    color_discrete_sequence=px.colors.qualitative.Set3
-                )
-                fig.update_layout(height=300, margin=dict(t=40, b=20, l=20, r=20))
-                st.plotly_chart(fig, use_container_width=True, key="form_dominance_pie")
-            else:
-                st.info("No final generation data to analyze form dominance.")
-
-        with pop_col2:
-            st.markdown("##### Genetic Diversity & Convergence")
-            if len(metrics_df) > 1:
-                final_diversity = metrics_df.iloc[-1]['diversity']
-                initial_diversity = metrics_df.iloc[0]['diversity']
-                diversity_change = ((final_diversity / initial_diversity) - 1) * 100 if initial_diversity > 0 else 0
-                
-                st.metric("Final Genetic Diversity (H)", f"{final_diversity:.3f}", f"{diversity_change:.1f}% vs. Initial")
-                
-                if diversity_change < -50:
-                    st.info("The significant drop in diversity indicates strong **convergent evolution**. The population has collectively identified a narrow set of highly effective genotypes, pruning away less successful variations.")
-                elif diversity_change > -10:
-                    st.info("Diversity was largely maintained, suggesting **divergent evolution** or a complex fitness landscape with multiple viable peaks. The population retains a broad range of solutions, which is beneficial for adapting to future environmental shifts.")
-                else:
-                    st.info("The population has undergone moderate convergence, balancing exploration with exploitation. A healthy level of diversity remains while honing in on promising regions of the search space.")
-            else:
-                st.info("Not enough data to analyze diversity trends.")
-
-        # --- Finally, show the dashboard ---
-        st.markdown("---")
-        st.subheader("📈 Comprehensive Evolutionary Dashboard")
         st.markdown("This dashboard provides a holistic, multi-faceted view of the key metrics tracked across all generations, deconstructing the run's performance, population dynamics, and underlying evolutionary forces.")
-        metrics_df = pd.DataFrame(st.session_state.get('evolutionary_metrics', []))
-        st.plotly_chart(
-            create_evolution_dashboard(history_df, st.session_state.current_population, metrics_df), # type: ignore
-            width='stretch'
-        )
-
-        # Best evolved architectures
-        st.markdown("---")
-        st.header("🏛️ Elite Evolved Architectures: A Deep Dive")
-        st.markdown("This section provides a multi-faceted analysis of the top-performing genotypes from the final population, deconstructing the architectural, causal, and evolutionary properties that contributed to their success.")
         
-        population = st.session_state.current_population
-        population.sort(key=lambda x: x.fitness, reverse=True)
-        
-        # Show top 3
-        for i, individual in enumerate(population[:3]):
-            expander_title = f"**Rank {i+1}:** Form `{individual.form_id}` | Lineage `{individual.lineage_id}` | Fitness: `{individual.fitness:.4f}`"
-            with st.expander(expander_title, expanded=(i==0)):
-                
-                # Define tabs for the deep dive
-                tab_vitals, tab_causal, tab_evo, tab_ancestry, tab_code = st.tabs([
-                    "🌐 Vitals & Architecture", 
-                    "🔬 Causal & Structural Analysis", 
-                    "🧬 Evolutionary & Developmental Potential",
-                    "🌳 Genealogy & Ancestry",
-                    "💻 Code Export"
-                ])
-                # --- TAB 1: Vitals & Architecture ---
-                with tab_vitals:
-                    vitals_col1, vitals_col2 = st.columns([1, 1])
-                    with vitals_col1:
-                        st.markdown("#### Quantitative Profile")
-                        st.metric("Fitness", f"{individual.fitness:.4f}")
-                        st.metric("Task Accuracy (Sim.)", f"{individual.accuracy:.3f}")
-                        st.metric("Efficiency Score", f"{individual.efficiency:.3f}")
-                        st.metric("Robustness Score", f"{individual.robustness:.3f}")
-                        st.metric("Architectural Complexity", f"{individual.complexity:.3f}")
-                        st.metric("Age", f"{individual.age} generations")
+        dyn_tab1, dyn_tab2, dyn_tab3, dyn_tab4 = st.tabs([
+            "📈 Temporal Dynamics", 
+            "🧬 Population Genetics", 
+            "🗺️ Morphological Landscape", 
+            "🏁 Concluding Remarks"
+        ])
 
-                    with vitals_col2:
-                        st.markdown("#### Architectural Blueprint")
-                        st.write(f"**Total Parameters:** `{sum(m.size for m in individual.modules):,}`")
-                        st.write(f"**Modules:** `{len(individual.modules)}` | **Connections:** `{len(individual.connections)}`")
-                        st.write(f"**Parent(s):** `{', '.join(individual.parent_ids)}`")
-                        
-                        st.markdown("###### Module Composition:")
-                        module_counts = Counter(m.module_type for m in individual.modules)
-                        for mtype, count in module_counts.items():
-                            st.write(f"- `{count}` x **{mtype.capitalize()}**")
-                        
-                        st.markdown("###### Meta-Parameters:")
-                        st.json({k: f"{v:.4f}" for k, v in individual.meta_parameters.items()})
-
-                    st.markdown("---")
-                    st.markdown("#### Visualizations")
-                    vis_col1, vis_col2 = st.columns(2)
-                    with vis_col1:
-                        st.markdown("###### 3D Interactive View")
-                        st.plotly_chart(
-                            visualize_genotype_3d(individual),
-                            width='stretch',
-                            key=f"elite_3d_{individual.lineage_id}"
-                        )
-                    with vis_col2:
-                        st.markdown("###### 2D Static View")
-                        st.plotly_chart(
-                            visualize_genotype_2d(individual),
-                            width='stretch',
-                            key=f"elite_2d_{individual.lineage_id}"
-                        )
-
-                # --- TAB 2: Causal & Structural Analysis ---
-                with tab_causal:
-                    st.markdown("This tab dissects the functional importance of the architecture's components.")
-                    causal_col1, causal_col2 = st.columns(2)
-
-                    with causal_col1:
-                        st.subheader("Lesion Sensitivity Analysis")
-                        st.markdown("We computationally 'remove' each component and measure the drop in fitness. A larger drop indicates a more **critical** component.")
-                        
-                        with st.spinner(f"Performing lesion analysis for Rank {i+1}..."):
-                            criticality_scores = analyze_lesion_sensitivity(
-                                individual, individual.fitness, task_type, fitness_weights, eval_params
-                            )
-                        
-                        sorted_criticality = sorted(criticality_scores.items(), key=lambda item: item[1], reverse=True)
-                        
-                        st.markdown("###### Most Critical Components:")
-                        for j, (component, score) in enumerate(sorted_criticality[:5]):
-                            st.metric(
-                                label=f"#{j+1} {component}",
-                                value=f"{score:.4f} Fitness Drop",
-                                help="The reduction in overall fitness when this component is removed."
-                            )
-
-                    with causal_col2:
-                        st.subheader("Information Flow Backbone")
-                        st.markdown("This analysis identifies the **causal backbone**—the key modules that act as bridges for information flow, identified via `betweenness centrality`.")
-                        
-                        with st.spinner(f"Analyzing information flow for Rank {i+1}..."):
-                            centrality_scores = analyze_information_flow(individual)
-                        
-                        sorted_centrality = sorted(centrality_scores.items(), key=lambda item: item[1], reverse=True)
-                        st.markdown("###### Causal Backbone Nodes:")
-                        for j, (module_id, score) in enumerate(sorted_centrality[:5]):
-                            st.metric(label=f"#{j+1} Module: {module_id}", value=f"{score:.3f} Centrality", help="A normalized score of how critical this node is for information routing.")
-
-                    st.markdown("---")
-                    st.subheader("Genetic Load & Neutrality")
-                    st.markdown("This analysis identifies **neutral components** ('junk DNA') with little effect when removed, and calculates the **genetic load**—the fitness cost of slightly harmful, non-lethal components.")
-                    with st.spinner(f"Calculating genetic load for Rank {i+1}..."):
-                        load_data = analyze_genetic_load(criticality_scores)
-
-                    load_col1, load_col2 = st.columns(2)
-                    load_col1.metric("Neutral Component Count", f"{load_data['neutral_component_count']}", help="Number of modules/connections with near-zero impact when lesioned.")
-                    load_col2.metric("Genetic Load", f"{load_data['genetic_load']:.4f}", help="Total fitness reduction from slightly deleterious, non-critical components.")
-
-                # --- TAB 3: Evolutionary & Developmental Potential ---
-                with tab_evo:
-                    st.markdown("This tab probes the genotype's potential for future adaptation and its programmed developmental trajectory.")
-                    evo_col1, evo_col2 = st.columns(2)
-
-                    with evo_col1:
-                        st.subheader("Evolvability vs. Robustness")
-                        st.markdown("We generate 50 mutants to measure the trade-off between **robustness** (resisting negative mutations) and **evolvability** (producing beneficial mutations).")
-                        
-                        with st.spinner(f"Analyzing mutational landscape for Rank {i+1}..."):
-                            evo_robust_data = analyze_evolvability_robustness(
-                                individual, task_type, fitness_weights, eval_params
-                            )
-                        
-                        st.metric("Robustness Score", f"{evo_robust_data['robustness']:.4f}", help="Average fitness loss from deleterious mutations. Higher = more robust.")
-                        st.metric("Evolvability Score", f"{evo_robust_data['evolvability']:.4f}", help="Maximum fitness gain from a single mutation.")
-
-                        dist_df = pd.DataFrame(evo_robust_data['distribution'], columns=['Fitness Change'])
-                        fig = px.histogram(dist_df, x="Fitness Change", nbins=20, title="Distribution of Mutational Effects")
-                        fig.add_vline(x=0, line_width=2, line_dash="dash", line_color="grey")
-                        fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
-                        st.plotly_chart(fig, width='stretch', key=f"mutational_effects_hist_{individual.lineage_id}")
-
-                    with evo_col2:
-                        st.subheader("Developmental Trajectory")
-                        st.markdown("This simulates the genotype's 'lifetime,' showing how its developmental program (pruning, proliferation) alters its structure over time.")
-                        
-                        with st.spinner(f"Simulating development for Rank {i+1}..."):
-                            dev_traj_df = analyze_developmental_trajectory(individual)
-                        
-                        fig = px.line(dev_traj_df, x="step", y=["total_params", "num_connections"], title="Simulated Developmental Trajectory")
-                        fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                        st.plotly_chart(fig, width='stretch', key=f"dev_trajectory_line_{individual.lineage_id}")
-
-                # --- TAB 4: Genealogy & Ancestry ---
-                with tab_ancestry:
-                    st.markdown("This tab traces the lineage of the genotype, comparing it to its direct ancestors to understand the evolutionary step that led to its success.")
-                    parent_ids = individual.parent_ids
-                    st.subheader(f"Direct Ancestors: `{', '.join(parent_ids)}`")
-
-                    parents = [p for p in population if p.lineage_id in parent_ids]
-
-                    if not parents:
-                        st.info("Parents of this genotype are not in the final population (they were not selected in a previous generation).")
-                    else:
-                        parent_cols = st.columns(len(parents))
-                        for k, parent in enumerate(parents):
-                            with parent_cols[k]:
-                                st.markdown(f"##### Parent: `{parent.lineage_id}`")
-                                st.markdown(f"**Form:** `{parent.form_id}` | **Fitness:** `{parent.fitness:.4f}`")
-                                
-                                # Genomic distance
-                                distance = genomic_distance(individual, parent)
-                                st.metric("Genomic Distance to Child", f"{distance:.3f}")
-
-                                # Compare key stats
-                                st.markdown("###### Evolutionary Step:")
-                                param_delta = sum(m.size for m in individual.modules) - sum(m.size for m in parent.modules)
-                                st.metric("Parameter Change", f"{param_delta:+,}", delta_color="off")
-                                
-                                complexity_delta = individual.complexity - parent.complexity
-                                st.metric("Complexity Change", f"{complexity_delta:+.3f}", delta_color="off")
-
-                                # Visualize parent
-                                st.plotly_chart(
-                                    visualize_genotype_2d(parent),
-                                    width='stretch',
-                                    key=f"parent_2d_{parent.lineage_id}_for_{individual.lineage_id}"
-                                )
-
-                # --- TAB 5: Code Export ---
-                with tab_code:
-                    st.markdown("The genotype can be translated into functional code for deep learning frameworks, providing a direct path from discovery to application.")
-                    
-                    code_col1, code_col2 = st.columns(2)
-                    with code_col1:
-                        st.subheader("PyTorch Code")
-                        pytorch_code = generate_pytorch_code(individual)
-                        st.code(pytorch_code, language='python')
-                    
-                    with code_col2:
-                        st.subheader("TensorFlow / Keras Code")
-                        tensorflow_code = generate_tensorflow_code(individual)
-                        st.code(tensorflow_code, language='python')
-        
-        # Form comparison
-        st.markdown("---")
-        st.header("🔬 Comparative Form Analysis")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Performance by form
-            form_performance = final_gen.groupby('form').agg({
-                'fitness': ['mean', 'max', 'std'],
-                'accuracy': 'mean',
-                'efficiency': 'mean'
-            }).round(4)
-            
-            st.markdown("### Performance Metrics by Form")
-            st.dataframe(form_performance, width='stretch')
-        
-        with col2:
-            # Population distribution
-            form_counts = final_gen['form'].value_counts().sort_index()
-            fig = px.pie(
-                values=form_counts.values,
-                names=form_counts.index,
-                title='Final Population Distribution',
-                color_discrete_sequence=px.colors.qualitative.Set3
-            )
-            st.plotly_chart(fig, width='stretch', key="final_pop_dist_pie")
-        
-        # Time series analysis
-        st.markdown("---")
-        st.header("📈 Temporal Dynamics")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Parameter evolution
-            fig = px.line(
-                history_df.groupby(['generation', 'form'])['total_params'].mean().reset_index(),
-                x='generation',
-                y='total_params',
-                color='form',
-                title='Network Size Evolution',
-                labels={'total_params': 'Mean Parameters', 'generation': 'Generation'}
-            )
-            st.plotly_chart(fig, width='stretch', key="network_size_evo_line")
-        
-        with col2:
-            # Complexity trajectory
-            fig = px.line(
-                history_df.groupby(['generation', 'form'])['complexity'].mean().reset_index(),
-                x='generation',
-                y='complexity',
-                color='form',
-                title='Architectural Complexity Trajectory',
-                labels={'complexity': 'Complexity Score', 'generation': 'Generation'}
-            )
-            st.plotly_chart(fig, width='stretch', key="complexity_traj_line")
-        
-        # Evolutionary metrics
-        if st.session_state.evolutionary_metrics:
-            st.markdown("---")
-            st.header("🧬 Population Genetics")
-            
-            metrics_df = pd.DataFrame(st.session_state.evolutionary_metrics)
+        with dyn_tab1:
+            st.markdown("#### Phenotypic Evolution Over Time")
+            st.markdown("This dashboard tracks the evolution of key architectural and performance traits, averaged across the entire population for each generation.")
             
             fig = make_subplots(
-                rows=1, cols=2,
-                subplot_titles=('Genetic Diversity (Shannon Entropy)', 'Fisher Information')
+                rows=2, cols=2,
+                subplot_titles=(
+                    "Mean Fitness Components", "Mean Network Size (Parameters)",
+                    "Mean Architectural Complexity", "Mean Generalization Score"
+                ),
+                vertical_spacing=0.2
             )
-            
-            fig.add_trace(
-                go.Scatter(x=metrics_df['generation'], y=metrics_df['diversity'],
-                          mode='lines+markers', name='Diversity', line=dict(color='purple')),
-                row=1, col=1
-            )
-            
-            fig.add_trace(
-                go.Scatter(x=metrics_df['generation'], y=metrics_df['fisher_info'],
-                          mode='lines+markers', name='Fisher Info', line=dict(color='orange')),
-                row=1, col=2
-            )
-            
+
+            # Plot 1: Fitness Components
+            component_scores = history_df.groupby('generation')[['accuracy', 'efficiency', 'robustness']].mean().reset_index()
+            fig.add_trace(go.Scatter(x=component_scores['generation'], y=component_scores['accuracy'], name='Accuracy', legendgroup='1'), row=1, col=1)
+            fig.add_trace(go.Scatter(x=component_scores['generation'], y=component_scores['efficiency'], name='Efficiency', legendgroup='1'), row=1, col=1)
+            fig.add_trace(go.Scatter(x=component_scores['generation'], y=component_scores['robustness'], name='Robustness', legendgroup='1'), row=1, col=1)
+
+            # Plot 2: Network Size
+            param_df = history_df.groupby(['generation', 'form'])['total_params'].mean().reset_index()
+            for form_name in param_df['form'].unique():
+                form_data = param_df[param_df['form'] == form_name]
+                fig.add_trace(go.Scatter(x=form_data['generation'], y=form_data['total_params'], name=form_name, legendgroup='2', showlegend=False), row=1, col=2)
+
+            # Plot 3: Complexity
+            comp_df = history_df.groupby(['generation', 'form'])['complexity'].mean().reset_index()
+            for form_name in comp_df['form'].unique():
+                form_data = comp_df[comp_df['form'] == form_name]
+                fig.add_trace(go.Scatter(x=form_data['generation'], y=form_data['complexity'], name=form_name, legendgroup='3', showlegend=False), row=2, col=1)
+
+            # Plot 4: Generalization
+            gen_df = history_df.groupby('generation')['generalization'].mean().reset_index()
+            fig.add_trace(go.Scatter(x=gen_df['generation'], y=gen_df['generalization'], name='Generalization', legendgroup='4', line=dict(color='orange')), row=2, col=2)
+
+            fig.update_layout(height=700, legend_groupclick="toggleitem")
             fig.update_xaxes(title_text="Generation")
-            fig.update_yaxes(title_text="H", row=1, col=1)
-            fig.update_yaxes(title_text="I(θ)", row=1, col=2)
-            fig.update_layout(height=400, showlegend=False)
-            
-            st.plotly_chart(fig, width='stretch', key="pop_genetics_chart")
+            fig.update_yaxes(title_text="Mean Score", row=1, col=1)
+            fig.update_yaxes(title_text="Mean Parameters", type="log", row=1, col=2)
+            fig.update_yaxes(title_text="Mean Complexity", row=2, col=1)
+            fig.update_yaxes(title_text="Mean Score", row=2, col=2)
+            st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown("---")
-        st.header("Dynamic Concluding Remarks")
-        
-        takeaways = []
+        with dyn_tab2:
+            st.markdown("#### Population Genetic Dynamics")
+            st.markdown("This dashboard visualizes the core 'physics' of the evolutionary process, tracking metrics that describe the potential, pressure, and response of the population's gene pool.")
 
-        # 1. Emergent Specialization
-        if not final_gen.empty and not final_gen['form_id'].value_counts().empty:
-            form_counts = final_gen['form_id'].value_counts()
-            dominant_form_id = form_counts.index[0]
-            dominance_pct = (form_counts.iloc[0] / form_counts.sum()) * 100
-            if dominance_pct > 60:
-                takeaways.append(f"**Strong Emergent Specialization:** The simulation demonstrated clear convergent evolution, with **Form {int(dominant_form_id)}** becoming the dominant morphology, comprising **{dominance_pct:.1f}%** of the final population. This indicates its foundational topology provided a significant adaptive advantage for the '{st.session_state.settings['task_type']}' task.")
+            if not metrics_df.empty and len(metrics_df) > 1:
+                fig = make_subplots(
+                    rows=2, cols=2,
+                    subplot_titles=(
+                        "Genetic Diversity (Shannon Entropy)", "Heritability (h²)",
+                        "Selection Differential (S)", "Fisher Information (I(θ))"
+                    ),
+                    vertical_spacing=0.2
+                )
 
-        # 2. Complexity Dynamics
-        if not history_df.empty and not final_gen.empty:
-            initial_complexity = history_df[history_df['generation'] == 0]['complexity'].mean()
-            final_complexity = final_gen['complexity'].mean()
-            complexity_change = ((final_complexity / initial_complexity) - 1) * 100 if initial_complexity > 0 else 0
-            if complexity_change > 20:
-                takeaways.append(f"**Constructive Complexity Ratchet:** A trend of increasing architectural complexity was observed (a **{complexity_change:.1f}%** increase in the mean), suggesting the fitness landscape rewarded more intricate solutions, balanced by the selective pressure for efficiency (weight: {st.session_state.settings['w_efficiency']:.2f}).")
-            elif complexity_change < -20:
-                takeaways.append(f"**Parsimonious Selection:** The evolutionary pressure strongly favored simplicity, leading to a **{abs(complexity_change):.1f}%** decrease in mean architectural complexity, indicating a successful search for efficient, minimalist solutions.")
+                # Plot 1: Diversity
+                fig.add_trace(go.Scatter(x=metrics_df['generation'], y=metrics_df['diversity'], name='Diversity (H)', line=dict(color='purple')), row=1, col=1)
 
-        # 3. Pareto Optimality & Trade-offs
-        if final_gen_genotypes and acc_specialist and eff_generalist:
-            if acc_specialist.efficiency < eff_generalist.efficiency * 0.8 and eff_generalist.accuracy < acc_specialist.accuracy * 0.8:
-                takeaways.append(f"**Clear Performance Trade-offs:** The final population illustrates a classic Pareto frontier. The top accuracy specialist (Acc: {acc_specialist.accuracy:.3f}) was significantly less efficient than the top efficiency generalist (Eff: {eff_generalist.efficiency:.3f}), which in turn had lower accuracy (Acc: {eff_generalist.accuracy:.3f}).")
+                # Plot 2: Heritability
+                if 'h2_df' in locals() and not h2_df.empty:
+                    fig.add_trace(go.Scatter(x=h2_df['generation'], y=h2_df['heritability'], name='Heritability (h²)', line=dict(color='green')), row=1, col=2)
+                
+                # Plot 3: Selection Differential
+                if 'sel_df' in locals() and not sel_df.empty:
+                    fig.add_trace(go.Scatter(x=sel_df['generation'], y=sel_df['selection_diff'], name='Selection (S)', line=dict(color='red')), row=2, col=1)
+
+                # Plot 4: Fisher Information
+                fig.add_trace(go.Scatter(x=metrics_df['generation'], y=metrics_df['fisher_info'], name='Fisher Info (I)', line=dict(color='orange')), row=2, col=2)
+
+                fig.update_layout(height=700, showlegend=False)
+                fig.update_xaxes(title_text="Generation")
+                fig.update_yaxes(title_text="H (bits)", row=1, col=1)
+                fig.update_yaxes(title_text="h² (Correlation)", row=1, col=2)
+                fig.update_yaxes(title_text="S (Fitness Units)", row=2, col=1)
+                fig.update_yaxes(title_text="I(θ) (1/Var(F))", row=2, col=2)
+                st.plotly_chart(fig, use_container_width=True)
             else:
-                takeaways.append("**Evidence of Pareto Optimality:** The final population represents a set of solutions with varying strengths across multiple objectives. No single architecture dominated all others, which is characteristic of a successful multi-objective search.")
+                st.info("Not enough data to render population genetics dashboard.")
 
-        # 4. Innovation and Exploration vs. Convergence
-        if 'diversity_change' in locals() and diversity_change < -50:
-             takeaways.append(f"**Convergent Evolution Dominates:** Despite mechanisms for innovation, the population showed strong convergence towards a specific set of high-performing genotypes, indicated by a significant drop in genetic diversity (**{diversity_change:.1f}%**). The search effectively exploited a promising region of the fitness landscape.")
-        elif 'diversity_change' in locals() and diversity_change > -10:
-             takeaways.append(f"**Sustained Exploration and Innovation:** The population maintained high genetic diversity. This suggests that structural mutations (innovation rate: {st.session_state.settings['innovation_rate']}) were crucial for continually discovering novel architectural motifs and avoiding premature convergence.")
+        with dyn_tab3:
+            st.markdown("#### Morphological Landscape & Form Analysis")
+            st.markdown("This tab analyzes the diversity of architectural 'forms' (foundational topologies) and how they competed and specialized over time.")
+            
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                st.markdown("##### Form Dominance Over Time")
+                form_counts = history_df.groupby(['generation', 'form']).size().unstack(fill_value=0)
+                form_percentages = form_counts.apply(lambda x: x / (x.sum() + 1e-9), axis=1)
+                fig_area = go.Figure()
+                for form_name in form_percentages.columns:
+                    fig_area.add_trace(go.Scatter(
+                        x=form_percentages.index, y=form_percentages[form_name],
+                        hoverinfo='x+y', mode='lines', name=form_name,
+                        stackgroup='one', groupnorm='percent'
+                    ))
+                fig_area.update_layout(title="Form Dominance (%) vs. Generation", yaxis_title="Population Percentage", height=350, margin=dict(t=40, b=20, l=20, r=20))
+                st.plotly_chart(fig_area, use_container_width=True)
 
-        # Display the takeaways
-        if takeaways:
-            st.info(
-                "This simulation demonstrates the power of multi-objective neuroevolution. Key takeaways from this specific run include:\n\n" + 
-                "\n".join([f"- {item}" for item in takeaways])
-            )
+                st.markdown("##### Final Population Distribution")
+                final_form_counts = final_gen['form'].value_counts()
+                fig_pie = px.pie(
+                    values=final_form_counts.values, names=final_form_counts.index,
+                    title='Final Form Distribution', color_discrete_sequence=px.colors.qualitative.Set3
+                )
+                fig_pie.update_layout(height=350, margin=dict(t=40, b=20, l=20, r=20))
+                st.plotly_chart(fig_pie, use_container_width=True)
+
+            with col2:
+                st.markdown("##### Phenotypic Clustering by Form")
+                fig_scatter = px.scatter(
+                    final_gen, x='total_params', y='complexity', color='form',
+                    size='fitness', hover_data=['lineage_id', 'accuracy'],
+                    title="Phenotypic Niches of Final Population",
+                    labels={'total_params': 'Total Parameters (Log Scale)', 'complexity': 'Architectural Complexity'},
+                    log_x=True
+                )
+                fig_scatter.update_layout(height=350, margin=dict(t=40, b=20, l=20, r=20))
+                st.plotly_chart(fig_scatter, use_container_width=True)
+
+                st.markdown("##### Comparative Performance by Form")
+                form_performance = final_gen.groupby('form').agg({
+                    'fitness': ['mean', 'max'],
+                    'accuracy': 'mean',
+                    'efficiency': 'mean',
+                    'complexity': 'mean'
+                }).round(3)
+                st.dataframe(form_performance, use_container_width=True)
+
+        with dyn_tab4:
+            st.markdown("#### Dynamic Concluding Remarks")
+            st.markdown("This automated analysis synthesizes the key observations from the run into a narrative summary, interpreting the interplay between the configured parameters and the emergent evolutionary dynamics.")
+            
+            takeaways = []
+            # 1. Emergent Specialization
+            if not final_gen.empty and not final_gen['form_id'].value_counts().empty:
+                form_counts = final_gen['form_id'].value_counts()
+                dominant_form_id = form_counts.index[0]
+                dominance_pct = (form_counts.iloc[0] / form_counts.sum()) * 100
+                if dominance_pct > 60:
+                    takeaways.append(f"**Strong Emergent Specialization:** The simulation demonstrated clear convergent evolution, with **Form {int(dominant_form_id)}** becoming the dominant morphology, comprising **{dominance_pct:.1f}%** of the final population. This indicates its foundational topology provided a significant adaptive advantage for the '{st.session_state.settings['task_type']}' task, a trend visible in the 'Morphological Landscape' tab.")
+
+            # 2. Complexity Dynamics
+            if not history_df.empty and not final_gen.empty:
+                initial_complexity = history_df[history_df['generation'] == 0]['complexity'].mean()
+                final_complexity = final_gen['complexity'].mean()
+                complexity_change = ((final_complexity / initial_complexity) - 1) * 100 if initial_complexity > 0 else 0
+                if complexity_change > 20:
+                    takeaways.append(f"**Constructive Complexity Ratchet:** A trend of increasing architectural complexity was observed (a **{complexity_change:+.1f}%** increase in the mean), suggesting the fitness landscape rewarded more intricate solutions. This is often seen when the efficiency weight (`{st.session_state.settings['w_efficiency']:.2f}`) is low, allowing for unchecked growth in pursuit of accuracy.")
+                elif complexity_change < -20:
+                    takeaways.append(f"**Parsimonious Selection:** The evolutionary pressure strongly favored simplicity, leading to a **{abs(complexity_change):.1f}%** decrease in mean architectural complexity. This indicates a successful search for efficient, minimalist solutions, likely driven by a high efficiency weight (`{st.session_state.settings['w_efficiency']:.2f}`).")
+
+            # 3. Pareto Optimality & Trade-offs
+            if final_gen_genotypes and 'acc_specialist' in locals() and acc_specialist and 'eff_generalist' in locals() and eff_generalist:
+                if acc_specialist.efficiency < eff_generalist.efficiency * 0.8 and eff_generalist.accuracy < acc_specialist.accuracy * 0.8:
+                    takeaways.append(f"**Clear Performance Trade-offs:** The final population illustrates a classic Pareto frontier. The top accuracy specialist (Acc: {acc_specialist.accuracy:.3f}) was significantly less efficient than the top efficiency generalist (Eff: {eff_generalist.efficiency:.3f}), which in turn had lower accuracy. This trade-off is visualized in the 'Pareto Frontier' section.")
+                else:
+                    takeaways.append("**Evidence of Pareto Optimality:** The final population represents a set of solutions with varying strengths across multiple objectives. No single architecture dominated all others, which is characteristic of a successful multi-objective search.")
+
+            # 4. Innovation and Exploration vs. Convergence
+            if 'diversity_change' in locals():
+                if diversity_change < -50:
+                    takeaways.append(f"**Convergent Evolution Dominates:** The population showed strong convergence towards a specific set of high-performing genotypes, indicated by a significant drop in genetic diversity (**{diversity_change:+.1f}%**). The 'Population Genetics' tab shows this was likely driven by a high selection differential, effectively exploiting a promising region of the fitness landscape.")
+                elif diversity_change > -10:
+                    takeaways.append(f"**Sustained Exploration and Innovation:** The population maintained high genetic diversity. This suggests that structural mutations (innovation rate: `{st.session_state.settings['innovation_rate']}`) and speciation were crucial for continually discovering novel architectural motifs and avoiding premature convergence on a single local optimum.")
+
+            # 5. Heritability and Selection
+            if 'final_heritability' in locals() and 'mean_selection_differential' in locals():
+                if final_heritability > 0.5 and mean_selection_differential > 0.05:
+                    takeaways.append(f"**Effective Selection Dynamics:** The system exhibited strong evolutionary potential. A high final heritability (h²≈{final_heritability:.2f}) combined with a consistently positive selection differential (mean S≈{mean_selection_differential:.3f}) created the conditions for rapid and effective adaptation, as predicted by the Breeder's equation (R = h²S).")
+
+            # Display the takeaways
+            if takeaways:
+                st.info(
+                    "This simulation demonstrates the power of multi-objective neuroevolution. Key takeaways from this specific run include:\n\n" + 
+                    "\n".join([f"- {item}" for item in takeaways])
+                )
+            else:
+                st.warning("Could not generate dynamic concluding remarks. More data may be needed.")
 
         # --- Synthesized Master Architecture ---
         st.markdown("---")
