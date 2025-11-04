@@ -3403,33 +3403,121 @@ def main():
         
         # Time series analysis
         st.markdown("---")
-        st.header("📈 Temporal Dynamics")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Parameter evolution
-            fig = px.line(
-                history_df.groupby(['generation', 'form'])['total_params'].mean().reset_index(),
-                x='generation',
-                y='total_params',
-                color='form',
-                title='Network Size Evolution',
-                labels={'total_params': 'Mean Parameters', 'generation': 'Generation'}
-            )
-            st.plotly_chart(fig, width='stretch', key="network_size_evo_line")
-        
-        with col2:
-            # Complexity trajectory
-            fig = px.line(
-                history_df.groupby(['generation', 'form'])['complexity'].mean().reset_index(),
-                x='generation',
-                y='complexity',
-                color='form',
-                title='Architectural Complexity Trajectory',
-                labels={'complexity': 'Complexity Score', 'generation': 'Generation'}
-            )
-            st.plotly_chart(fig, width='stretch', key="complexity_traj_line")
+        st.header("📈 Temporal Dynamics: Deconstructing the Evolutionary Trajectory")
+        st.markdown("""
+        This section analyzes how key architectural and performance traits evolved over generational time. By observing these trajectories, we can infer the nature of the selective pressures at play and the adaptive pathways different architectural forms explored to navigate the fitness landscape. Each plot reveals a different facet of the population's journey from its initial state to its final, optimized configuration.
+        """)
+
+        if history_df.empty:
+            st.warning("No historical data available to analyze temporal dynamics.")
+        else:
+            tab1, tab2, tab3 = st.tabs([
+                "🧬 Phenotypic Trait Evolution",
+                "🎯 Objective Score Trajectories",
+                "⚙️ Evolutionary Rates of Change"
+            ])
+
+            with tab1:
+                st.markdown("#### **Evolution of Core Architectural Traits**")
+                st.markdown("How did the physical characteristics of the architectures change over time? These plots track the evolution of network size (parameters) and structural complexity for each form, including the standard deviation to show population variance.")
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("###### Network Size (Mean Parameters)")
+                    param_stats = history_df.groupby(['generation', 'form'])['total_params'].agg(['mean', 'std']).reset_index()
+                    fig_params = go.Figure()
+                    colors = px.colors.qualitative.Plotly
+                    for i, form_name in enumerate(sorted(history_df['form'].unique())):
+                        form_data = param_stats[param_stats['form'] == form_name]
+                        mean_params = form_data['mean']
+                        std_params = form_data['std'].fillna(0)
+                        color = colors[i % len(colors)]
+                        
+                        fig_params.add_trace(go.Scatter(
+                            x=np.concatenate([form_data['generation'], form_data['generation'][::-1]]),
+                            y=np.concatenate([mean_params + std_params, (mean_params - std_params)[::-1]]),
+                            fill='toself', fillcolor=color, opacity=0.1,
+                            line=dict(color='rgba(255,255,255,0)'), hoverinfo="skip", showlegend=False, legendgroup=form_name
+                        ))
+                        fig_params.add_trace(go.Scatter(
+                            x=form_data['generation'], y=mean_params, mode='lines', name=form_name, legendgroup=form_name, line=dict(color=color)
+                        ))
+                    fig_params.update_layout(title='Mean Parameter Count Evolution by Form', xaxis_title='Generation', yaxis_title='Mean Total Parameters', yaxis_type="log", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                    st.plotly_chart(fig_params, use_container_width=True)
+
+                with col2:
+                    st.markdown("###### Architectural Complexity (Mean Score)")
+                    complexity_stats = history_df.groupby(['generation', 'form'])['complexity'].agg(['mean', 'std']).reset_index()
+                    fig_complexity = go.Figure()
+                    colors = px.colors.qualitative.Plotly
+                    for i, form_name in enumerate(sorted(history_df['form'].unique())):
+                        form_data = complexity_stats[complexity_stats['form'] == form_name]
+                        mean_complexity = form_data['mean']
+                        std_complexity = form_data['std'].fillna(0)
+                        color = colors[i % len(colors)]
+                        
+                        fig_complexity.add_trace(go.Scatter(
+                            x=np.concatenate([form_data['generation'], form_data['generation'][::-1]]),
+                            y=np.concatenate([mean_complexity + std_complexity, (mean_complexity - std_complexity)[::-1]]),
+                            fill='toself', fillcolor=color, opacity=0.1,
+                            line=dict(color='rgba(255,255,255,0)'), hoverinfo="skip", showlegend=False, legendgroup=form_name
+                        ))
+                        fig_complexity.add_trace(go.Scatter(
+                            x=form_data['generation'], y=mean_complexity, mode='lines', name=form_name, legendgroup=form_name, line=dict(color=color)
+                        ))
+                    fig_complexity.update_layout(title='Mean Complexity Score Evolution by Form', xaxis_title='Generation', yaxis_title='Mean Complexity Score', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                    st.plotly_chart(fig_complexity, use_container_width=True)
+
+            with tab2:
+                st.markdown("#### **Evolution of Multi-Objective Performance**")
+                st.markdown("This analysis shows how the different forms adapted to the multi-objective fitness function over time. It reveals which forms specialized in certain objectives (e.g., accuracy vs. efficiency).")
+                
+                objectives_to_plot = ['accuracy', 'efficiency', 'robustness', 'generalization']
+                fig_objectives = make_subplots(rows=2, cols=2, subplot_titles=[f'{obj.capitalize()} Trajectory' for obj in objectives_to_plot], vertical_spacing=0.15)
+                
+                plot_positions = [(1, 1), (1, 2), (2, 1), (2, 2)]
+                
+                for i, objective in enumerate(objectives_to_plot):
+                    row, col = plot_positions[i]
+                    objective_data = history_df.groupby(['generation', 'form'])[objective].mean().reset_index()
+                    
+                    for form_name in sorted(history_df['form'].unique()):
+                        form_data = objective_data[objective_data['form'] == form_name]
+                        fig_objectives.add_trace(go.Scatter(
+                            x=form_data['generation'], y=form_data[objective], mode='lines', name=form_name, legendgroup=form_name, showlegend=(i==0)
+                        ), row=row, col=col)
+                    fig_objectives.update_yaxes(title_text="Mean Score", range=[0, 1], row=row, col=col)
+                    fig_objectives.update_xaxes(title_text="Generation", row=row, col=col)
+                    
+                fig_objectives.update_layout(height=700, title_text="Mean Objective Score Evolution by Form", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                st.plotly_chart(fig_objectives, use_container_width=True)
+
+            with tab3:
+                st.markdown("#### **Analysis of Evolutionary Rates**")
+                st.markdown("By examining the rate of change (first derivative) of key metrics, we can identify periods of rapid adaptation, stagnation, and evolutionary shifts. Positive rates indicate growth/improvement, while negative rates indicate decline or simplification.")
+                
+                # Calculate rates of change for population mean
+                rate_df = history_df.groupby('generation')[['fitness', 'complexity', 'total_params']].mean()
+                rate_df['fitness_rate'] = rate_df['fitness'].diff()
+                rate_df['complexity_rate'] = rate_df['complexity'].diff()
+                rate_df['params_rate'] = rate_df['total_params'].diff()
+                rate_df = rate_df.reset_index()
+
+                fig_rates = make_subplots(rows=1, cols=3, subplot_titles=("Rate of Fitness Change (dF/dt)", "Rate of Complexity Change (dC/dt)", "Rate of Size Change (dP/dt)"))
+
+                fig_rates.add_trace(go.Scatter(x=rate_df['generation'], y=rate_df['fitness_rate'], mode='lines', name='d(Fitness)/dt', line=dict(color='green')), row=1, col=1)
+                fig_rates.add_hline(y=0, line_width=1, line_dash="dash", line_color="grey", row=1, col=1)
+
+                fig_rates.add_trace(go.Scatter(x=rate_df['generation'], y=rate_df['complexity_rate'], mode='lines', name='d(Complexity)/dt', line=dict(color='blue')), row=1, col=2)
+                fig_rates.add_hline(y=0, line_width=1, line_dash="dash", line_color="grey", row=1, col=2)
+
+                fig_rates.add_trace(go.Scatter(x=rate_df['generation'], y=rate_df['params_rate'], mode='lines', name='d(Params)/dt', line=dict(color='red')), row=1, col=3)
+                fig_rates.add_hline(y=0, line_width=1, line_dash="dash", line_color="grey", row=1, col=3)
+
+                fig_rates.update_xaxes(title_text="Generation")
+                fig_rates.update_layout(height=400, title_text="Rates of Change for Population Mean Metrics", showlegend=False)
+                st.plotly_chart(fig_rates, use_container_width=True)
         
         # Evolutionary metrics
         if st.session_state.evolutionary_metrics:
