@@ -3,13 +3,21 @@ GENEVO: Advanced Neuroevolutionary System for AGI
 A scientifically rigorous implementation of genetic neural architecture evolution
 
 Mathematical Foundation:
-φ(G, E, t) → P: Genotype-Environment-Time mapping to Phenotype
-L(φ, D, τ) → ℝ: Lifetime learning function over dataset D and time τ
-F(P, L, E) → ℝ⁺: Fitness evaluation in environment E
 
-Evolutionary Dynamics:
-dG/dt = μ∇_G F(φ(G)) + σ ε(t)
-where μ is mutation rate, σ is innovation variance, ε ~ N(0,1)
+1. Phenotypic Development & Fitness Vector (Performance, Cost, Robustness):
+   V(G, E(t_evo)) = E_{d ~ P(D|E)} [ (1 - L_task(P', d)), C(P')⁻¹, R(P', d, η_pert) ]
+   where P' = argmin_{P*} ∫ (∇_{P*} L_task) dτ  (Lifetime Learning)
+   and   P = φ(G, E, η_dev) (Development)
+
+2. Population Evolutionary Dynamics (Non-local Fokker-Planck Equation):
+   ∂ρ(G,t)/∂t = ∇_G ⋅ [D(G)∇_G ρ] - ∇_G ⋅ [ρ M(G) ∫ K(G,G') s(V(G),V(G')) ρ(G') dG']
+   This describes the evolution of population density ρ(G,t) under mutation (diffusion),
+   and multi-objective selection (non-local drift based on Pareto dominance).
+
+3. Robust Multi-Objective Goal (Minimax Regret over Environment Space):
+   Find G* ⊂ Γ  s.t.  G* = argmin_{G' ⊂ Γ} sup_{E ∈ E} d_H(V(G', E), P*(E))
+   The goal is to find a portfolio of genotypes G* that minimizes the worst-case
+   Hausdorff distance (d_H) to the true Pareto Front (P*) over all possible environments (E).
 
 This system implements:
 1. Indirect encoding via developmental programs
@@ -17,6 +25,7 @@ This system implements:
 3. Multi-objective optimization (accuracy, efficiency, complexity)
 4. Coevolution with dynamic fitness landscapes
 5. Baldwin effect modeling
+6. Speciation and Niche Competition
 """
 
 import streamlit as st
