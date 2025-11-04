@@ -374,7 +374,11 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
         }
     }
     
-    form = forms[form_id]
+    # Use modulo to wrap around the defined forms if form_id is out of bounds.
+    # This allows for a functionally "infinite" number of forms by reusing the 
+    # base templates, which will then diverge through evolution.
+    lookup_id = ((form_id - 1) % len(forms)) + 1
+    form = forms[lookup_id]
     modules = form['modules']
     
     # Create connections based on topology
@@ -2061,11 +2065,11 @@ def main():
         )
     
     st.sidebar.markdown("### Population Parameters")
-    num_forms = st.sidebar.slider(
+    num_forms = st.sidebar.number_input(
         "Number of Architectural Forms",
-        min_value=1, max_value=5, value=s.get('num_forms', 5),
-        help="Morphological diversity: 1 ≤ n ≤ 5",
-        key="num_forms_slider"
+        min_value=1, max_value=None, value=s.get('num_forms', 5), step=1,
+        help="Number of initial architectural forms. WARNING: High values (>10) may significantly slow down the app or cause it to fail on resource-limited platforms like Streamlit Cloud.",
+        key="num_forms_input"
     )
     
     population_per_form = st.sidebar.slider(
