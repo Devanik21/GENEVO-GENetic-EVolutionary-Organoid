@@ -2071,7 +2071,9 @@ def main():
     population_per_form = st.sidebar.slider(
         "Population per Form", min_value=3, max_value=15, value=s.get('population_per_form', 8),
         help="Larger populations increase genetic diversity",
-        key="pop_per_form_slider"
+        key="pop_per_form_slider",
+        help="The size of the Monte Carlo sample used to approximate the infinite population density ρ(G,t). A larger sample provides a more accurate, but slower, approximation."
+
     )
     
     st.sidebar.markdown("### Fitness Objectives")
@@ -2133,7 +2135,12 @@ def main():
             "Niche Competition", 0.0, 2.0, s.get('niche_competition_factor', 1.0), 0.1,
             help="How strongly species compete. >1 forces specialization; 0 removes fitness sharing.",
             disabled=not s.get('enable_speciation', True),
-            key="niche_competition_slider"
+            key="niche_competition_slider",
+        )
+        reintroduction_rate = st.slider(
+            "Archive Reintroduction Rate", 0.0, 0.1, s.get('reintroduction_rate', 0.02), 0.005,
+            help="Chance to reintroduce an individual from the 'infinite' gene pool archive, simulating a vast population's memory and preventing permanent loss of innovation.",
+            key="reintroduction_rate_slider"
         )
         st.info(
             "These parameters are inspired by theoretical biology to simulate complex evolutionary dynamics like epistasis and niche partitioning."
@@ -2265,6 +2272,7 @@ def main():
         'epistatic_linkage_k': epistatic_linkage_k,
         'gene_flow_rate': gene_flow_rate,
         'niche_competition_factor': niche_competition_factor,
+        'reintroduction_rate': reintroduction_rate,
         'enable_cataclysms': enable_cataclysms,
         'cataclysm_probability': cataclysm_probability,
         'enable_red_queen': enable_red_queen,
@@ -2293,6 +2301,7 @@ def main():
     if st.sidebar.button("⚡ Initiate Evolution", type="primary", width='stretch', key="initiate_evolution_button"):
         st.session_state.history = []
         st.session_state.evolutionary_metrics = []
+        st.session_state.gene_archive = [] # Initialize the infinite gene pool
         
         # Initialize population
         population = []
@@ -2301,6 +2310,7 @@ def main():
                 genotype = initialize_genotype(form_id, complexity_level)
                 genotype.generation = 0
                 population.append(genotype)
+                st.session_state.gene_archive.append(genotype.copy()) # Seed the archive
         
         # For adaptive mutation
         last_best_fitness = -1
@@ -2477,43 +2487,51 @@ def main():
             # Reproduction
             offspring = []
             while len(offspring) < len(population) - len(survivors):
-                # --- Create one viable child, with retries to prevent duds ---
-                max_attempts = 20
-                for _ in range(max_attempts):
-                    # Tournament selection using the appropriate fitness key
-                    parent1 = max(random.sample(survivors, min(3, len(survivors))), key=selection_key)
-                    
-                    if random.random() < crossover_rate:
-                        if enable_speciation and random.random() < gene_flow_rate and len(survivors) > 1:
-                            # Gene Flow: select any other survivor, ignoring species
-                            parent2_candidates = [s for s in survivors if s.lineage_id != parent1.lineage_id]
-                            parent2 = random.choice(parent2_candidates) if parent2_candidates else parent1
-                        elif len(survivors) > 1:
-                            # Normal Crossover: select compatible parent
-                            compatible = [s for s in survivors if s.form_id == parent1.form_id and s.lineage_id != parent1.lineage_id]
-                            parent2 = max(random.sample(compatible, min(2, len(compatible))), key=selection_key) if compatible else parent1 # type: ignore
-                        else:
-                            parent2 = parent1
-                        child = crossover(parent1, parent2, crossover_rate)
-                    else:
-                        child = parent1.copy()
-                    
-                    # Mutation and other operators
-                    child = mutate(child, current_mutation_rate, innovation_rate)
-                    if enable_endosymbiosis and random.random() < endosymbiosis_rate and survivors:
-                        child = apply_endosymbiosis(child, survivors)
-                    
-                    # Viability Selection: Ensure the child is a functional network
-                    if is_viable(child):
-                        child.generation = gen + 1
-                        offspring.append(child)
-                        break # Found a viable child, move to next offspring
-                else: # for-else: runs if the loop finished without break
-                    # Fallback if no viable child was found after many attempts
-                    parent1 = max(random.sample(survivors, min(3, len(survivors))), key=selection_key)
-                    child = mutate(parent1.copy(), current_mutation_rate, innovation_rate)
+                if random.random() < reintroduction_rate and st.session_state.gene_archive:
+                    # Reintroduce a "fossil" from the infinite gene pool
+                    child = random.choice(st.session_state.gene_archive).copy()
+                    child = mutate(child, current_mutation_rate * 1.5, innovation_rate * 1.5) # Mutate it heavily to adapt it
                     child.generation = gen + 1
                     offspring.append(child)
+                else:
+                    # --- Create one viable child via normal reproduction, with retries ---
+                    max_attempts = 20
+                    for _ in range(max_attempts):
+                        # Tournament selection using the appropriate fitness key
+                        parent1 = max(random.sample(survivors, min(3, len(survivors))), key=selection_key)
+                        
+                        if random.random() < crossover_rate:
+                            if enable_speciation and random.random() < gene_flow_rate and len(survivors) > 1:
+                                # Gene Flow: select any other survivor, ignoring species
+                                parent2_candidates = [s for s in survivors if s.lineage_id != parent1.lineage_id]
+                                parent2 = random.choice(parent2_candidates) if parent2_candidates else parent1
+                            elif len(survivors) > 1:
+                                # Normal Crossover: select compatible parent
+                                compatible = [s for s in survivors if s.form_id == parent1.form_id and s.lineage_id != parent1.lineage_id]
+                                parent2 = max(random.sample(compatible, min(2, len(compatible))), key=selection_key) if compatible else parent1 # type: ignore
+                            else:
+                                parent2 = parent1
+                            child = crossover(parent1, parent2, crossover_rate)
+                        else:
+                            child = parent1.copy()
+                        
+                        # Mutation and other operators
+                        child = mutate(child, current_mutation_rate, innovation_rate)
+                        if enable_endosymbiosis and random.random() < endosymbiosis_rate and survivors:
+                            child = apply_endosymbiosis(child, survivors)
+                        
+                        # Viability Selection: Ensure the child is a functional network
+                        if is_viable(child):
+                            child.generation = gen + 1
+                            offspring.append(child)
+                            st.session_state.gene_archive.append(child.copy()) # Add new viable child to archive
+                            break # Found a viable child, move to next offspring
+                    else: # for-else: runs if the loop finished without break
+                        # Fallback if no viable child was found after many attempts
+                        parent1 = max(random.sample(survivors, min(3, len(survivors))), key=selection_key)
+                        child = mutate(parent1.copy(), current_mutation_rate, innovation_rate)
+                        child.generation = gen + 1
+                        offspring.append(child)
             
             # Clean up temporary attribute
             if enable_speciation:
@@ -3996,6 +4014,7 @@ def main():
     3.  **Abstracted Evolutionary Operators:** The evolutionary operators (mutation, crossover) are simplified and do not fully capture the intricacies of biological evolution.
     4.  **Computational Constraints:** The simulation is limited by computational resources, which restricts the population size, number of generations, and complexity of the architectures.
     """)
+    st.markdown("**Finite Population Approximation:** The active population is a finite sample of the theoretical infinite population. While we use a genetic archive to mitigate the loss of diversity (genetic drift), this remains an approximation of the true, continuous evolutionary dynamic described by the Fokker-Planck equation.")
 
     st.subheader("Future Research Directions")
     st.markdown("""
