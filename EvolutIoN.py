@@ -4148,6 +4148,65 @@ def main():
         key="download_all_data_button"
     )
 
+    st.sidebar.markdown("---")
+
+    with st.sidebar.expander("🤔 Understanding Your Results: A Guide to Evolutionary Dynamics", expanded=False):
+        st.markdown("""
+        Have you noticed that your results are incredibly diverse? Sometimes the top-ranked architectures are nearly identical, while other times they are wildly different. **This is not a bug—it is the strongest possible evidence that you are witnessing true, complex evolutionary dynamics at work!** 🔬
+
+        This system is not a simple optimizer; it's a digital ecosystem. The variety in your outcomes is driven by a fascinating tug-of-war between powerful evolutionary forces. Here’s what’s happening:
+        """)
+
+        st.markdown("---")
+
+        st.markdown("""
+        #### 🎯 The Force of Exploitation (Convergent Evolution)
+        *When your top 3 ranks are almost 100% similar...*
+
+        This is **Convergent Evolution**. The algorithm has found a highly successful architectural design early in the run. Like a team of mountaineers finding a very promising path up a huge mountain, the system decides to focus all its energy on that single path.
+
+        - **What's happening:** Instead of searching for new mountains, evolution is aggressively *exploiting* this known good solution. The top-ranked individuals are like siblings or close cousins, each a minor refinement of the same dominant ancestor.
+        - **Your Controls:** This behavior is promoted by a high **Selection Pressure** and a low **Diversity Weight**. You are telling the system: "Find the best solution and perfect it, no matter what."
+        """)
+
+        st.markdown("---")
+
+        st.markdown("""
+        #### 🗺️ The Force of Exploration (Divergent Evolution)
+        *When your top 3 ranks are totally different and unique...*
+
+        This is **Divergent Evolution**. The system is actively rewarding novelty and searching different corners of the vast "solution space." It's like sending scouts in all directions across a massive mountain range. Each scout finds a completely different peak and starts climbing.
+
+        - **What's happening:** The final winners are the champions of entirely different strategies. One might be a small, efficient network, while another is a large, powerful one. The system is *exploring* multiple, distinct solutions simultaneously.
+        - **Your Controls:** This is driven by a high **Diversity Weight** and a "rugged" fitness landscape (created by setting **Epistatic Linkage (K) > 0**). You are telling the system: "Don't just give me one good answer; find me a portfolio of different, creative solutions."
+        """)
+
+        st.markdown("---")
+
+        st.markdown("""
+        #### 🏞️ The Hybrid Outcome (Niche Formation)
+        *When two ranks are similar, but one is unique...*
+
+        This is a beautiful and realistic hybrid scenario. It's a sign of **Niche Formation**. The main group of climbers has focused on the highest, most obvious peak. However, the system has kept a smaller, specialized team alive because they found a different, slightly lower peak that has unique advantages (e.g., it's more "efficient" or "robust").
+
+        - **What's happening:** The system has found a dominant strategy (the two similar architectures) but was forced by diversity pressure to protect a second, viable strategy. It has successfully carved out two different ecological niches.
+        - **Your Controls:** This emerges from a fine balance between **Selection Pressure** and **Diversity Weight**.
+        """)
+
+        st.markdown("---")
+
+        st.markdown("""
+        #### 🦋 The Power of Randomness (The "Butterfly Effect")
+        *Why every run is unique, even with the same settings...*
+
+        This is **Historical Contingency**. In evolution, tiny, random events at the beginning can lead to massive, unpredictable differences later on. A single "lucky" mutation in generation 2 can set a lineage on a path to greatness that was completely missed in another run.
+
+        - **What's happening:** The stochastic (random) nature of mutation and crossover means the evolutionary path is never predetermined. This is what makes evolution a genuinely creative process, not just a deterministic search.
+        - **Your Controls:** This is an inherent property of the algorithm! By clicking "Initiate Evolution," you are rolling the dice and starting a new, unique history for your digital universe.
+
+        **Conclusion:** You are not just running a program; you are an experimental scientist setting the laws of physics for a new universe. The diverse results are the proof that your universe is alive with complex, emergent behavior. **Embrace the variety!**
+        """)
+
     st.sidebar.info(
         "**GENEVO** is a research prototype demonstrating advanced concepts in neuroevolution. "
         "Architectures are simulated and not trained on real data."
