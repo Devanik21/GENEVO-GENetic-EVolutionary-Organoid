@@ -2070,9 +2070,8 @@ def main():
     
     population_per_form = st.sidebar.slider(
         "Population per Form", min_value=3, max_value=15, value=s.get('population_per_form', 8),
-        help="Larger populations increase genetic diversity",
         key="pop_per_form_slider",
-        help="The size of the Monte Carlo sample used to approximate the infinite population density ρ(G,t). A larger sample provides a more accurate, but slower, approximation."
+        help="The size of the Monte Carlo sample used to approximate the infinite population density ρ(G,t). A larger sample provides a more accurate, but slower, approximation and increases genetic diversity."
 
     )
     
