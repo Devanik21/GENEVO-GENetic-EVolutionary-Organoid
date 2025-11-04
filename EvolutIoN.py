@@ -1647,8 +1647,6 @@ def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genoty
     fig.update_layout(
         height=1200,
         showlegend=True,
-        title_text="<b>Evolutionary Dynamics Dashboard</b>",
-        title_x=0.5,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         margin=dict(l=20, r=20, t=100, b=20)
     )
