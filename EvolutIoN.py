@@ -2528,7 +2528,7 @@ def main():
         metrics_df = pd.DataFrame(st.session_state.get('evolutionary_metrics', []))
         st.plotly_chart(
             create_evolution_dashboard(history_df, st.session_state.current_population, metrics_df),
-            use_container_width=True
+            width='stretch'
         )
         
         # --- Setup for deep analysis sections ---
@@ -2610,14 +2610,14 @@ def main():
                         st.markdown("###### 3D Interactive View")
                         st.plotly_chart(
                             visualize_genotype_3d(individual),
-                            use_container_width=True,
+                            width='stretch',
                             key=f"elite_3d_{individual.lineage_id}"
                         )
                     with vis_col2:
                         st.markdown("###### 2D Static View")
                         st.plotly_chart(
                             visualize_genotype_2d(individual),
-                            use_container_width=True,
+                            width='stretch',
                             key=f"elite_2d_{individual.lineage_id}"
                         )
 
@@ -2688,7 +2688,7 @@ def main():
                         fig = px.histogram(dist_df, x="Fitness Change", nbins=20, title="Distribution of Mutational Effects")
                         fig.add_vline(x=0, line_width=2, line_dash="dash", line_color="grey")
                         fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width='stretch')
 
                     with evo_col2:
                         st.subheader("Developmental Trajectory")
@@ -2699,7 +2699,7 @@ def main():
                         
                         fig = px.line(dev_traj_df, x="step", y=["total_params", "num_connections"], title="Simulated Developmental Trajectory")
                         fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width='stretch')
 
                 # --- TAB 4: Genealogy & Ancestry ---
                 with tab_ancestry:
@@ -2733,7 +2733,7 @@ def main():
                                 # Visualize parent
                                 st.plotly_chart(
                                     visualize_genotype_2d(parent),
-                                    use_container_width=True,
+                                    width='stretch',
                                     key=f"parent_2d_{parent.lineage_id}_for_{individual.lineage_id}"
                                 )
 
@@ -2778,7 +2778,7 @@ def main():
                 title='Final Population Distribution',
                 color_discrete_sequence=px.colors.qualitative.Set3
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         
         # Time series analysis
         st.markdown("---")
@@ -2796,7 +2796,7 @@ def main():
                 title='Network Size Evolution',
                 labels={'total_params': 'Mean Parameters', 'generation': 'Generation'}
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         
         with col2:
             # Complexity trajectory
@@ -2808,7 +2808,7 @@ def main():
                 title='Architectural Complexity Trajectory',
                 labels={'complexity': 'Complexity Score', 'generation': 'Generation'}
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         
         # Evolutionary metrics
         if st.session_state.evolutionary_metrics:
@@ -2839,7 +2839,7 @@ def main():
             fig.update_yaxes(title_text="I(θ)", row=1, col=2)
             fig.update_layout(height=400, showlegend=False)
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         st.markdown("---")
         st.header("Dynamic Concluding Remarks")
@@ -2919,12 +2919,12 @@ def main():
                 tab1, tab2 = st.tabs(["3D Interactive View", "2D Static View & Download"])
 
                 with tab1:
-                    st.plotly_chart(visualize_genotype_3d(master_architecture), use_container_width=True, key="master_3d")
+                    st.plotly_chart(visualize_genotype_3d(master_architecture), width='stretch', key="master_3d")
                 
                 with tab2:
                     st.info("This 2D layout is optimized for clarity of connections and module properties.")
                     fig_2d = visualize_genotype_2d(master_architecture)
-                    st.plotly_chart(fig_2d, use_container_width=True, key="master_2d")
+                    st.plotly_chart(fig_2d, width='stretch', key="master_2d")
                 
                 # --- New Analysis Sections ---
                 st.markdown("---")
@@ -2991,7 +2991,7 @@ def main():
                     fig = px.histogram(dist_df, x="Fitness Change", nbins=20, title="Distribution of Mutational Effects")
                     fig.add_vline(x=0, line_width=2, line_dash="dash", line_color="grey")
                     fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width='stretch')
 
                 with analysis_col4:
                     st.subheader("Genetic Load & Neutrality")
@@ -3016,7 +3016,7 @@ def main():
                     
                     fig = px.line(dev_traj_df, x="step", y=["total_params", "num_connections"], title="Simulated Developmental Trajectory")
                     fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width='stretch')
 
                 with analysis_col6:
                     st.subheader("Phylogenetic Signal (Pagel's λ)")
@@ -3035,7 +3035,7 @@ def main():
                         })
                         fig = px.scatter(phylo_df, x='Phylogenetic Distance', y='Phenotypic Distance', trendline="ols", title="Phylogenetic vs. Phenotypic Distance")
                         fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
-                        st.plotly_chart(fig, use_container_width=True)
+                        st.plotly_chart(fig, width='stretch')
                     else:
                         st.info("Not enough data for phylogenetic signal analysis.")
 
