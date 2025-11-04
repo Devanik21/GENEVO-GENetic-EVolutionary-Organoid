@@ -3389,12 +3389,12 @@ def main():
                 
                 fig_parallel = px.parallel_coordinates(
                     final_gen.sort_values('form'), # Sort to group colors
-                    color="form",
+                    color="form_id",
                     dimensions=['accuracy', 'efficiency', 'robustness', 'generalization', 'complexity'],
                     labels={
                         "accuracy": "Accuracy", "efficiency": "Efficiency",
                         "robustness": "Robustness", "generalization": "Generalization",
-                        "complexity": "Complexity", "form": "Form"
+                        "complexity": "Complexity", "form_id": "Form"
                     },
                     title="Multi-Objective Niche Occupation by Form"
                 )
