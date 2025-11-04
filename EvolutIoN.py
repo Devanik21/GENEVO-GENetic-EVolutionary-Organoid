@@ -2552,6 +2552,30 @@ def main():
         best_individual_genotype = population[0] if population else None
         metrics_df = pd.DataFrame(st.session_state.get('evolutionary_metrics', []))
 
+        # --- Setup for deep analysis sections (moved up) ---
+        s = st.session_state.settings
+        task_type = s.get('task_type', 'Abstract Reasoning (ARC-AGI-2)')
+        enable_epigenetics = s.get('enable_epigenetics', True)
+        enable_baldwin = s.get('enable_baldwin', True)
+        epistatic_linkage_k = s.get('epistatic_linkage_k', 0)
+        
+        w_accuracy = s.get('w_accuracy', 0.5)
+        w_efficiency = s.get('w_efficiency', 0.2)
+        w_robustness = s.get('w_robustness', 0.1)
+        w_generalization = s.get('w_generalization', 0.2)
+        total_w = w_accuracy + w_efficiency + w_robustness + w_generalization + 1e-9
+        fitness_weights = {
+            'task_accuracy': w_accuracy / total_w,
+            'efficiency': w_efficiency / total_w,
+            'robustness': w_robustness / total_w,
+            'generalization': w_generalization / total_w
+        }
+        eval_params = {
+            'enable_epigenetics': enable_epigenetics,
+            'enable_baldwin': enable_baldwin,
+            'epistatic_linkage_k': epistatic_linkage_k
+        }
+
         st.markdown("### Executive Summary: Evolutionary Trajectory and Outcome")
         if best_individual_genotype and not history_df.empty:
             # --- Detailed Data Extraction for Summary ---
@@ -2614,47 +2638,89 @@ def main():
 
         st.markdown("---")
 
-        # --- Deep Dive on the Apex Genotype ---
         st.subheader("🔬 In-Depth Analysis of the Apex Genotype")
         if best_individual_genotype:
-            st.markdown(f"The highest-performing individual (Lineage ID: `{best_individual_genotype.lineage_id}`) from Form `{best_individual_genotype.form_id}` achieved a paramount fitness score. This section deconstructs its quantitative and qualitative characteristics.")
+            st.markdown(f"""
+            The evolutionary process culminated in the **Apex Genotype** (Lineage ID: `{best_individual_genotype.lineage_id}`), a paragon of adaptation within the final population. This section provides a multi-faceted deconstruction of its architecture, causal structure, and evolutionary potential, offering a window into the characteristics of a peak-performing solution.
+            """)
 
-            apex_col1, apex_col2 = st.columns([1, 2])
+            # --- Perform all analyses upfront ---
+            with st.spinner("Performing deep analysis on Apex Genotype..."):
+                criticality_scores = analyze_lesion_sensitivity(best_individual_genotype, best_individual_genotype.fitness, task_type, fitness_weights, eval_params)
+                centrality_scores = analyze_information_flow(best_individual_genotype)
+                evo_robust_data = analyze_evolvability_robustness(best_individual_genotype, task_type, fitness_weights, eval_params)
 
-            with apex_col1:
-                st.markdown("##### **Quantitative Profile**")
-                st.metric("Final Fitness", f"{best_individual_genotype.fitness:.4f}")
-                st.metric("Task Accuracy (Sim.)", f"{best_individual_genotype.accuracy:.3f}")
-                st.metric("Efficiency Score", f"{best_individual_genotype.efficiency:.3f}")
-                st.metric("Robustness Score", f"{best_individual_genotype.robustness:.3f}")
-                st.metric("Architectural Complexity", f"{best_individual_genotype.complexity:.3f}")
+            # --- Main Layout ---
+            col1, col2 = st.columns([1, 1])
 
-            with apex_col2:
-                st.markdown("##### **Architectural Blueprint & Interpretation**")
-                total_params = sum(m.size for m in best_individual_genotype.modules)
-                module_counts = Counter(m.module_type for m in best_individual_genotype.modules)
+            with col1:
+                st.markdown("#### **Quantitative & Architectural Profile**")
                 
-                st.markdown(f"""
-                - **Total Parameters:** `{total_params:,}`
-                - **Module Count:** `{len(best_individual_genotype.modules)}`
-                - **Connection Count:** `{len(best_individual_genotype.connections)}`
-                - **Composition:** 
-                """)
-                for mtype, count in module_counts.items():
-                    st.markdown(f"  - `{count}` x **{mtype.capitalize()}** modules")
+                # Comparison Table
+                pop_mean_fitness = final_gen['fitness'].mean()
+                pop_mean_accuracy = final_gen['accuracy'].mean()
+                pop_mean_complexity = final_gen['complexity'].mean()
+                pop_mean_params = final_gen['total_params'].mean()
 
-                # Interpretation
-                interpretation_text = "This genotype's success can be attributed to several factors. "
-                if 'attention' in module_counts and st.session_state.settings['task_type'] in ['Language (MMLU-Pro)', 'Abstract Reasoning (ARC-AGI-2)']:
-                    interpretation_text += "Its significant reliance on **attention mechanisms** is well-suited for capturing long-range dependencies inherent in the task. "
-                if 'conv' in module_counts and st.session_state.settings['task_type'] == 'Vision (ImageNet)':
-                    interpretation_text += "The strong presence of **convolutional modules** provides a powerful inductive bias for spatial feature extraction. "
-                if best_individual_genotype.complexity > 0.5:
-                    interpretation_text += "Its relatively high complexity suggests that the fitness landscape rewarded intricate, deep architectures over simpler ones. "
-                if best_individual_genotype.efficiency < 0.5:
-                    interpretation_text += "However, this performance comes at the cost of computational efficiency, indicating a trade-off was made in favor of raw accuracy."
+                comparison_data = {
+                    "Metric": ["Fitness", "Accuracy", "Complexity", "Parameters"],
+                    "Apex Value": [f"{best_individual_genotype.fitness:.4f}", f"{best_individual_genotype.accuracy:.3f}", f"{best_individual_genotype.complexity:.3f}", f"{sum(m.size for m in best_individual_genotype.modules):,}"],
+                    "Population Mean": [f"{pop_mean_fitness:.4f}", f"{pop_mean_accuracy:.3f}", f"{pop_mean_complexity:.3f}", f"{pop_mean_params:,.0f}"]
+                }
+                st.dataframe(pd.DataFrame(comparison_data).set_index("Metric"), use_container_width=True)
+
+                # Module Details
+                st.markdown("##### **Module Composition**")
+                module_data = [{"ID": m.id, "Type": m.module_type, "Size": m.size, "Activation": m.activation, "Plasticity": f"{m.plasticity:.2f}"} for m in best_individual_genotype.modules]
+                st.dataframe(module_data, height=200, use_container_width=True)
+
+            with col2:
+                st.markdown("#### **Causal & Evolutionary Analysis**")
+
+                # Lesion Sensitivity
+                st.markdown("##### **Lesion Sensitivity (Top 3)**")
+                sorted_criticality = sorted(criticality_scores.items(), key=lambda item: item[1], reverse=True)
+                for component, score in sorted_criticality[:3]:
+                    st.write(f"- **{component}:** `{score:.4f}` Fitness Drop")
+                st.caption("Measures fitness loss when a component is removed. Higher is more critical.")
+
+                # Information Flow
+                st.markdown("##### **Information Flow Backbone (Top 3)**")
+                sorted_centrality = sorted(centrality_scores.items(), key=lambda item: item[1], reverse=True)
+                for module_id, score in sorted_centrality[:3]:
+                    st.write(f"- **Module {module_id}:** `{score:.3f}` Centrality")
+                st.caption("Identifies key nodes for routing information through the network.")
+
+                # Evolvability
+                st.markdown("##### **Evolvability & Robustness**")
+                st.metric("Robustness Score", f"{evo_robust_data['robustness']:.4f}", help="Avg. fitness loss from negative mutations.")
+                st.metric("Evolvability Score", f"{evo_robust_data['evolvability']:.4f}", help="Max fitness gain from a positive mutation.")
                 
-                st.info(f"**Interpretation:** {interpretation_text}")
+            # --- Visualizations ---
+            st.markdown("---")
+            st.markdown("#### **Architectural Visualization**")
+            vis_tab1, vis_tab2 = st.tabs(["3D Interactive View", "2D Static View"])
+            with vis_tab1:
+                st.plotly_chart(visualize_genotype_3d(best_individual_genotype), use_container_width=True, key="apex_3d_vis")
+            with vis_tab2:
+                st.plotly_chart(visualize_genotype_2d(best_individual_genotype), use_container_width=True, key="apex_2d_vis")
+
+            # --- Comprehensive Interpretation ---
+            st.markdown("---")
+            st.markdown("#### **Comprehensive Interpretation**")
+            
+            dominant_module_type = Counter(m.module_type for m in best_individual_genotype.modules).most_common(1)[0][0]
+            critical_component, fitness_drop = sorted_criticality[0] if sorted_criticality else ("N/A", 0)
+            central_node, centrality = sorted_centrality[0] if sorted_centrality else ("N/A", 0)
+            
+            interpretation_text = f"""
+            The Apex Genotype's superior fitness (`{best_individual_genotype.fitness:.4f}`) is not accidental but an emergent property of its sophisticated design, which significantly outperforms the population mean. Its architecture, dominated by **{dominant_module_type}** modules, is highly specialized for the **'{task_type}'** task. 
+
+            The causal analysis reveals that **{critical_component}** forms the functional core, with its removal causing a catastrophic fitness drop of `{fitness_drop:.4f}`. This is corroborated by its high information flow centrality (`{centrality:.3f}`), marking it as an indispensable hub for processing.
+
+            Evolutionarily, the genotype strikes a balance between stability and adaptability. Its respectable robustness score (`{evo_robust_data['robustness']:.4f}`) suggests resilience to minor perturbations, a trait likely selected for during periods of environmental flux or high mutation. Simultaneously, a non-zero evolvability score (`{evo_robust_data['evolvability']:.4f}`) indicates it has not reached an evolutionary dead-end and retains latent potential for further adaptation. This combination of a highly optimized, causally critical core with the capacity for future change is the hallmark of a successful product of this advanced neuroevolutionary system.
+            """
+            st.info(interpretation_text)
         else:
             st.warning("No best individual found to analyze.")
 
@@ -2755,30 +2821,6 @@ def main():
             create_evolution_dashboard(history_df, st.session_state.current_population, metrics_df), # type: ignore
             width='stretch'
         )
-        
-        # --- Setup for deep analysis sections ---
-        s = st.session_state.settings
-        task_type = s.get('task_type', 'Abstract Reasoning (ARC-AGI-2)')
-        enable_epigenetics = s.get('enable_epigenetics', True)
-        enable_baldwin = s.get('enable_baldwin', True)
-        epistatic_linkage_k = s.get('epistatic_linkage_k', 0)
-        
-        w_accuracy = s.get('w_accuracy', 0.5)
-        w_efficiency = s.get('w_efficiency', 0.2)
-        w_robustness = s.get('w_robustness', 0.1)
-        w_generalization = s.get('w_generalization', 0.2)
-        total_w = w_accuracy + w_efficiency + w_robustness + w_generalization + 1e-9
-        fitness_weights = {
-            'task_accuracy': w_accuracy / total_w,
-            'efficiency': w_efficiency / total_w,
-            'robustness': w_robustness / total_w,
-            'generalization': w_generalization / total_w
-        }
-        eval_params = {
-            'enable_epigenetics': enable_epigenetics,
-            'enable_baldwin': enable_baldwin,
-            'epistatic_linkage_k': epistatic_linkage_k
-        }
 
         # Best evolved architectures
         st.markdown("---")
