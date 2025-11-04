@@ -1252,16 +1252,28 @@ class EvolvedArchitecture(tf.keras.Model):
 # ==================== VISUALIZATION ====================
 
 def visualize_fitness_landscape(history_df: pd.DataFrame):
-    """Renders a 3D fitness landscape with the population's evolutionary trajectory."""
-    st.markdown("### Fitness Landscape and Evolutionary Trajectory")
+    """Renders a highly comprehensive 3D fitness landscape with multiple evolutionary trajectories and analyses."""
+    st.markdown("### The Fitness Landscape: A Multi-Dimensional View of the Evolutionary Search")
     st.markdown("""
-    This visualization models the fitness landscape explored by the algorithm. The surface represents the fitness (Z-axis) as a function of two key architectural traits: total parameters (log scale) and architectural complexity. The colored line shows the trajectory of the population's mean genotype over generations, illustrating how the population navigates this complex search space.
+    This visualization provides a deep, multi-faceted view into the evolutionary process, modeling the fitness landscape and the population's journey across it. It is composed of several key elements:
+
+    - **The Fitness Surface (Z-axis):** This semi-transparent surface represents the *estimated* fitness landscape, where height (Z-axis) corresponds to the mean fitness of genotypes found within a given region of the search space. The axes of this space are two fundamental phenotypic traits: **Total Parameters** (a measure of size, on a log scale) and **Architectural Complexity** (a structural measure). A rugged, mountainous surface indicates a complex problem with many local optima, while a smooth hill suggests a simpler optimization task.
+
+    - **Population Mean Trajectory (Thick Line):** This line tracks the average genotype of the entire population over generations. Its path reveals the central tendency of the evolutionary search. A steady climb indicates consistent progress, while wandering or stagnation points to challenges in finding better solutions.
+
+    - **Apex Trajectory (Bright Line):** This line follows the path of the *fittest individual* from each generation. It represents the "leading edge" of evolution, showing the breakthroughs and discoveries made by the most successful lineages. The divergence between the Mean and Apex trajectories highlights the difference between the population average and the high-performing outliers that drive progress.
+
+    - **Final Population Scatter (Points):** The individual points represent every member of the final generation, positioned according to their traits and colored by their fitness. This scatter plot reveals the final state of the population:
+        - A tight cluster indicates **convergent evolution**, where the population has honed in on a specific optimal design.
+        - A widely dispersed cloud suggests **divergent evolution**, with multiple, distinct solutions coexisting on a Pareto frontier.
+
+    - **Trajectory Projections:** The shadows on the "walls" of the plot show the 2D projection of the trajectories, helping to isolate the movement along each pair of axes.
     """)
 
     # Use a subset for performance if history is large, ensuring we have data
     sample_size = min(len(history_df), 20000)
-    if sample_size < 10:
-        st.warning("Not enough data to render fitness landscape.")
+    if sample_size < 20: # Increased threshold for better surface
+        st.warning("Not enough data to render a detailed fitness landscape.")
         return
     df_sample = history_df.sample(n=sample_size, random_state=42)
     
@@ -1269,9 +1281,15 @@ def visualize_fitness_landscape(history_df: pd.DataFrame):
     y_param = 'complexity'
     z_param = 'fitness'
 
+    # --- 1. Create the Fitness Surface ---
     # Create grid for the surface
-    x_bins = np.logspace(np.log10(max(1, df_sample[x_param].min())), np.log10(max(10, df_sample[x_param].max())), 25)
-    y_bins = np.linspace(df_sample[y_param].min(), df_sample[y_param].max(), 25)
+    x_min_val = df_sample[x_param].min()
+    x_max_val = df_sample[x_param].max()
+    if x_min_val <= 0: x_min_val = 1
+    if x_max_val <= x_min_val: x_max_val = x_min_val * 10
+
+    x_bins = np.logspace(np.log10(x_min_val), np.log10(x_max_val), 30)
+    y_bins = np.linspace(df_sample[y_param].min(), df_sample[y_param].max(), 30)
 
     # Bin data and calculate mean fitness for each grid cell
     df_sample['x_bin'] = pd.cut(df_sample[x_param], bins=x_bins, labels=False, include_lowest=True)
@@ -1288,41 +1306,98 @@ def visualize_fitness_landscape(history_df: pd.DataFrame):
         y=y_coords, 
         z=z_surface,
         colorscale='cividis',
-        opacity=0.7,
-        colorbar=dict(title='Mean Fitness'),
-        name='Fitness Landscape',
-        hoverinfo='x+y+z'
+        opacity=0.6,
+        colorbar=dict(title='Mean Fitness', x=1.0, len=0.7),
+        name='Estimated Fitness Landscape',
+        hoverinfo='x+y+z',
+        contours=dict(
+            z=dict(show=True, usecolormap=True, highlightcolor="limegreen", project_z=True)
+        )
     )
 
-    # Calculate the evolutionary trajectory (path of the population mean)
-    trajectory = history_df.groupby('generation').agg({
+    # --- 2. Calculate Evolutionary Trajectories ---
+    # Mean trajectory
+    mean_trajectory = history_df.groupby('generation').agg({
         x_param: 'mean',
         y_param: 'mean',
         z_param: 'mean'
     }).reset_index()
 
-    trajectory_trace = go.Scatter3d(
-        x=np.log10(trajectory[x_param]),
-        y=trajectory[y_param],
-        z=trajectory[z_param],
-        mode='lines+markers',
-        line=dict(color=trajectory['generation'], colorscale='plasma', width=10),
-        marker=dict(size=5, color=trajectory['generation'], colorscale='plasma', showscale=True, colorbar=dict(title='Generation', x=1.15)),
+    # Best-of-generation (Apex) trajectory
+    apex_trajectory = history_df.loc[history_df.groupby('generation')['fitness'].idxmax()]
+
+    # --- 3. Create Trajectory Traces ---
+    mean_trajectory_trace = go.Scatter3d(
+        x=np.log10(mean_trajectory[x_param]),
+        y=mean_trajectory[y_param],
+        z=mean_trajectory[z_param],
+        mode='lines',
+        line=dict(color='rgba(255, 0, 0, 0.8)', width=10),
         name='Population Mean Trajectory',
-        hovertext=[f"Gen: {g}<br>Fitness: {f:.3f}" for g, f in zip(trajectory['generation'], trajectory[z_param])]
+        hovertext=[f"Gen: {g}<br>Mean Fitness: {f:.3f}" for g, f in zip(mean_trajectory['generation'], mean_trajectory[z_param])],
+        hoverinfo='text+name',
+        projection=dict(x=dict(show=True), y=dict(show=True), z=dict(show=True))
     )
 
-    fig = go.Figure(data=[surface_trace, trajectory_trace])
+    apex_trajectory_trace = go.Scatter3d(
+        x=np.log10(apex_trajectory[x_param]),
+        y=apex_trajectory[y_param],
+        z=apex_trajectory[z_param],
+        mode='lines+markers',
+        line=dict(color='cyan', width=5, dash='dot'),
+        marker=dict(size=4, color='cyan'),
+        name='Apex (Best) Trajectory',
+        hovertext=[f"Gen: {g}<br>Best Fitness: {f:.3f}" for g, f in zip(apex_trajectory['generation'], apex_trajectory[z_param])],
+        hoverinfo='text+name',
+        projection=dict(x=dict(show=True), y=dict(show=True), z=dict(show=True))
+    )
+
+    # --- 4. Create Final Population Scatter ---
+    final_gen_df = history_df[history_df['generation'] == history_df['generation'].max()]
+    
+    final_pop_trace = go.Scatter3d(
+        x=np.log10(final_gen_df[x_param].clip(lower=1)),
+        y=final_gen_df[y_param],
+        z=final_gen_df[z_param],
+        mode='markers',
+        marker=dict(
+            size=final_gen_df['accuracy'] * 10 + 2,
+            color=final_gen_df['fitness'],
+            colorscale='Viridis',
+            colorbar=dict(title='Final Fitness', x=1.15, len=0.7),
+            showscale=True,
+            sizemin=4,
+            sizemode='diameter'
+        ),
+        name='Final Population',
+        hovertext=[
+            f"Fitness: {f:.3f}<br>Accuracy: {a:.3f}<br>Params: {p:,.0f}<br>Form: {form}"
+            for f, a, p, form in zip(final_gen_df['fitness'], final_gen_df['accuracy'], final_gen_df['total_params'], final_gen_df['form'])
+        ],
+        hoverinfo='text+name'
+    )
+
+    # --- 5. Assemble Figure and Update Layout ---
+    fig = go.Figure(data=[surface_trace, mean_trajectory_trace, apex_trajectory_trace, final_pop_trace])
+    
     fig.update_layout(
-        title='<b>3D Fitness Landscape with Population Trajectory</b>',
+        title='<b>3D Fitness Landscape with Multi-Trajectory Analysis</b>',
         scene=dict(
             xaxis_title='Log(Total Parameters)',
             yaxis_title='Architectural Complexity',
             zaxis_title='Fitness',
-            camera=dict(eye=dict(x=-1.8, y=-1.8, z=1.5))
+            camera=dict(eye=dict(x=-1.9, y=-1.9, z=1.6)),
+            aspectmode='cube' # Makes the plot a cube for better perspective
         ),
-        height=700,
-        margin=dict(l=0, r=0, b=0, t=40)
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        height=800,
+        margin=dict(l=0, r=0, b=0, t=60)
     )
     st.plotly_chart(fig, width='stretch', key="fitness_landscape_3d")
 
