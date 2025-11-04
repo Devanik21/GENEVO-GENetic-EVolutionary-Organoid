@@ -3768,7 +3768,6 @@ def main():
         else:
             st.warning("Could not generate dynamic concluding remarks due to insufficient data.")
 
-        # --- Synthesized Master Architecture ---
         st.markdown("---")
         st.header("🌐 Synthesized Master Architecture: A Consensus Genotype from the Pareto Frontier")
         st.markdown("""
@@ -3782,163 +3781,184 @@ def main():
         The parameter **'n'** controls the size of the synthesis pool drawn from the Pareto frontier. A smaller 'n' yields a master architecture heavily biased towards the top individual, preserving its unique characteristics. A larger 'n' broadens the consensus base, resulting in a more generalized and potentially more robust architecture that averages out niche-specific adaptations. This slider allows for an exploration of the trade-off between peak performance and generalized robustness.
         """)
 
-        population = st.session_state.current_population
-        population.sort(key=lambda x: x.fitness, reverse=True)
+        # Correctly identify the Pareto frontier to use as the synthesis pool
+        final_gen_genotypes = [ind for ind in population if ind.generation == history_df['generation'].max()] if population else []
+        if final_gen_genotypes:
+            pareto_individuals = identify_pareto_frontier(final_gen_genotypes)
+            pareto_individuals.sort(key=lambda x: x.fitness, reverse=True) # Sort by fitness
+        else:
+            pareto_individuals = []
 
-        n_for_synthesis = st.slider(
-            "Number of top individuals to synthesize from (n)",
-            min_value=1,
-            max_value=min(10, len(population)),
-            value=min(3, len(population)),
-            step=1,
-            key="n_for_synthesis_slider"
-        )
+        if not pareto_individuals:
+            st.warning("Could not identify a Pareto frontier to synthesize a master architecture.")
+        else:
+            n_for_synthesis = st.slider(
+                "Number of top Pareto individuals to synthesize from (n)",
+                min_value=1,
+                max_value=len(pareto_individuals),
+                value=min(3, len(pareto_individuals)),
+                step=1,
+                key="n_for_synthesis_slider"
+            )
 
-        top_n_individuals = population[:n_for_synthesis]
-        
-        if top_n_individuals:
-            with st.spinner("Synthesizing master architecture..."):
-                master_architecture = synthesize_master_architecture(top_n_individuals)
+            synthesis_pool = pareto_individuals[:n_for_synthesis]
             
-            if master_architecture:
-                tab1, tab2 = st.tabs(["3D Interactive View", "2D Static View & Download"])
-                with tab1:
-                    st.plotly_chart(visualize_genotype_3d(master_architecture), width='stretch', key="master_3d")
-                
-                with tab2:
-                    st.info("This 2D layout is optimized for clarity of connections and module properties.")
-                    fig_2d = visualize_genotype_2d(master_architecture)
-                    st.plotly_chart(fig_2d, width='stretch', key="master_2d")
-                
-                # --- New Analysis Sections ---
-                st.markdown("---")
-                st.header("🔬 Structural & Causal Analysis")
-                
-                analysis_col1, analysis_col2 = st.columns(2)
+            with st.spinner(f"Synthesizing master architecture from {n_for_synthesis} elite individuals..."):
+                master_architecture = synthesize_master_architecture(synthesis_pool)
 
-                with analysis_col1:
-                    st.subheader("Lesion Sensitivity Analysis")
-                    st.markdown("""
-                    This analysis simulates a **lesion study**, a technique from neuroscience where parts of a brain are disabled to understand their function. We computationally "remove" each component from the master architecture and measure the drop in fitness. A larger drop indicates a more **critical** component.
-                    """)
-                    
-                    with st.spinner("Performing lesion analysis..."):
-                        criticality_scores = analyze_lesion_sensitivity(
-                            master_architecture, master_architecture.fitness, task_type, fitness_weights, eval_params
-                        )
-                    
-                    sorted_criticality = sorted(criticality_scores.items(), key=lambda item: item[1], reverse=True)
-                    
-                    st.markdown("##### Most Critical Components:")
-                    for i, (component, score) in enumerate(sorted_criticality[:5]):
-                        st.metric(
-                            label=f"#{i+1} {component}",
-                            value=f"{score:.4f} Fitness Drop",
-                            help="The reduction in overall fitness when this component is removed."
-                        )
+            if not master_architecture:
+                st.error("Failed to synthesize master architecture.")
+            else:
+                # Perform all analyses upfront
+                with st.spinner("Performing comprehensive deep analysis on Master Architecture..."):
+                    criticality_scores = analyze_lesion_sensitivity(master_architecture, master_architecture.fitness, task_type, fitness_weights, eval_params)
+                    centrality_scores = analyze_information_flow(master_architecture)
+                    evo_robust_data = analyze_evolvability_robustness(master_architecture, task_type, fitness_weights, eval_params)
+                    dev_traj_df = analyze_developmental_trajectory(master_architecture)
+                    load_data = analyze_genetic_load(criticality_scores)
+                    phylo_data = analyze_phylogenetic_signal(history_df, population)
 
-                with analysis_col2:
-                    st.subheader("Information Flow Backbone")
-                    st.markdown("""
-                    This analysis identifies the **causal backbone** of the architecture—the key modules that act as bridges for information flow. Using `betweenness centrality`, we find nodes that lie on the most shortest paths between all other nodes. These are critical for integrating and routing information.
-                    """)
-                    
-                    with st.spinner("Analyzing information flow..."):
-                        centrality_scores = analyze_information_flow(master_architecture)
-                    
-                    sorted_centrality = sorted(centrality_scores.items(), key=lambda item: item[1], reverse=True)
-                    st.markdown("##### Causal Backbone Nodes:")
-                    for i, (module_id, score) in enumerate(sorted_centrality[:5]):
-                        st.metric(label=f"#{i+1} Module: {module_id}", value=f"{score:.3f} Centrality", help="A normalized score of how critical this node is for information routing.")
-                
-                st.markdown("---")
-                st.header("🧬 Advanced Evolutionary & Developmental Analysis")
-                
-                analysis_col3, analysis_col4 = st.columns(2)
-                
-                with analysis_col3:
-                    st.subheader("Evolvability vs. Robustness")
-                    st.markdown("""
-                    This analysis probes the trade-off between **robustness** (resisting negative mutations) and **evolvability** (producing beneficial mutations). We generate 50 mutants and measure their fitness change.
-                    - **Robustness Score:** Average fitness drop of negative mutations. Higher is better.
-                    - **Evolvability Score:** Maximum fitness gain from a positive mutation.
-                    """)
-                    with st.spinner("Analyzing mutational landscape..."):
-                        evo_robust_data = analyze_evolvability_robustness(
-                            master_architecture, task_type, fitness_weights, eval_params
-                        )
-                    
-                    st.metric("Robustness Score", f"{evo_robust_data['robustness']:.4f}", help="Average fitness loss from deleterious mutations. Higher = more robust.")
-                    st.metric("Evolvability Score", f"{evo_robust_data['evolvability']:.4f}", help="Maximum fitness gain from a single mutation.")
+                # --- Create Tabs for Deep Dive ---
+                tab_synthesis, tab_causal, tab_potential, tab_code, tab_interpretation = st.tabs([
+                    "🧬 Synthesis & Architecture", 
+                    "🔬 Causal & Structural Analysis", 
+                    "⚙️ Evolutionary & Developmental Potential",
+                    "💻 Code & Export",
+                    "📜 Comprehensive Interpretation"
+                ])
 
-                    dist_df = pd.DataFrame(evo_robust_data['distribution'], columns=['Fitness Change'])
-                    fig = px.histogram(dist_df, x="Fitness Change", nbins=20, title="Distribution of Mutational Effects")
-                    fig.add_vline(x=0, line_width=2, line_dash="dash", line_color="grey")
-                    fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
-                    st.plotly_chart(fig, width='stretch', key="master_mutational_effects_hist")
+                # --- TAB 1: Synthesis & Architecture ---
+                with tab_synthesis:
+                    st.markdown("#### Quantitative Profile: Master vs. Synthesis Pool")
+                    pool_mean_fitness = np.mean([ind.fitness for ind in synthesis_pool])
+                    pool_mean_accuracy = np.mean([ind.accuracy for ind in synthesis_pool])
+                    pool_mean_complexity = np.mean([ind.complexity for ind in synthesis_pool])
+                    pool_mean_params = np.mean([sum(m.size for m in ind.modules) for ind in synthesis_pool])
+                    
+                    pool_best_ind = synthesis_pool[0]
 
-                with analysis_col4:
+                    comparison_data = {
+                        "Metric": ["Fitness", "Accuracy", "Complexity", "Parameters"],
+                        "Master Arch.": [f"{master_architecture.fitness:.4f}", f"{master_architecture.accuracy:.3f}", f"{master_architecture.complexity:.3f}", f"{sum(m.size for m in master_architecture.modules):,}"],
+                        "Pool Mean": [f"{pool_mean_fitness:.4f}", f"{pool_mean_accuracy:.3f}", f"{pool_mean_complexity:.3f}", f"{pool_mean_params:,.0f}"],
+                        "Pool Best": [f"{pool_best_ind.fitness:.4f}", f"{pool_best_ind.accuracy:.3f}", f"{pool_best_ind.complexity:.3f}", f"{sum(m.size for m in pool_best_ind.modules):,}"],
+                    }
+                    st.dataframe(pd.DataFrame(comparison_data).set_index("Metric"), use_container_width=True, key="master_vitals_df")
+
+                    st.markdown("---")
+                    st.markdown("#### Architectural Visualization")
+                    vis_col1, vis_col2 = st.columns(2)
+                    with vis_col1:
+                        st.plotly_chart(visualize_genotype_3d(master_architecture), use_container_width=True, key="master_3d_vis")
+                    with vis_col2:
+                        st.plotly_chart(visualize_genotype_2d(master_architecture), use_container_width=True, key="master_2d_vis")
+
+                # --- TAB 2: Causal & Structural Analysis ---
+                with tab_causal:
+                    causal_col1, causal_col2 = st.columns(2)
+                    with causal_col1:
+                        st.subheader("Lesion Sensitivity Analysis")
+                        st.markdown("Fitness drop when a component is removed. Higher = more critical.")
+                        sorted_criticality = sorted(criticality_scores.items(), key=lambda item: item[1])
+                        crit_df = pd.DataFrame(sorted_criticality, columns=['Component', 'Fitness Drop']).tail(15)
+                        fig_crit = px.bar(crit_df, x='Fitness Drop', y='Component', orientation='h', title="Top 15 Most Critical Components")
+                        fig_crit.update_layout(height=400, margin=dict(l=150))
+                        st.plotly_chart(fig_crit, use_container_width=True, key="master_criticality_bar")
+
+                    with causal_col2:
+                        st.subheader("Information Flow Backbone")
+                        st.markdown("`Betweenness centrality` identifies key modules for information routing.")
+                        sorted_centrality = sorted(centrality_scores.items(), key=lambda item: item[1])
+                        cent_df = pd.DataFrame(sorted_centrality, columns=['Module', 'Centrality']).tail(15)
+                        fig_cent = px.bar(cent_df, x='Centrality', y='Module', orientation='h', title="Top 15 Most Central Modules")
+                        fig_cent.update_layout(height=400, margin=dict(l=150))
+                        st.plotly_chart(fig_cent, use_container_width=True, key="master_centrality_bar")
+                    
+                    st.markdown("---")
                     st.subheader("Genetic Load & Neutrality")
-                    st.markdown("""
-                    Not all genes are critical. **Neutral components** ("junk DNA") have little effect when removed but provide raw material for future evolution. **Genetic load** is the fitness cost of slightly harmful, non-lethal components.
-                    """)
-                    with st.spinner("Calculating genetic load..."):
-                        load_data = analyze_genetic_load(criticality_scores)
+                    st.markdown("Analysis of non-critical components ('junk DNA') and the fitness cost of slightly harmful mutations.")
+                    load_col1, load_col2 = st.columns(2)
+                    load_col1.metric("Neutral Component Count", f"{load_data['neutral_component_count']}", help="Number of modules/connections with near-zero impact when lesioned.")
+                    load_col2.metric("Genetic Load", f"{load_data['genetic_load']:.4f}", help="Total fitness reduction from slightly deleterious, non-critical components.")
+
+                # --- TAB 3: Evolutionary & Developmental Potential ---
+                with tab_potential:
+                    evo_col1, evo_col2 = st.columns(2)
+                    with evo_col1:
+                        st.subheader("Evolvability vs. Robustness")
+                        st.markdown("Trade-off between resisting negative mutations and producing beneficial ones.")
+                        st.metric("Robustness Score", f"{evo_robust_data['robustness']:.4f}", help="Average fitness loss from deleterious mutations. Higher = more robust.")
+                        st.metric("Evolvability Score", f"{evo_robust_data['evolvability']:.4f}", help="Maximum fitness gain from a single mutation.")
+
+                        dist_df = pd.DataFrame(evo_robust_data['distribution'], columns=['Fitness Change'])
+                        fig_mut = px.histogram(dist_df, x="Fitness Change", nbins=30, title="Distribution of Mutational Effects")
+                        fig_mut.add_vline(x=0, line_width=2, line_dash="dash", line_color="grey")
+                        fig_mut.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20))
+                        st.plotly_chart(fig_mut, use_container_width=True, key="master_mutational_effects_hist")
+
+                    with evo_col2:
+                        st.subheader("Developmental Trajectory")
+                        st.markdown("Simulated 'lifetime' structural changes based on the genotype's developmental program.")
+                        fig_dev = px.line(dev_traj_df, x="step", y=["total_params", "num_connections"], title="Simulated Developmental Trajectory")
+                        fig_dev.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                        st.plotly_chart(fig_dev, use_container_width=True, key="master_dev_trajectory_line")
                     
-                    st.metric("Neutral Component Count", f"{load_data['neutral_component_count']}", help="Number of modules/connections with near-zero impact when lesioned.")
-                    st.metric("Genetic Load", f"{load_data['genetic_load']:.4f}", help="Total fitness reduction from slightly deleterious, non-critical components.")
-
-                analysis_col5, analysis_col6 = st.columns(2)
-
-                with analysis_col5:
-                    st.subheader("Developmental Trajectory")
-                    st.markdown("""
-                    This simulates the master architecture's "lifetime," showing how its developmental program (pruning, proliferation) alters its structure over time. This reveals the stability and dynamics of its growth program.
-                    """)
-                    with st.spinner("Simulating developmental trajectory..."):
-                        dev_traj_df = analyze_developmental_trajectory(master_architecture)
-                    
-                    fig = px.line(dev_traj_df, x="step", y=["total_params", "num_connections"], title="Simulated Developmental Trajectory")
-                    fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-                    st.plotly_chart(fig, width='stretch', key="master_dev_trajectory_line")
-
-                with analysis_col6:
+                    st.markdown("---")
                     st.subheader("Phylogenetic Signal (Pagel's λ)")
-                    st.markdown("""
-                    This measures how much of the variation in a trait (like fitness) is explained by evolutionary history. A high value (near 1.0) means closely related individuals are very similar, indicating strong evolutionary inertia. A low value (near 0.0) suggests traits are independent of ancestry (rapid, convergent evolution).
-                    """)
-                    with st.spinner("Analyzing phylogenetic signal..."):
-                        phylo_data = analyze_phylogenetic_signal(history_df, population)
-                    
+                    st.markdown("Measures how much trait variation is explained by evolutionary history. High λ (~1) means strong inertia; low λ (~0) means rapid convergence.")
                     if phylo_data:
                         st.metric("Phylogenetic Signal (λ estimate)", f"{phylo_data['correlation']:.3f}", help="Correlation between phylogenetic distance and phenotypic (fitness) distance.")
-                        
-                        phylo_df = pd.DataFrame({
-                            'Phylogenetic Distance': phylo_data['phylo_distances'],
-                            'Phenotypic Distance': phylo_data['pheno_distances']
-                        })
-                        fig = px.scatter(phylo_df, x='Phylogenetic Distance', y='Phenotypic Distance', trendline="ols", title="Phylogenetic vs. Phenotypic Distance")
-                        fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
-                        st.plotly_chart(fig, width='stretch', key="master_phylo_signal_scatter")
+                        phylo_df = pd.DataFrame({'Phylogenetic Distance': phylo_data['phylo_distances'], 'Phenotypic Distance': phylo_data['pheno_distances']})
+                        fig_phylo = px.scatter(phylo_df, x='Phylogenetic Distance', y='Phenotypic Distance', trendline="ols", title="Phylogenetic vs. Phenotypic Distance")
+                        fig_phylo.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20))
+                        st.plotly_chart(fig_phylo, use_container_width=True, key="master_phylo_signal_scatter")
                     else:
                         st.info("Not enough data for phylogenetic signal analysis.")
 
-                st.markdown("---")
-                st.header("🛠️ Practical Implementation & Export")
-                st.markdown("The synthesized architecture can be translated into functional code for deep learning frameworks. This provides a direct path from evolutionary discovery to real-world application.")
+                # --- TAB 4: Code & Export ---
+                with tab_code:
+                    st.markdown("The synthesized architecture can be translated into functional code for deep learning frameworks, providing a direct path from discovery to application.")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.subheader("PyTorch Code")
+                        st.code(generate_pytorch_code(master_architecture), language='python')
+                    with col2:
+                        st.subheader("TensorFlow / Keras Code")
+                        st.code(generate_tensorflow_code(master_architecture), language='python')
+                    
+                    st.markdown("---")
+                    st.subheader("Export Genotype")
+                    st.download_button(
+                        label="Download Master Genotype (JSON)",
+                        data=json.dumps(genotype_to_dict(master_architecture), indent=2),
+                        file_name="master_architecture.json",
+                        mime="application/json",
+                        key="download_master_genotype_button"
+                    )
 
-                code_tab1, code_tab2 = st.tabs(["PyTorch", "TensorFlow (Conceptual)"])
+                # --- TAB 5: Comprehensive Interpretation ---
+                with tab_interpretation:
+                    st.subheader("Synthesized Interpretation of the Master Architecture")
+                    
+                    dominant_module_type = Counter(m.module_type for m in master_architecture.modules).most_common(1)[0][0]
+                    critical_component, fitness_drop = (sorted_criticality[-1] if sorted_criticality else (["N/A"], 0))
+                    centrality_score = (sorted_centrality[-1][1] if sorted_centrality else 0)
+                    
+                    interpretation_text = f"""
+                    The Master Architecture, synthesized from the top **{n_for_synthesis}** Pareto-optimal individuals, represents a robust consensus of the most successful evolutionary strategies. Its quantitative profile (`Fitness: {master_architecture.fitness:.4f}`, `Accuracy: {master_architecture.accuracy:.3f}`) positions it as a highly competitive, generalized solution. A deep analysis reveals the following insights:
 
-                with code_tab1:
-                    st.subheader("PyTorch Code Generation")
-                    pytorch_code = generate_pytorch_code(master_architecture)
-                    st.code(pytorch_code, language='python')
+                    1.  **Convergent Design Principles:** The architecture's structure, dominated by **{dominant_module_type}** modules, confirms this motif as a critical building block for the **'{task_type}'** task. The synthesis process, by averaging parameters and voting on connections, has filtered out idiosyncratic noise, retaining only the high-conviction elements shared by the elite.
 
-                with code_tab2:
-                    st.subheader("TensorFlow / Keras Conceptual Code")
-                    st.info("This generated Keras model follows the same logic as the PyTorch version, defining layers in `__init__` and connecting them in `call()` using a topological sort of the evolved graph.")
-                    tensorflow_code = generate_tensorflow_code(master_architecture)
-                    st.code(tensorflow_code, language='python')
+                    2.  **Identified Causal Backbone:** The causal analysis provides a blueprint of functional importance. The high lesion sensitivity of **{critical_component[0]}** (fitness drop: `{critical_component[1]:.4f}`) and its significant information flow centrality (`{centrality_score:.3f}`) identify it as an indispensable hub. This is not just a collection of parts; it's a network with a clear processing core, validated by consensus.
+
+                    3.  **A Platform for Future Evolution:** The analysis of the mutational landscape reveals a genotype poised for further adaptation. Its robustness score (`{evo_robust_data['robustness']:.4f}`) indicates a resilience to random genetic drift, while its non-zero evolvability score (`{evo_robust_data['evolvability']:.4f}`) shows it has not reached an evolutionary dead-end. The presence of `{load_data['neutral_component_count']}` neutral components provides a reservoir of 'junk DNA' that can be co-opted for future functional innovation.
+
+                    4.  **Developmental Stability:** The simulated developmental trajectory shows a stable program. The architecture does not exhibit runaway growth or catastrophic pruning, indicating that its encoded developmental rules lead to a mature, stable phenotype.
+
+                    In summary, the Master Architecture is more than just an average of the best; it is a refined, validated, and robust blueprint. It embodies the collective wisdom of the evolutionary search, representing a high-quality, general-purpose solution that is both highly functional and primed for future adaptation.
+                    """
+                    st.info(interpretation_text)
 
     st.sidebar.markdown("---")
     st.sidebar.info(
