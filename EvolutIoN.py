@@ -2644,81 +2644,158 @@ def main():
             The evolutionary process culminated in the **Apex Genotype** (Lineage ID: `{best_individual_genotype.lineage_id}`), a paragon of adaptation within the final population. This section provides a multi-faceted deconstruction of its architecture, causal structure, and evolutionary potential, offering a window into the characteristics of a peak-performing solution.
             """)
 
-            # --- Perform all analyses upfront ---
-            with st.spinner("Performing deep analysis on Apex Genotype..."):
+            # --- Perform all analyses upfront for the Apex Genotype ---
+            with st.spinner("Performing comprehensive deep analysis on Apex Genotype..."):
                 criticality_scores = analyze_lesion_sensitivity(best_individual_genotype, best_individual_genotype.fitness, task_type, fitness_weights, eval_params)
                 centrality_scores = analyze_information_flow(best_individual_genotype)
                 evo_robust_data = analyze_evolvability_robustness(best_individual_genotype, task_type, fitness_weights, eval_params)
+                dev_traj_df = analyze_developmental_trajectory(best_individual_genotype)
+                load_data = analyze_genetic_load(criticality_scores)
+                parent_ids = best_individual_genotype.parent_ids
+                parents = [p for p in population if p.lineage_id in parent_ids]
 
-            # --- Main Layout ---
-            col1, col2 = st.columns([1, 1])
+            # --- Create Tabs for Deep Dive ---
+            tab_vitals, tab_causal, tab_potential, tab_ancestry, tab_export = st.tabs([
+                "🌐 Vitals & Architecture", 
+                "🔬 Causal & Structural Analysis", 
+                "🧬 Evolutionary & Developmental Potential",
+                "🌳 Genealogy & Ancestry",
+                "💻 Code Export"
+            ])
 
-            with col1:
-                st.markdown("#### **Quantitative & Architectural Profile**")
+            # --- TAB 1: Vitals & Architecture ---
+            with tab_vitals:
+                vitals_col1, vitals_col2 = st.columns([1, 1])
+                with vitals_col1:
+                    st.markdown("#### Quantitative Profile vs. Population Mean")
+                    pop_mean_fitness = final_gen['fitness'].mean()
+                    pop_mean_accuracy = final_gen['accuracy'].mean()
+                    pop_mean_complexity = final_gen['complexity'].mean()
+                    pop_mean_params = final_gen['total_params'].mean()
+
+                    comparison_data = {
+                        "Metric": ["Fitness", "Accuracy", "Complexity", "Parameters"],
+                        "Apex Value": [f"{best_individual_genotype.fitness:.4f}", f"{best_individual_genotype.accuracy:.3f}", f"{best_individual_genotype.complexity:.3f}", f"{sum(m.size for m in best_individual_genotype.modules):,}"],
+                        "Population Mean": [f"{pop_mean_fitness:.4f}", f"{pop_mean_accuracy:.3f}", f"{pop_mean_complexity:.3f}", f"{pop_mean_params:,.0f}"]
+                    }
+                    st.dataframe(pd.DataFrame(comparison_data).set_index("Metric"), use_container_width=True)
+
+                    st.markdown("##### Module Composition")
+                    module_data = [{"ID": m.id, "Type": m.module_type, "Size": m.size, "Activation": m.activation, "Plasticity": f"{m.plasticity:.2f}"} for m in best_individual_genotype.modules]
+                    st.dataframe(module_data, height=200, use_container_width=True)
+
+                with vitals_col2:
+                    st.markdown("#### Architectural Visualization")
+                    st.plotly_chart(visualize_genotype_3d(best_individual_genotype), use_container_width=True, key="apex_3d_vis")
+                    st.plotly_chart(visualize_genotype_2d(best_individual_genotype), use_container_width=True, key="apex_2d_vis")
+
+            # --- TAB 2: Causal & Structural Analysis ---
+            with tab_causal:
+                st.markdown("This tab dissects the functional importance of the architecture's components.")
+                causal_col1, causal_col2 = st.columns(2)
+                with causal_col1:
+                    st.subheader("Lesion Sensitivity Analysis")
+                    st.markdown("We computationally 'remove' each component and measure the drop in fitness. A larger drop indicates a more **critical** component.")
+                    sorted_criticality = sorted(criticality_scores.items(), key=lambda item: item[1], reverse=True)
+                    st.markdown("###### Most Critical Components:")
+                    for j, (component, score) in enumerate(sorted_criticality[:5]):
+                        st.metric(label=f"#{j+1} {component}", value=f"{score:.4f} Fitness Drop", help="The reduction in overall fitness when this component is removed.")
+
+                with causal_col2:
+                    st.subheader("Information Flow Backbone")
+                    st.markdown("This analysis identifies the **causal backbone**—the key modules that act as bridges for information flow, identified via `betweenness centrality`.")
+                    sorted_centrality = sorted(centrality_scores.items(), key=lambda item: item[1], reverse=True)
+                    st.markdown("###### Causal Backbone Nodes:")
+                    for j, (module_id, score) in enumerate(sorted_centrality[:5]):
+                        st.metric(label=f"#{j+1} Module: {module_id}", value=f"{score:.3f} Centrality", help="A normalized score of how critical this node is for information routing.")
                 
-                # Comparison Table
-                pop_mean_fitness = final_gen['fitness'].mean()
-                pop_mean_accuracy = final_gen['accuracy'].mean()
-                pop_mean_complexity = final_gen['complexity'].mean()
-                pop_mean_params = final_gen['total_params'].mean()
+                st.markdown("---")
+                st.subheader("Genetic Load & Neutrality")
+                st.markdown("This analysis identifies **neutral components** ('junk DNA') with little effect when removed, and calculates the **genetic load**—the fitness cost of slightly harmful, non-lethal components.")
+                load_col1, load_col2 = st.columns(2)
+                load_col1.metric("Neutral Component Count", f"{load_data['neutral_component_count']}", help="Number of modules/connections with near-zero impact when lesioned.")
+                load_col2.metric("Genetic Load", f"{load_data['genetic_load']:.4f}", help="Total fitness reduction from slightly deleterious, non-critical components.")
 
-                comparison_data = {
-                    "Metric": ["Fitness", "Accuracy", "Complexity", "Parameters"],
-                    "Apex Value": [f"{best_individual_genotype.fitness:.4f}", f"{best_individual_genotype.accuracy:.3f}", f"{best_individual_genotype.complexity:.3f}", f"{sum(m.size for m in best_individual_genotype.modules):,}"],
-                    "Population Mean": [f"{pop_mean_fitness:.4f}", f"{pop_mean_accuracy:.3f}", f"{pop_mean_complexity:.3f}", f"{pop_mean_params:,.0f}"]
-                }
-                st.dataframe(pd.DataFrame(comparison_data).set_index("Metric"), use_container_width=True)
+            # --- TAB 3: Evolutionary & Developmental Potential ---
+            with tab_potential:
+                st.markdown("This tab probes the genotype's potential for future adaptation and its programmed developmental trajectory.")
+                evo_col1, evo_col2 = st.columns(2)
+                with evo_col1:
+                    st.subheader("Evolvability vs. Robustness")
+                    st.markdown("We generate 50 mutants to measure the trade-off between **robustness** (resisting negative mutations) and **evolvability** (producing beneficial mutations).")
+                    st.metric("Robustness Score", f"{evo_robust_data['robustness']:.4f}", help="Average fitness loss from deleterious mutations. Higher = more robust.")
+                    st.metric("Evolvability Score", f"{evo_robust_data['evolvability']:.4f}", help="Maximum fitness gain from a single mutation.")
 
-                # Module Details
-                st.markdown("##### **Module Composition**")
-                module_data = [{"ID": m.id, "Type": m.module_type, "Size": m.size, "Activation": m.activation, "Plasticity": f"{m.plasticity:.2f}"} for m in best_individual_genotype.modules]
-                st.dataframe(module_data, height=200, use_container_width=True)
+                    dist_df = pd.DataFrame(evo_robust_data['distribution'], columns=['Fitness Change'])
+                    fig = px.histogram(dist_df, x="Fitness Change", nbins=20, title="Distribution of Mutational Effects")
+                    fig.add_vline(x=0, line_width=2, line_dash="dash", line_color="grey")
+                    fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20))
+                    st.plotly_chart(fig, use_container_width=True, key="apex_mutational_effects_hist")
 
-            with col2:
-                st.markdown("#### **Causal & Evolutionary Analysis**")
+                with evo_col2:
+                    st.subheader("Developmental Trajectory")
+                    st.markdown("This simulates the genotype's 'lifetime,' showing how its developmental program (pruning, proliferation) alters its structure over time.")
+                    fig = px.line(dev_traj_df, x="step", y=["total_params", "num_connections"], title="Simulated Developmental Trajectory")
+                    fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                    st.plotly_chart(fig, use_container_width=True, key="apex_dev_trajectory_line")
 
-                # Lesion Sensitivity
-                st.markdown("##### **Lesion Sensitivity (Top 3)**")
-                sorted_criticality = sorted(criticality_scores.items(), key=lambda item: item[1], reverse=True)
-                for component, score in sorted_criticality[:3]:
-                    st.write(f"- **{component}:** `{score:.4f}` Fitness Drop")
-                st.caption("Measures fitness loss when a component is removed. Higher is more critical.")
+            # --- TAB 4: Genealogy & Ancestry ---
+            with tab_ancestry:
+                st.markdown("This tab traces the lineage of the genotype, comparing it to its direct ancestors to understand the evolutionary step that led to its success.")
+                st.subheader(f"Direct Ancestors: `{', '.join(parent_ids)}`")
 
-                # Information Flow
-                st.markdown("##### **Information Flow Backbone (Top 3)**")
-                sorted_centrality = sorted(centrality_scores.items(), key=lambda item: item[1], reverse=True)
-                for module_id, score in sorted_centrality[:3]:
-                    st.write(f"- **Module {module_id}:** `{score:.3f}` Centrality")
-                st.caption("Identifies key nodes for routing information through the network.")
+                if not parents:
+                    st.info("Parents of this genotype are not in the final population (they were not selected in a previous generation).")
+                else:
+                    parent_cols = st.columns(len(parents))
+                    for k, parent in enumerate(parents):
+                        with parent_cols[k]:
+                            st.markdown(f"##### Parent: `{parent.lineage_id}`")
+                            st.markdown(f"**Form:** `{parent.form_id}` | **Fitness:** `{parent.fitness:.4f}`")
+                            distance = genomic_distance(best_individual_genotype, parent)
+                            st.metric("Genomic Distance to Child", f"{distance:.3f}")
 
-                # Evolvability
-                st.markdown("##### **Evolvability & Robustness**")
-                st.metric("Robustness Score", f"{evo_robust_data['robustness']:.4f}", help="Avg. fitness loss from negative mutations.")
-                st.metric("Evolvability Score", f"{evo_robust_data['evolvability']:.4f}", help="Max fitness gain from a positive mutation.")
-                
-            # --- Visualizations ---
-            st.markdown("---")
-            st.markdown("#### **Architectural Visualization**")
-            vis_tab1, vis_tab2 = st.tabs(["3D Interactive View", "2D Static View"])
-            with vis_tab1:
-                st.plotly_chart(visualize_genotype_3d(best_individual_genotype), use_container_width=True, key="apex_3d_vis")
-            with vis_tab2:
-                st.plotly_chart(visualize_genotype_2d(best_individual_genotype), use_container_width=True, key="apex_2d_vis")
+                            st.markdown("###### Evolutionary Step:")
+                            param_delta = sum(m.size for m in best_individual_genotype.modules) - sum(m.size for m in parent.modules)
+                            st.metric("Parameter Change", f"{param_delta:+,}", delta_color="off")
+                            complexity_delta = best_individual_genotype.complexity - parent.complexity
+                            st.metric("Complexity Change", f"{complexity_delta:+.3f}", delta_color="off")
+
+                            st.plotly_chart(visualize_genotype_2d(parent), use_container_width=True, key=f"apex_parent_2d_{parent.lineage_id}")
+
+            # --- TAB 5: Code Export ---
+            with tab_export:
+                st.markdown("The genotype can be translated into functional code for deep learning frameworks, providing a direct path from discovery to application.")
+                code_col1, code_col2 = st.columns(2)
+                with code_col1:
+                    st.subheader("PyTorch Code")
+                    st.code(generate_pytorch_code(best_individual_genotype), language='python')
+                with code_col2:
+                    st.subheader("TensorFlow / Keras Code")
+                    st.code(generate_tensorflow_code(best_individual_genotype), language='python')
 
             # --- Comprehensive Interpretation ---
             st.markdown("---")
             st.markdown("#### **Comprehensive Interpretation**")
             
             dominant_module_type = Counter(m.module_type for m in best_individual_genotype.modules).most_common(1)[0][0]
-            critical_component, fitness_drop = sorted_criticality[0] if sorted_criticality else ("N/A", 0)
-            central_node, centrality = sorted_centrality[0] if sorted_centrality else ("N/A", 0)
+            critical_component, fitness_drop = (sorted_criticality[0] if sorted_criticality else ("N/A", 0))
+            centrality = (sorted_centrality[0][1] if sorted_centrality else 0)
+            parent_fitness = parents[0].fitness if parents else initial_mean_fitness
+            fitness_leap = best_individual_genotype.fitness - parent_fitness
             
             interpretation_text = f"""
-            The Apex Genotype's superior fitness (`{best_individual_genotype.fitness:.4f}`) is not accidental but an emergent property of its sophisticated design, which significantly outperforms the population mean. Its architecture, dominated by **{dominant_module_type}** modules, is highly specialized for the **'{task_type}'** task. 
+            The Apex Genotype's superior fitness (`{best_individual_genotype.fitness:.4f}`) is an emergent property of a sophisticated and highly adapted design. Its success can be deconstructed into several key factors:
 
-            The causal analysis reveals that **{critical_component}** forms the functional core, with its removal causing a catastrophic fitness drop of `{fitness_drop:.4f}`. This is corroborated by its high information flow centrality (`{centrality:.3f}`), marking it as an indispensable hub for processing.
+            1.  **Architectural Specialization:** The genotype's structure, dominated by **{dominant_module_type}** modules, reflects a strong adaptation to the demands of the **'{task_type}'** task. This specialization is not just structural but functional, as evidenced by its quantitative superiority over the population mean in both fitness and accuracy.
 
-            Evolutionarily, the genotype strikes a balance between stability and adaptability. Its respectable robustness score (`{evo_robust_data['robustness']:.4f}`) suggests resilience to minor perturbations, a trait likely selected for during periods of environmental flux or high mutation. Simultaneously, a non-zero evolvability score (`{evo_robust_data['evolvability']:.4f}`) indicates it has not reached an evolutionary dead-end and retains latent potential for further adaptation. This combination of a highly optimized, causally critical core with the capacity for future change is the hallmark of a successful product of this advanced neuroevolutionary system.
+            2.  **Causal Integrity:** The causal analysis reveals a well-defined functional core. The high lesion sensitivity of **{critical_component}** (fitness drop: `{fitness_drop:.4f}`) and its significant information flow centrality (`{centrality:.3f}`) identify it as an indispensable hub for processing. The architecture is not a random assortment of parts but a network with critical, load-bearing components.
+
+            3.  **Balanced Evolutionary Potential:** The genotype exists in a state of balanced adaptability. Its robustness score (`{evo_robust_data['robustness']:.4f}`) indicates resilience to deleterious mutations, a trait crucial for stability. Concurrently, its evolvability score (`{evo_robust_data['evolvability']:.4f}`) and the presence of neutral components (`{load_data['neutral_component_count']}`) demonstrate that it has not reached an evolutionary dead-end. It retains "latent potential" and genetic raw material for future adaptation.
+
+            4.  **Significant Evolutionary Leap:** The ancestry analysis shows this genotype represents a significant step forward. It achieved a fitness leap of **`{fitness_leap:+.4f}`** over its direct parent, a jump likely attributable to a key mutation or recombination event. This highlights the power of the evolutionary operators to produce meaningful innovation.
+
+            In summary, the Apex Genotype is a hallmark of successful neuroevolution: a specialized, causally robust architecture that resulted from a significant innovative leap, while still retaining the potential for future adaptation. It is both a product of its history and a platform for the future.
             """
             st.info(interpretation_text)
         else:
