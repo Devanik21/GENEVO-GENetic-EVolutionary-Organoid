@@ -4150,7 +4150,7 @@ def main():
 
     st.sidebar.markdown("---")
 
-    with st.sidebar.expander("🤔 Understanding Your Results: A Guide to Evolutionary Dynamics", expanded=False):
+    with st.sidebar.expander("✨Understanding Your Results: A Guide to Evolutionary Dynamics", expanded=False):
         st.markdown("""
         Have you noticed that your results are incredibly diverse? Sometimes the top-ranked architectures are nearly identical, while other times they are wildly different. **This is not a bug—it is the strongest possible evidence that you are witnessing true, complex evolutionary dynamics at work!** 🔬
 
