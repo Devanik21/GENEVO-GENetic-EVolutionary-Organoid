@@ -2550,11 +2550,16 @@ def main():
 
         # --- Synthesized Master Architecture ---
         st.markdown("---")
-        st.header("🌐 Synthesized Master Architecture")
+        st.header("🌐 Synthesized Master Architecture: A Consensus Genotype from the Pareto Frontier")
         st.markdown("""
-        This final architecture is a **consensus design** synthesized from the best-performing individuals. It starts with the single best architecture and refines it by averaging its parameters (like module sizes and connection weights) with the other top individuals. It also adds structural elements (like new connections) that have strong consensus among the elite group.
+        The culmination of the evolutionary run is not a single victor, but a Pareto-optimal frontier of specialized genotypes. To distill a singular, robust archetype from this elite population, we employ a synthesis algorithm. This process constructs a 'master' architecture that represents a statistical consensus of the most successful genetic motifs and parametric configurations discovered during the search.
+
+        The synthesis protocol is a multi-stage process of structural and parametric amalgamation:
+        1.  **Template Seeding:** The genotype with the highest fitness from the synthesis pool is selected as the foundational template. This ensures the master architecture is anchored to a proven high-performer.
+        2.  **Parametric Bayesian Averaging:** For all homologous modules and connections shared between the template and other members of the elite pool, their continuous-valued parameters (e.g., module size, connection weight, plasticity coefficients) are refined. This is analogous to a Bayesian model average, where the parameters of the master architecture are updated towards the posterior mean estimated from the elite sample. This smooths out stochastic noise from individual evolutionary paths and converges on more generalizable parameter values.
+        3.  **Structural Voting and Topological Infusion:** The algorithm identifies structural motifs (specifically, connections) that exhibit high prevalence across the elite pool, even if absent in the initial template. Connections exceeding a consensus threshold are infused into the master genotype. This step is critical for integrating convergent structural discoveries and correcting for idiosyncratic omissions in the single best individual.
         
-        Use the slider to select **'n'**, the number of top individuals to include in the synthesis pool. A higher 'n' creates a design based on a broader and more robust consensus.
+        The parameter **'n'** controls the size of the synthesis pool drawn from the Pareto frontier. A smaller 'n' yields a master architecture heavily biased towards the top individual, preserving its unique characteristics. A larger 'n' broadens the consensus base, resulting in a more generalized and potentially more robust architecture that averages out niche-specific adaptations. This slider allows for an exploration of the trade-off between peak performance and generalized robustness.
         """)
 
         population = st.session_state.current_population
