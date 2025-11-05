@@ -1993,34 +1993,38 @@ def main():
         # This configuration is designed for stability and achieving high accuracy.
         optimal_defaults = {
             'task_type': 'Abstract Reasoning (ARC-AGI-2)',
-            'dynamic_environment': False, # Stable environment for focused optimization
-            'env_change_frequency': 20,
-            'num_forms': 5, # Max diversity
-            'population_per_form': 10, # Larger population
-            'w_accuracy': 0.6, # Prioritize accuracy
-            'w_efficiency': 0.1,
-            'w_robustness': 0.15,
+            'dynamic_environment': False,
+            'env_change_frequency': 25,
+            'num_forms': 5,
+            'population_per_form': 10,
+            'w_accuracy': 0.6,
+            'w_efficiency': 0.15,
+            'w_robustness': 0.1,
             'w_generalization': 0.15,
-            'mutation_rate': 0.15, # Slightly lower for stability
-            'crossover_rate': 0.8, # High crossover
-            'innovation_rate': 0.04, # Controlled innovation
+            'mutation_rate': 0.2,
+            'crossover_rate': 0.7,
+            'innovation_rate': 0.05,
             'enable_development': True,
             'enable_baldwin': True,
             'enable_epigenetics': True,
-            'endosymbiosis_rate': 0.01,
-            'epistatic_linkage_k': 1, # Mildly rugged landscape
+            'endosymbiosis_rate': 0.005,
+            'epistatic_linkage_k': 1,
             'gene_flow_rate': 0.01,
-            'niche_competition_factor': 1.0,
-            'enable_cataclysms': False, # Disabled for predictable runs
-            'cataclysm_probability': 0.02,
-            'enable_red_queen': True, # Keep pressure against local optima
+            'niche_competition_factor': 1.2,
+            'reintroduction_rate': 0.03,
+            'max_archive_size': 50000,
+            'enable_cataclysms': False,
+            'cataclysm_probability': 0.01,
+            'enable_red_queen': True,
             'enable_endosymbiosis': True,
-            'mutation_schedule': 'Adaptive', # Best schedule
-            'adaptive_mutation_strength': 0.5,
-            'selection_pressure': 0.5,
+            'mutation_schedule': 'Adaptive',
+            'adaptive_mutation_strength': 0.6,
+            'selection_pressure': 0.4,
+            'enable_diversity_pressure': True,
+            'diversity_weight': 0.5,
             'enable_speciation': True,
-            'compatibility_threshold': 4.0,
-            'num_generations': 50, # A solid run length
+            'compatibility_threshold': 5.0,
+            'num_generations': 50,
             'complexity_level': 'medium'
         }
         st.session_state.settings = optimal_defaults
@@ -2058,8 +2062,13 @@ def main():
         dynamic_environment = st.checkbox("Enable Dynamic Environment", value=s.get('dynamic_environment', True), help="If enabled, the task will change periodically.", key="dynamic_env_checkbox")
         env_change_frequency = st.slider(
             "Change Frequency (Generations)",
-            min_value=5, max_value=50, value=s.get('env_change_frequency', 15),
-            help="How often the task environment changes.",
+            min_value=5, max_value=100, value=s.get('env_change_frequency', 25),
+            help="""
+            **Simulates environmental volatility.** How often the task changes.
+            - **Low values:** Rapidly changing world, favors generalists.
+            - **High values:** Long periods of stability, favors specialists.
+            **Warning:** Very frequent changes (<10 gens) can prevent meaningful adaptation.
+            """,
             disabled=not dynamic_environment,
             key="env_change_freq_slider"
         )
@@ -2068,15 +2077,22 @@ def main():
     num_forms = st.sidebar.number_input(
         "Number of Architectural Forms",
         min_value=1, max_value=None, value=s.get('num_forms', 5), step=1,
-        help="Number of initial architectural forms. WARNING: High values (>10) may significantly slow down the app or cause it to fail on resource-limited platforms like Streamlit Cloud.",
+        help="""
+        **Defines the initial morphological diversity of the 'Cambrian Explosion'.**
+        Each form is a distinct architectural template (e.g., CNN-like, Transformer-like).
+        **Warning:** High values (>20) create a massive initial population, which will be extremely slow and likely crash the app in a cloud environment due to CPU and memory limits.
+        """,
         key="num_forms_input"
     )
     
     population_per_form = st.sidebar.slider(
-        "Population per Form", min_value=3, max_value=15, value=s.get('population_per_form', 8),
+        "Population per Form", min_value=5, max_value=50, value=s.get('population_per_form', 10),
         key="pop_per_form_slider",
-        help="The size of the Monte Carlo sample used to approximate the infinite population density ρ(G,t). A larger sample provides a more accurate, but slower, approximation and increases genetic diversity."
-
+        help="""
+        **The number of individuals sampled for each initial architectural form.**
+        This is the size of the Monte Carlo sample used to approximate the infinite population density ρ(G,t).
+        **Warning:** A larger sample provides a more accurate, but slower, approximation. The total population size is the critical factor for performance.
+        """
     )
     
     # Add a dynamic display for total population with a warning
@@ -2089,10 +2105,10 @@ def main():
     st.sidebar.markdown("### Fitness Objectives")
     with st.sidebar.expander("Multi-Objective Weights", expanded=False):
         st.info("Define the importance of each fitness objective. Weights will be normalized.")
-        w_accuracy = st.slider("Accuracy Weight", 0.0, 1.0, s.get('w_accuracy', 0.5), key="w_accuracy_slider")
-        w_efficiency = st.slider("Efficiency Weight", 0.0, 1.0, s.get('w_efficiency', 0.2), key="w_efficiency_slider")
-        w_robustness = st.slider("Robustness Weight", 0.0, 1.0, s.get('w_robustness', 0.1), key="w_robustness_slider")
-        w_generalization = st.slider("Generalization Weight", 0.0, 1.0, s.get('w_generalization', 0.2), key="w_generalization_slider")
+        w_accuracy = st.slider("Accuracy Weight", 0.0, 1.0, s.get('w_accuracy', 0.6), key="w_accuracy_slider", help="**How much to value raw performance on the task.** The primary driver of optimization.")
+        w_efficiency = st.slider("Efficiency Weight", 0.0, 1.0, s.get('w_efficiency', 0.15), key="w_efficiency_slider", help="**How much to penalize computational cost (parameters, connections).** Promotes smaller, faster models.")
+        w_robustness = st.slider("Robustness Weight", 0.0, 1.0, s.get('w_robustness', 0.1), key="w_robustness_slider", help="**How much to value stability under perturbation.** Favors architectures that are less sensitive to noise.")
+        w_generalization = st.slider("Generalization Weight", 0.0, 1.0, s.get('w_generalization', 0.15), key="w_generalization_slider", help="**How much to value traits linked to generalizing to unseen data.** Promotes modularity and plasticity.")
         
         total_w = w_accuracy + w_efficiency + w_robustness + w_generalization + 1e-9
         fitness_weights = {
@@ -2110,51 +2126,82 @@ def main():
     col1, col2 = st.sidebar.columns(2)
     mutation_rate = col1.slider(
         "Base Mutation Rate (μ)",
-        min_value=0.05, max_value=0.6, value=s.get('mutation_rate', 0.2), step=0.05,
-        help="Initial probability of genetic variation",
+        min_value=0.01, max_value=0.9, value=s.get('mutation_rate', 0.2), step=0.01,
+        help="""
+        **The engine of variation.** The base probability of a gene changing.
+        - **Low (0.01-0.1):** Stable evolution, fine-tuning existing designs.
+        - **High (0.5-0.9):** Chaotic, rapid exploration (hypermutation).
+        **Warning:** High rates (>0.6) can lead to a high number of non-viable offspring, slowing down progress.
+        """,
         key="mutation_rate_slider"
     )
     crossover_rate = col2.slider(
         "Crossover Rate",
-        min_value=0.3, max_value=0.9, value=s.get('crossover_rate', 0.7), step=0.1,
-        help="Probability of recombination",
+        min_value=0.0, max_value=1.0, value=s.get('crossover_rate', 0.7), step=0.05,
+        help="""
+        **The engine of recombination.** The probability of creating a child from two parents.
+        - **High:** Quickly combines successful genetic motifs from different lineages.
+        - **Low:** Favors clonal inheritance, relying more on mutation for change.
+        """,
         key="crossover_rate_slider"
     )
     
     innovation_rate = st.sidebar.slider(
         "Innovation Rate (σ)",
-        min_value=0.01, max_value=0.2, value=s.get('innovation_rate', 0.05), step=0.01,
-        help="Rate of structural mutations",
+        min_value=0.01, max_value=0.5, value=s.get('innovation_rate', 0.05), step=0.01,
+        help="""
+        **The engine of discovery.** Rate of adding new modules or connections. This is how architectural complexity grows.
+        **Warning:** High rates (>0.2) can lead to chaotic, non-functional architectures and 'bloat', dramatically increasing computational cost.
+        """,
         key="innovation_rate_slider"
     )
     
     with st.sidebar.expander("🏔️ Landscape & Speciation Control", expanded=False):
         st.markdown("Control the deep physics of the evolutionary ecosystem.")
         epistatic_linkage_k = st.slider(
-            "Epistatic Linkage (K)", 0, 5, s.get('epistatic_linkage_k', 0), 1,
-            help="From NK models. K > 0 creates a 'rugged' fitness landscape where gene interactions matter. Higher K = more chaotic landscape.",
+            "Epistatic Linkage (K)", 0, 8, s.get('epistatic_linkage_k', 1), 1,
+            help="""
+            **Shapes the fitness landscape itself.** From NK models, K is the number of other genes that influence a single gene's fitness contribution.
+            - **K=0:** Smooth, simple landscape.
+            - **K > 0:** A 'rugged' landscape with many peaks, valleys, and deceptive traps.
+            **Warning:** High K (>4) creates a chaotic, nearly unsearchable landscape, making consistent progress very difficult.
+            """,
             key="epistatic_linkage_slider"
         )
         gene_flow_rate = st.slider(
-            "Gene Flow (Hybridization)", 0.0, 0.1, s.get('gene_flow_rate', 0.01), 0.005,
-            help="Chance for crossover between different species, enabling major evolutionary leaps.",
+            "Gene Flow (Hybridization)", 0.0, 0.2, s.get('gene_flow_rate', 0.01), 0.005,
+            help="""
+            **Enables major evolutionary leaps.** Chance for crossover between different species.
+            **Warning:** A powerful but dangerous tool. High rates (>0.1) can destroy protected niches and cause species collapse, leading to a loss of diversity.
+            """,
             disabled=not s.get('enable_speciation', True),
             key="gene_flow_rate_slider"
         )
         niche_competition_factor = st.slider(
-            "Niche Competition", 0.0, 2.0, s.get('niche_competition_factor', 1.0), 0.1,
-            help="How strongly species compete. >1 forces specialization; 0 removes fitness sharing.",
+            "Niche Competition", 0.0, 3.0, s.get('niche_competition_factor', 1.2), 0.1,
+            help="""
+            **Simulates ecological pressure.** How strongly species compete for resources.
+            - **>1:** Forces species to specialize to survive (niche partitioning).
+            - **<1:** Allows more species to coexist.
+            - **0:** No competition (fitness is independent of species size).
+            """,
             disabled=not s.get('enable_speciation', True),
             key="niche_competition_slider",
         )
         reintroduction_rate = st.slider(
-            "Archive Reintroduction Rate", 0.0, 0.1, s.get('reintroduction_rate', 0.02), 0.005,
-            help="Chance to reintroduce an individual from the 'infinite' gene pool archive, simulating a vast population's memory and preventing permanent loss of innovation.",
+            "Archive Reintroduction Rate", 0.0, 0.25, s.get('reintroduction_rate', 0.03), 0.005,
+            help="""
+            **Simulates an infinite gene pool.** Chance to reintroduce a 'fossil' from the gene archive instead of creating a new child. This is a key mechanism to combat genetic drift and simulate the vast memory of a near-infinite population.
+            **Warning:** High rates (>0.1) can slow adaptation by reintroducing outdated genetics.
+            """,
             key="reintroduction_rate_slider"
         )
         max_archive_size = st.slider(
-            "Max Gene Archive Size", 1000, 100000, s.get('max_archive_size', 40000), 10000,
-            help="The maximum size of the 'infinite' gene pool archive. A larger archive provides more long-term genetic memory but consumes more RAM.",
+            "Max Gene Archive Size", 1000, 200000, s.get('max_archive_size', 50000), 1000,
+            help="""
+            **The memory of the 'infinite' gene pool.** A larger archive provides more long-term genetic memory but consumes more RAM.
+            **Warning:** Very large archives (>100,000) can consume significant memory and may cause issues on cloud platforms.
+            """,
             key="max_archive_size_slider"
         )
         st.info(
@@ -2184,14 +2231,17 @@ def main():
 
     with st.sidebar.expander("🌋 Ecosystem Shocks & Dynamics", expanded=False):
         st.markdown("Introduce high-level ecosystem pressures.")
-        enable_cataclysms = st.checkbox("Enable Cataclysms", value=s.get('enable_cataclysms', True), help="Enable rare, random mass-extinction or environmental collapse events.", key="enable_cataclysms_checkbox")
+        enable_cataclysms = st.checkbox("Enable Cataclysms", value=s.get('enable_cataclysms', True), help="**Simulates mass extinctions.** Enable rare, random events like asteroid impacts (population crashes) or environmental collapses (fitness function shifts). Tests ecosystem resilience.", key="enable_cataclysms_checkbox")
         cataclysm_probability = st.slider(
-            "Cataclysm Probability", 0.0, 0.1, s.get('cataclysm_probability', 0.02), 0.005,
-            help="Per-generation chance of a cataclysmic event.",
+            "Cataclysm Probability", 0.0, 0.25, s.get('cataclysm_probability', 0.01), 0.005,
+            help="""
+            **The universe's hostility.** Per-generation chance of a cataclysmic event.
+            **Warning:** High probability (>0.1) creates an extremely unstable ecosystem where long-term adaptation may be impossible.
+            """,
             disabled=not enable_cataclysms,
             key="cataclysm_prob_slider"
         )
-        enable_red_queen = st.checkbox("Enable Red Queen Dynamics", value=s.get('enable_red_queen', True), help="A co-evolving 'parasite' creates an arms race by targeting common traits, forcing continuous adaptation.", key="enable_red_queen_checkbox")
+        enable_red_queen = st.checkbox("Enable Red Queen Dynamics", value=s.get('enable_red_queen', True), help="**'It takes all the running you can do, to keep in the same place.'** A co-evolving 'parasite' creates an arms race by targeting the most common traits, forcing continuous adaptation and preventing stagnation.", key="enable_red_queen_checkbox")
         st.info(
             "These features test the ecosystem's resilience and ability to escape static equilibria through external shocks and internal arms races."
         )
@@ -2199,15 +2249,18 @@ def main():
 
     with st.sidebar.expander("🔬 Advanced Dynamics", expanded=True):
         st.markdown("These features add deep biological complexity. You can disable them for a more classical evolutionary run.")
-        enable_development = st.checkbox("Enable Developmental Program", value=s.get('enable_development', True), help="Each generation, individuals execute their internal genetic programs, causing changes like synaptic pruning (removing weak connections) or module proliferation (growth during stagnation).", key="enable_development_checkbox")
-        enable_baldwin = st.checkbox("Enable Baldwin Effect", value=s.get('enable_baldwin', True), help="An individual's `plasticity` score allows it to 'learn' during its lifetime, boosting its final fitness. This creates a selective pressure for architectures that are not just good, but also good at learning.", key="enable_baldwin_checkbox")
-        enable_epigenetics = st.checkbox("Enable Epigenetic Inheritance", value=s.get('enable_epigenetics', True), help="Individuals pass down partially heritable 'aptitude' for tasks they performed well on, creating a fast, non-genetic adaptation layer.", key="enable_epigenetics_checkbox")
-        enable_endosymbiosis = st.checkbox("Enable Endosymbiosis", value=s.get('enable_endosymbiosis', True), help="A rare event where an architecture acquires a pre-evolved, successful module from an elite individual, allowing for major leaps in complexity.", key="enable_endosymbiosis_checkbox")
+        enable_development = st.checkbox("Enable Developmental Program", value=s.get('enable_development', True), help="**Simulates ontogeny (growth from embryo to adult).** Allows genotypes to execute a 'developmental program' during their lifetime, such as pruning weak connections or growing modules. This separates the genotype from the final phenotype.", key="enable_development_checkbox")
+        enable_baldwin = st.checkbox("Enable Baldwin Effect", value=s.get('enable_baldwin', True), help="**Models how learning shapes evolution.** An individual's `plasticity` allows it to 'learn' (improve its fitness) during its lifetime. This creates a selective pressure for architectures that are not just fit, but also good at learning (phenotypic plasticity).", key="enable_baldwin_checkbox")
+        enable_epigenetics = st.checkbox("Enable Epigenetic Inheritance", value=s.get('enable_epigenetics', True), help="**Models Lamarckian-like inheritance.** Individuals pass down partially heritable 'aptitude' markers based on their life experience, allowing for very fast, non-genetic adaptation across a few generations.", key="enable_epigenetics_checkbox")
+        enable_endosymbiosis = st.checkbox("Enable Endosymbiosis", value=s.get('enable_endosymbiosis', True), help="**Simulates Major Evolutionary Transitions.** A rare event where an architecture acquires a pre-evolved, successful module from another individual, simulating horizontal gene transfer and allowing for massive, instantaneous leaps in complexity.", key="enable_endosymbiosis_checkbox")
         
         endosymbiosis_rate = st.slider(
             "Endosymbiosis Rate",
-            min_value=0.0, max_value=0.05, value=s.get('endosymbiosis_rate', 0.01), step=0.005,
-            help="Chance for an individual to acquire a module from an elite parent.",
+            min_value=0.0, max_value=0.1, value=s.get('endosymbiosis_rate', 0.005), step=0.001,
+            help="""
+            **Rate of major evolutionary leaps.**
+            **Warning:** This should be very rare. High rates (>0.02) will lead to chaotic, Frankenstein-like architectures that are unlikely to be viable.
+            """,
             disabled=not enable_endosymbiosis,
             key="endosymbiosis_rate_slider"
         )
@@ -2226,37 +2279,52 @@ def main():
         )
         adaptive_mutation_strength = st.slider(
             "Adaptive Strength",
-            min_value=0.1, max_value=1.0, value=s.get('adaptive_mutation_strength', 0.5),
-            help="How strongly mutation rate reacts to stagnation.",
+            min_value=0.1, max_value=2.0, value=s.get('adaptive_mutation_strength', 0.6),
+            help="""
+            **How desperately the system reacts to stagnation.** A higher value causes a larger spike in mutation rate when progress stalls.
+            **Warning:** High values (>1.0) can cause wild oscillations in mutation rate, destabilizing the evolutionary search.
+            """,
             disabled=(mutation_schedule != 'Adaptive'),
             key="adaptive_mutation_strength_slider"
         )
     
     st.sidebar.markdown("### Selection Strategy")
     selection_pressure = st.sidebar.slider(
-        "Selection Pressure", min_value=0.3, max_value=0.8, value=s.get('selection_pressure', 0.5), step=0.1,
-        help="Fraction of population surviving each generation",
+        "Selection Pressure", min_value=0.1, max_value=0.9, value=s.get('selection_pressure', 0.4), step=0.05,
+        help="""
+        **'Survival of the Fittest'.** The fraction of the population that survives to reproduce each generation.
+        - **High:** Aggressive, elitist selection. Fast convergence, but high risk of getting stuck in local optima.
+        - **Low:** Gentle selection. Slower progress, but maintains more diversity.
+        """,
         key="selection_pressure_slider"
     )
     
     enable_diversity_pressure = st.sidebar.checkbox(
         "Enable Diversity-Pressured Selection", value=s.get('enable_diversity_pressure', True), 
-        help="Rewards novel architectures during selection to prevent premature convergence and encourage diverse solutions."
+        help="**Actively fights premature convergence.** Rewards novel architectures during selection, helping to prevent the population from getting stuck in an evolutionary dead-end by protecting unique but temporarily less-fit individuals."
     )
     diversity_weight = st.sidebar.slider(
-        "Diversity Weight", 0.0, 1.0, s.get('diversity_weight', 0.3), 0.05,
+        "Diversity Weight", 0.0, 2.0, s.get('diversity_weight', 0.5), 0.05,
         disabled=not enable_diversity_pressure,
-        help="How much to prioritize novelty vs. raw fitness. Higher values lead to more diverse, exploratory evolution.",
+        help="""
+        **The Exploration vs. Exploitation trade-off.** How much to prioritize novelty vs. raw fitness.
+        - **>1.0:** Strongly favors exploration, creating a bizarre menagerie of unique solutions.
+        - **<0.5:** Prioritizes exploitation of known good solutions.
+        """,
         key="diversity_weight_slider"
     )
     
     with st.sidebar.expander("Speciation (NEAT-style)", expanded=True):
-        enable_speciation = st.checkbox("Enable Speciation", value=s.get('enable_speciation', True), help="Group similar individuals into species to protect innovation.", key="enable_speciation_checkbox")
+        enable_speciation = st.checkbox("Enable Speciation", value=s.get('enable_speciation', True), help="**Protects innovation by creating niches.** Groups similar individuals into 'species', where they only compete amongst themselves. This allows a novel but currently unoptimized idea to survive and improve without being wiped out by the dominant species.", key="enable_speciation_checkbox")
         compatibility_threshold = st.slider(
             "Compatibility Threshold",
-            min_value=1.0, max_value=10.0, value=s.get('compatibility_threshold', 4.0), step=0.5,
+            min_value=1.0, max_value=20.0, value=s.get('compatibility_threshold', 5.0), step=0.5,
             disabled=not enable_speciation,
-            help="Genomic distance to be in the same species. Higher = fewer species.",
+            help="""
+            **Defines 'what is a species'.** The maximum genomic distance for two individuals to be considered compatible.
+            - **High:** Broad species definitions, fewer species.
+            - **Low:** Narrow definitions, many small, specialized species.
+            """,
             key="compatibility_threshold_slider"
         )
         st.info("Speciation uses a genomic distance metric based on form, module/connection differences, and parameter differences.")
@@ -2264,8 +2332,11 @@ def main():
     st.sidebar.markdown("### Experiment Settings")
     num_generations = st.sidebar.slider(
         "Generations",
-        min_value=10, max_value=100, value=s.get('num_generations', 30),
-        help="Evolutionary timescale",
+        min_value=10, max_value=200, value=s.get('num_generations', 50),
+        help="""
+        **The timescale of evolution.**
+        **Warning:** Runs with many generations (>100) can take a very long time to complete, especially with large populations.
+        """,
         key="num_generations_slider"
     )
     
@@ -2329,7 +2400,7 @@ def main():
     # Run evolution button
     if st.sidebar.button("⚡ Initiate Evolution", type="primary", width='stretch', key="initiate_evolution_button"):
         st.session_state.history = []
-        st.session_state.evolutionary_metrics = []
+        st.session_state.evolutionary_metrics = [] # type: ignore
         st.session_state.gene_archive = [] # Initialize the infinite gene pool
         
         # Initialize population
@@ -2608,7 +2679,7 @@ def main():
             # Clean up temporary attribute
             if enable_speciation:
                 for ind in population: # Clean up all temporary scores
-                    for attr in ['adjusted_fitness', 'novelty_score', 'selection_score']:
+                    for attr in ['adjusted_fitness', 'novelty_score', 'selection_score']: # type: ignore
                         if hasattr(ind, attr): delattr(ind, attr)
 
             # Update mutation rate for next generation
