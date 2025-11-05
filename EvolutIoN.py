@@ -2025,7 +2025,60 @@ def main():
             'enable_speciation': True,
             'compatibility_threshold': 7.0,
             'num_generations': 100,
-            'complexity_level': 'medium'
+            'complexity_level': 'medium',
+            # --- NEW DEEP PHYSICS DEFAULTS ---
+            'enable_deep_physics': False,
+            # Info-Theoretic
+            'kolmogorov_pressure': 0.0,
+            'pred_info_bottleneck': 0.0,
+            'causal_emergence_factor': 0.0,
+            'semantic_closure_pressure': 0.0,
+            'phi_target': 0.0,
+            'fep_gradient': 0.0,
+            'transfer_entropy_maximization': 0.0,
+            'synergy_bias': 0.0,
+            'state_space_compression': 0.0,
+            'fisher_gradient_ascent': 0.0,
+            # Thermo
+            'landauer_efficiency': 0.0,
+            'metabolic_power_law': 0.75,
+            'heat_dissipation_constraint': 0.0,
+            'homeostatic_pressure': 0.0,
+            'computational_temperature': 0.0,
+            'structural_decay_rate': 0.0,
+            'repair_mechanism_cost': 0.0,
+            'szilard_engine_efficiency': 0.0,
+            'resource_scarcity': 0.0,
+            'allosteric_regulation_factor': 0.0,
+            # Quantum
+            'quantum_annealing_fluctuation': 0.0,
+            'holographic_constraint': 0.0,
+            'renormalization_group_flow': 0.0,
+            'symmetry_breaking_pressure': 0.0,
+            'path_integral_exploration': 0.0,
+            'tqft_invariance': 0.0,
+            'gauge_theory_redundancy': 0.0,
+            'cft_scaling_exponent': 0.0,
+            'spacetime_foam_fluctuation': 0.0,
+            'entanglement_assisted_comm': 0.0,
+            # Topology
+            'manifold_adherence': 0.0,
+            'group_equivariance_prior': 0.0,
+            'ricci_curvature_flow': 0.0,
+            'homological_scaffold_stability': 0.0,
+            'fractal_dimension_target': 1.0,
+            'hyperbolic_embedding_factor': 0.0,
+            'small_world_bias': 0.0,
+            'scale_free_exponent': 2.0,
+            'network_motif_bonus': 0.0,
+            'rents_rule_exponent': 0.0,
+            # Cognitive
+            'curiosity_drive': 0.0,
+            'world_model_accuracy': 0.0,
+            'ast_congruence': 0.0, 'tom_emergence_pressure': 0.0,
+            'cognitive_dissonance_penalty': 0.0, 'opportunity_cost_factor': 0.0,
+            'prospect_theory_bias': 0.0, 'temporal_discounting_factor': 0.0,
+            'zpd_scaffolding_bonus': 0.0, 'symbol_grounding_constraint': 0.0,
         }
         st.session_state.settings = optimal_defaults
         st.toast("Parameters reset to optimal defaults!", icon="⚙️")
@@ -2327,6 +2380,298 @@ def main():
         )
         st.info("Speciation uses a genomic distance metric based on form, module/connection differences, and parameter differences.")
 
+    with st.sidebar.expander("♾️ Deep Evolutionary Physics & Information Dynamics", expanded=False):
+        enable_deep_physics = st.checkbox(
+            "Enable Deep Physics Engine",
+            value=s.get('enable_deep_physics', False),
+            help="""
+            **Unlock the fundamental constants of the evolutionary universe.**
+            
+            Enabling this exposes 50 highly experimental parameters that model deep physical and informational principles. These are not standard evolutionary algorithm parameters; they represent theoretical concepts from physics, information theory, and cognitive science, applied to neuroevolution.
+            
+            - **Effect:** These parameters introduce subtle but powerful biases and constraints into the fitness landscape and evolutionary dynamics.
+            - **Use Case:** For advanced research into the fundamental principles of intelligence and emergence. Not recommended for standard optimization tasks.
+            
+            **WARNING: EXTREME RISK OF DESTABILIZATION.** These parameters interact in complex, non-linear ways. Uninformed changes will almost certainly lead to evolutionary collapse, stagnation, or bizarre, non-functional outcomes. Use with extreme caution and a clear hypothesis.
+            """,
+            key="enable_deep_physics_checkbox"
+        )
+
+        if not enable_deep_physics:
+            st.warning("The Deep Physics Engine is disabled. These parameters will have no effect. Enable to unlock the fundamental constants of this evolutionary universe.")
+        else:
+            st.success("Deep Physics Engine is ACTIVE. You are now editing the fundamental constants of the universe. Proceed with extreme caution.")
+
+        st.markdown("---")
+        st.markdown("#### 1. Information-Theoretic Dynamics")
+
+        kolmogorov_pressure = st.slider(
+            "Kolmogorov Pressure", 0.0, 1.0, s.get('kolmogorov_pressure', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="kolmogorov_pressure_slider",
+            help="**Bias towards algorithmic simplicity.** Applies a fitness bonus proportional to the compressibility of the genotype's developmental program (approximated). High values favor elegant, simple generative rules over complex, bloated ones."
+        )
+        pred_info_bottleneck = st.slider(
+            "Predictive Information Bottleneck", 0.0, 1.0, s.get('pred_info_bottleneck', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="pred_info_bottleneck_slider",
+            help="**Balance between memory and prediction.** Rewards architectures that compress past information while retaining maximal predictive power about the future. Based on Tishby's Information Bottleneck principle."
+        )
+        causal_emergence_factor = st.slider(
+            "Causal Emergence Factor", 0.0, 1.0, s.get('causal_emergence_factor', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="causal_emergence_factor_slider",
+            help="**Rewards effective abstraction.** Favors architectures where macro-scale modules have more causal power (higher effective information) over the system's output than their constituent micro-components. Promotes the emergence of meaningful, high-level structures."
+        )
+        semantic_closure_pressure = st.slider(
+            "Semantic Closure Pressure", 0.0, 1.0, s.get('semantic_closure_pressure', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="semantic_closure_pressure_slider",
+            help="**Drives towards self-modeling.** Rewards architectures that can accurately model their own relationship with the environment. A step towards creating systems that 'understand' their own function."
+        )
+        phi_target = st.slider(
+            "Integrated Information (Φ) Target", 0.0, 1.0, s.get('phi_target', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="phi_target_slider",
+            help="**Bias towards integrated consciousness (IIT).** Approximates and rewards high Φ, a measure of a system's capacity to be conscious. Favors architectures that are both highly differentiated and highly integrated."
+        )
+        fep_gradient = st.slider(
+            "Free Energy Principle (FEP) Gradient", 0.0, 1.0, s.get('fep_gradient', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="fep_gradient_slider",
+            help="**The drive to minimize surprise.** Applies a fitness pressure for architectures to develop an accurate internal world model, minimizing the variational free energy (prediction error) of their sensory inputs. A core concept from Karl Friston's work."
+        )
+        transfer_entropy_maximization = st.slider(
+            "Transfer Entropy Maximization", 0.0, 1.0, s.get('transfer_entropy_maximization', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="transfer_entropy_maximization_slider",
+            help="**Promotes effective communication.** Rewards high information flow (transfer entropy) between connected modules, favoring architectures with strong, directed causal links."
+        )
+        synergy_bias = st.slider(
+            "Synergistic Information Bias", 0.0, 1.0, s.get('synergy_bias', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="synergy_bias_slider",
+            help="**Favors holistic computation.** Rewards information generated by groups of modules that cannot be reduced to the sum of its parts. Promotes non-linear, emergent computation."
+        )
+        state_space_compression = st.slider(
+            "State-Space Compression Ratio", 0.0, 1.0, s.get('state_space_compression', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="state_space_compression_slider",
+            help="**Rewards efficient representation.** Measures how compactly the architecture's internal state represents the external environment's state space. High values favor efficient world models."
+        )
+        fisher_gradient_ascent = st.slider(
+            "Fisher Information Gradient Ascent", 0.0, 1.0, s.get('fisher_gradient_ascent', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="fisher_gradient_ascent_slider",
+            help="**Optimizes the speed of adaptation.** Applies a force to move the population along the natural gradient of the fitness landscape, defined by the Fisher Information Metric. This can dramatically accelerate evolution in certain landscapes."
+        )
+
+        st.markdown("---")
+        st.markdown("#### 2. Thermodynamics of Computation & Metabolism")
+
+        landauer_efficiency = st.slider(
+            "Landauer Limit Efficiency", 0.0, 1.0, s.get('landauer_efficiency', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="landauer_efficiency_slider",
+            help="**Penalizes irreversible computation.** Applies a fitness cost proportional to the number of information-erasing operations (e.g., resetting a bit), based on Landauer's principle. Favors reversible or energy-efficient computing paradigms."
+        )
+        metabolic_power_law = st.slider(
+            "Metabolic Power Law (Exponent)", 0.5, 1.5, s.get('metabolic_power_law', 0.75), 0.01,
+            disabled=not enable_deep_physics, key="metabolic_power_law_slider",
+            help="**Models biological scaling laws.** Sets the exponent for the metabolic cost function (Cost ∝ Size^Exponent). A value of 0.75 mimics Kleiber's Law, where larger architectures are more energy-efficient per parameter."
+        )
+        heat_dissipation_constraint = st.slider(
+            "Heat Dissipation Constraint", 0.0, 1.0, s.get('heat_dissipation_constraint', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="heat_dissipation_constraint_slider",
+            help="**Models physical thermal limits.** Applies a sharp fitness penalty if the estimated computational activity (entropy production) exceeds a threshold, simulating the physical constraint of heat dissipation."
+        )
+        homeostatic_pressure = st.slider(
+            "Homeostatic Regulation Pressure", 0.0, 1.0, s.get('homeostatic_pressure', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="homeostatic_pressure_slider",
+            help="**Rewards internal stability.** Favors architectures that can maintain stable internal activity patterns despite external perturbations. Promotes robust, self-regulating dynamics."
+        )
+        computational_temperature = st.slider(
+            "Computational Temperature", 0.0, 1.0, s.get('computational_temperature', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="computational_temperature_slider",
+            help="**Injects thermodynamic noise.** Introduces a global noise level into all computations, simulating a thermal environment. Higher temperatures make computation less reliable, favoring noise-robust architectures."
+        )
+        structural_decay_rate = st.slider(
+            "Structural Integrity Decay Rate", 0.0, 0.1, s.get('structural_decay_rate', 0.0), 0.001,
+            disabled=not enable_deep_physics, key="structural_decay_rate_slider",
+            help="**Simulates aging and physical decay.** A per-generation probability for any connection or module to be damaged or destroyed, forcing the evolution of robust, redundant, or repairable systems."
+        )
+        repair_mechanism_cost = st.slider(
+            "Repair Mechanism Cost", 0.0, 1.0, s.get('repair_mechanism_cost', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="repair_mechanism_cost_slider",
+            help="**The metabolic cost of self-repair.** If Structural Decay is active, this parameter sets the fitness cost for architectures that possess self-repair capabilities (a hypothetical trait)."
+        )
+        szilard_engine_efficiency = st.slider(
+            "Szilard's Engine Efficiency", 0.0, 1.0, s.get('szilard_engine_efficiency', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="szilard_engine_efficiency_slider",
+            help="**Rewards converting information to 'work'.** A fitness bonus for architectures that use information to reduce their own computational cost, simulating a Maxwell's Demon or Szilard's Engine."
+        )
+        resource_scarcity = st.slider(
+            "Resource Scarcity Simulation", 0.0, 1.0, s.get('resource_scarcity', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="resource_scarcity_slider",
+            help="**Simulates a fluctuating energy budget.** Introduces periodic fluctuations in the 'energy' available, dynamically changing the weight of the efficiency objective. High values create boom-and-bust cycles."
+        )
+        allosteric_regulation_factor = st.slider(
+            "Allosteric Regulation Factor", 0.0, 1.0, s.get('allosteric_regulation_factor', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="allosteric_regulation_factor_slider",
+            help="**Promotes indirect control mechanisms.** Rewards the evolution of 'modulatory' connections that don't pass primary signals but instead alter the function of other modules, akin to allosteric enzymes."
+        )
+
+        st.markdown("---")
+        st.markdown("#### 3. Quantum & Field-Theoretic Effects")
+
+        quantum_annealing_fluctuation = st.slider(
+            "Quantum Annealing Fluctuation", 0.0, 1.0, s.get('quantum_annealing_fluctuation', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="quantum_annealing_fluctuation_slider",
+            help="**Allows tunneling through fitness barriers.** Introduces a probability for a genotype to make a large, non-local jump in genotype space to a state with lower 'energy' (higher fitness), simulating quantum tunneling."
+        )
+        holographic_constraint = st.slider(
+            "Holographic Principle Constraint", 0.0, 1.0, s.get('holographic_constraint', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="holographic_constraint_slider",
+            help="**Information scales with surface, not volume.** Applies a fitness penalty if the information content of a module (approximated by its parameters) exceeds its 'surface area' (number of connections). Favors distributed over centralized information."
+        )
+        renormalization_group_flow = st.slider(
+            "Renormalization Group Flow", 0.0, 1.0, s.get('renormalization_group_flow', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="renormalization_group_flow_slider",
+            help="**Evolves scale-invariant structures.** Applies a fitness pressure that rewards architectures whose statistical properties remain the same when 'zooming out' (coarse-graining). Promotes fractal-like, hierarchical structures."
+        )
+        symmetry_breaking_pressure = st.slider(
+            "Symmetry Breaking Pressure", 0.0, 1.0, s.get('symmetry_breaking_pressure', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="symmetry_breaking_pressure_slider",
+            help="**Forces specialization from homogeneity.** Applies a penalty to architectures with highly symmetric structures, encouraging them to 'break' the symmetry and develop specialized modules."
+        )
+        path_integral_exploration = st.slider(
+            "Path Integral Exploration", 0.0, 1.0, s.get('path_integral_exploration', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="path_integral_exploration_slider",
+            help="**Considers all possible evolutionary histories.** A conceptual parameter that biases selection towards genotypes that lie on many probable evolutionary paths, making them more 'robust' attractors in the landscape."
+        )
+        tqft_invariance = st.slider(
+            "TQFT Invariance", 0.0, 1.0, s.get('tqft_invariance', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="tqft_invariance_slider",
+            help="**Rewards topological robustness.** From Topological Quantum Field Theory, this rewards architectures whose function is invariant under continuous deformations (e.g., small changes in connection weights). Promotes extremely robust computational graphs."
+        )
+        gauge_theory_redundancy = st.slider(
+            "Gauge Theory Redundancy", 0.0, 1.0, s.get('gauge_theory_redundancy', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="gauge_theory_redundancy_slider",
+            help="**Favors robust internal symmetries.** Rewards architectures that have redundant internal descriptions, making them robust to certain classes of internal errors. Analogous to gauge symmetries in physics."
+        )
+        cft_scaling_exponent = st.slider(
+            "CFT Scaling Exponent", 0.0, 4.0, s.get('cft_scaling_exponent', 0.0), 0.05,
+            disabled=not enable_deep_physics, key="cft_scaling_exponent_slider",
+            help="**Enforces conformal (scale-invariant) structure.** At evolutionary 'phase transitions', this biases towards architectures whose correlation functions obey a power law with this exponent, a signature of Conformal Field Theories."
+        )
+        spacetime_foam_fluctuation = st.slider(
+            "Spacetime Foam Fluctuation", 0.0, 1.0, s.get('spacetime_foam_fluctuation', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="spacetime_foam_fluctuation_slider",
+            help="**Introduces micro-fluctuations in the graph.** Simulates quantum foam by adding/removing transient micro-connections at each evaluation, testing for extreme structural robustness."
+        )
+        entanglement_assisted_comm = st.slider(
+            "Entanglement-Assisted Communication", 0.0, 1.0, s.get('entanglement_assisted_comm', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="entanglement_assisted_comm_slider",
+            help="**Simulates non-local information transfer.** Provides a small fitness bonus for pairs of modules that are highly correlated in their activity despite being topologically distant, simulating entanglement."
+        )
+
+        st.markdown("---")
+        st.markdown("#### 4. Topological & Geometric Constraints")
+
+        manifold_adherence = st.slider(
+            "Manifold Hypothesis Adherence", 0.0, 1.0, s.get('manifold_adherence', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="manifold_adherence_slider",
+            help="**Assumes data lies on a low-dimensional manifold.** Rewards architectures whose internal representations have a lower intrinsic dimension, enforcing the manifold hypothesis."
+        )
+        group_equivariance_prior = st.slider(
+            "Group Equivariance Prior", 0.0, 1.0, s.get('group_equivariance_prior', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="group_equivariance_prior_slider",
+            help="**Enforces geometric deep learning symmetries.** Rewards architectures that are equivariant to certain transformations (e.g., rotation, translation), a core principle of GDL."
+        )
+        ricci_curvature_flow = st.slider(
+            "Ricci Curvature Flow", 0.0, 1.0, s.get('ricci_curvature_flow', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="ricci_curvature_flow_slider",
+            help="**Optimizes information geometry.** Simulates a flow to flatten the Ricci curvature of the architecture's parameter manifold, which can improve the efficiency of gradient-based lifetime learning."
+        )
+        homological_scaffold_stability = st.slider(
+            "Homological Scaffold Stability", 0.0, 1.0, s.get('homological_scaffold_stability', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="homological_scaffold_stability_slider",
+            help="**Preserves topological features.** From Topological Data Analysis, this rewards architectures for preserving the 'shape' (Betti numbers) of the input data's topology in their representations."
+        )
+        fractal_dimension_target = st.slider(
+            "Fractal Dimension Target", 1.0, 3.0, s.get('fractal_dimension_target', 1.0), 0.05,
+            disabled=not enable_deep_physics, key="fractal_dimension_target_slider",
+            help="**Evolves self-similar structures.** Applies a fitness pressure for the architecture's connectivity graph to have a specific fractal (Hausdorff) dimension."
+        )
+        hyperbolic_embedding_factor = st.slider(
+            "Hyperbolic Embedding Factor", 0.0, 1.0, s.get('hyperbolic_embedding_factor', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="hyperbolic_embedding_factor_slider",
+            help="**Favors representation of hierarchies.** Rewards architectures whose connectivity graph can be embedded with low distortion into hyperbolic space, which is ideal for representing tree-like or hierarchical data."
+        )
+        small_world_bias = st.slider(
+            "Small-World Network Bias", 0.0, 1.0, s.get('small_world_bias', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="small_world_bias_slider",
+            help="**Balances local and global communication.** Rewards networks that have a high clustering coefficient (like regular grids) but a low average path length (like random graphs)."
+        )
+        scale_free_exponent = st.slider(
+            "Scale-Free Network Exponent", 2.0, 4.0, s.get('scale_free_exponent', 2.0), 0.05,
+            disabled=not enable_deep_physics, key="scale_free_exponent_slider",
+            help="**Evolves hub-and-spoke topologies.** Rewards architectures whose degree distribution follows a power law with this exponent, characteristic of many real-world networks."
+        )
+        network_motif_bonus = st.slider(
+            "Network Motif Bonus", 0.0, 1.0, s.get('network_motif_bonus', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="network_motif_bonus_slider",
+            help="**Rewards specific computational micro-circuits.** Applies a fitness bonus for the over-representation of certain small subgraphs (motifs), like feed-forward loops."
+        )
+        rents_rule_exponent = st.slider(
+            "Rent's Rule Exponent", 0.0, 1.0, s.get('rents_rule_exponent', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="rents_rule_exponent_slider",
+            help="**Optimizes wiring cost and modularity.** Rewards architectures that obey Rent's Rule, an empirical relationship between the number of terminals and internal components of a module. High exponents indicate high complexity."
+        )
+
+        st.markdown("---")
+        st.markdown("#### 5. Cognitive & Economic Pressures")
+
+        curiosity_drive = st.slider(
+            "Curiosity Drive (Information Gap)", 0.0, 1.0, s.get('curiosity_drive', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="curiosity_drive_slider",
+            help="**Rewards exploration of the unknown.** Provides an intrinsic reward for reducing uncertainty about the environment, based on information gap theory. Drives the evolution of exploratory behaviors."
+        )
+        world_model_accuracy = st.slider(
+            "World Model Accuracy Pressure", 0.0, 1.0, s.get('world_model_accuracy', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="world_model_accuracy_slider",
+            help="**Rewards building an internal simulation.** Directly rewards the accuracy of a genotype's internal model of the environment's dynamics, promoting the evolution of 'imagination'."
+        )
+        ast_congruence = st.slider(
+            "Attention Schema Congruence", 0.0, 1.0, s.get('ast_congruence', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="ast_congruence_slider",
+            help="**Rewards self-awareness of attention.** From Attention Schema Theory, this rewards architectures that develop an internal model of their own attentional state."
+        )
+        tom_emergence_pressure = st.slider(
+            "Theory of Mind (ToM) Pressure", 0.0, 1.0, s.get('tom_emergence_pressure', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="tom_emergence_pressure_slider",
+            help="**Drives social reasoning.** In a multi-agent context, this would reward architectures that can accurately predict the internal states and actions of other agents."
+        )
+        cognitive_dissonance_penalty = st.slider(
+            "Cognitive Dissonance Penalty", 0.0, 1.0, s.get('cognitive_dissonance_penalty', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="cognitive_dissonance_penalty_slider",
+            help="**Penalizes conflicting internal beliefs.** Applies a fitness cost if different parts of the network produce contradictory predictions, forcing the evolution of a coherent world model."
+        )
+        opportunity_cost_factor = st.slider(
+            "Opportunity Cost Factor", 0.0, 1.0, s.get('opportunity_cost_factor', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="opportunity_cost_factor_slider",
+            help="**Models economic decision-making.** Penalizes architectures for time/energy spent on computations that do not lead to fitness improvements, forcing a more efficient allocation of cognitive resources."
+        )
+        prospect_theory_bias = st.slider(
+            "Prospect Theory Bias (Risk Aversion)", -1.0, 1.0, s.get('prospect_theory_bias', 0.0), 0.05,
+            disabled=not enable_deep_physics, key="prospect_theory_bias_slider",
+            help="**Introduces non-linear utility of fitness.** Remaps the fitness function according to Prospect Theory. Positive values = risk-averse (preferring sure gains), Negative values = risk-seeking (preferring long shots)."
+        )
+        temporal_discounting_factor = st.slider(
+            "Temporal Discounting Factor", 0.0, 1.0, s.get('temporal_discounting_factor', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="temporal_discounting_factor_slider",
+            help="**Values immediate vs. future rewards.** In sequential tasks, this discounts the value of future rewards, forcing a trade-off between short-term and long-term planning. High values = more 'patient' architectures."
+        )
+        zpd_scaffolding_bonus = st.slider(
+            "ZPD Scaffolding Bonus", 0.0, 1.0, s.get('zpd_scaffolding_bonus', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="zpd_scaffolding_bonus_slider",
+            help="**Rewards learning at the right difficulty.** From Vygotsky's Zone of Proximal Development, this provides a bonus for learning from tasks that are neither too easy nor too hard, promoting efficient curriculum learning."
+        )
+        symbol_grounding_constraint = st.slider(
+            "Symbol Grounding Constraint", 0.0, 1.0, s.get('symbol_grounding_constraint', 0.0), 0.01,
+            disabled=not enable_deep_physics, key="symbol_grounding_constraint_slider",
+            help="**Forces abstract concepts to be linked to sensory data.** Penalizes 'floating' high-level representations that are not causally connected to low-level sensory modules, addressing the symbol grounding problem."
+        )
+
     st.sidebar.markdown("### Experiment Settings")
     num_generations = st.sidebar.slider(
         "Generations",
@@ -2383,7 +2728,64 @@ def main():
         'diversity_weight': diversity_weight,
         'compatibility_threshold': compatibility_threshold,
         'num_generations': num_generations,
-        'complexity_level': complexity_level
+        'complexity_level': complexity_level,
+        # --- NEW DEEP PHYSICS SETTINGS ---
+        'enable_deep_physics': enable_deep_physics,
+        # Info-Theoretic
+        'kolmogorov_pressure': kolmogorov_pressure,
+        'pred_info_bottleneck': pred_info_bottleneck,
+        'causal_emergence_factor': causal_emergence_factor,
+        'semantic_closure_pressure': semantic_closure_pressure,
+        'phi_target': phi_target,
+        'fep_gradient': fep_gradient,
+        'transfer_entropy_maximization': transfer_entropy_maximization,
+        'synergy_bias': synergy_bias,
+        'state_space_compression': state_space_compression,
+        'fisher_gradient_ascent': fisher_gradient_ascent,
+        # Thermo
+        'landauer_efficiency': landauer_efficiency,
+        'metabolic_power_law': metabolic_power_law,
+        'heat_dissipation_constraint': heat_dissipation_constraint,
+        'homeostatic_pressure': homeostatic_pressure,
+        'computational_temperature': computational_temperature,
+        'structural_decay_rate': structural_decay_rate,
+        'repair_mechanism_cost': repair_mechanism_cost,
+        'szilard_engine_efficiency': szilard_engine_efficiency,
+        'resource_scarcity': resource_scarcity,
+        'allosteric_regulation_factor': allosteric_regulation_factor,
+        # Quantum
+        'quantum_annealing_fluctuation': quantum_annealing_fluctuation,
+        'holographic_constraint': holographic_constraint,
+        'renormalization_group_flow': renormalization_group_flow,
+        'symmetry_breaking_pressure': symmetry_breaking_pressure,
+        'path_integral_exploration': path_integral_exploration,
+        'tqft_invariance': tqft_invariance,
+        'gauge_theory_redundancy': gauge_theory_redundancy,
+        'cft_scaling_exponent': cft_scaling_exponent,
+        'spacetime_foam_fluctuation': spacetime_foam_fluctuation,
+        'entanglement_assisted_comm': entanglement_assisted_comm,
+        # Topology
+        'manifold_adherence': manifold_adherence,
+        'group_equivariance_prior': group_equivariance_prior,
+        'ricci_curvature_flow': ricci_curvature_flow,
+        'homological_scaffold_stability': homological_scaffold_stability,
+        'fractal_dimension_target': fractal_dimension_target,
+        'hyperbolic_embedding_factor': hyperbolic_embedding_factor,
+        'small_world_bias': small_world_bias,
+        'scale_free_exponent': scale_free_exponent,
+        'network_motif_bonus': network_motif_bonus,
+        'rents_rule_exponent': rents_rule_exponent,
+        # Cognitive
+        'curiosity_drive': curiosity_drive,
+        'world_model_accuracy': world_model_accuracy,
+        'ast_congruence': ast_congruence,
+        'tom_emergence_pressure': tom_emergence_pressure,
+        'cognitive_dissonance_penalty': cognitive_dissonance_penalty,
+        'opportunity_cost_factor': opportunity_cost_factor,
+        'prospect_theory_bias': prospect_theory_bias,
+        'temporal_discounting_factor': temporal_discounting_factor,
+        'zpd_scaffolding_bonus': zpd_scaffolding_bonus,
+        'symbol_grounding_constraint': symbol_grounding_constraint,
     }
     
     # Save settings to DB if they have changed
