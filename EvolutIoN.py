@@ -1996,7 +1996,7 @@ def main():
             'dynamic_environment': False,
             'env_change_frequency': 25,
             'num_forms': 5,
-            'population_per_form': 10,
+            'population_per_form': 20,
             'w_accuracy': 0.6,
             'w_efficiency': 0.15,
             'w_robustness': 0.1,
@@ -2008,23 +2008,23 @@ def main():
             'enable_baldwin': True,
             'enable_epigenetics': True,
             'endosymbiosis_rate': 0.005,
-            'epistatic_linkage_k': 1,
+            'epistatic_linkage_k': 2,
             'gene_flow_rate': 0.01,
-            'niche_competition_factor': 1.2,
-            'reintroduction_rate': 0.03,
-            'max_archive_size': 50000,
+            'niche_competition_factor': 1.5,
+            'reintroduction_rate': 0.05,
+            'max_archive_size': 100000,
             'enable_cataclysms': False,
             'cataclysm_probability': 0.01,
             'enable_red_queen': True,
             'enable_endosymbiosis': True,
             'mutation_schedule': 'Adaptive',
-            'adaptive_mutation_strength': 0.6,
+            'adaptive_mutation_strength': 1.0,
             'selection_pressure': 0.4,
             'enable_diversity_pressure': True,
-            'diversity_weight': 0.5,
+            'diversity_weight': 0.8,
             'enable_speciation': True,
-            'compatibility_threshold': 5.0,
-            'num_generations': 50,
+            'compatibility_threshold': 7.0,
+            'num_generations': 100,
             'complexity_level': 'medium'
         }
         st.session_state.settings = optimal_defaults
@@ -2078,28 +2078,29 @@ def main():
         "Number of Architectural Forms",
         min_value=1, max_value=None, value=s.get('num_forms', 5), step=1,
         help="""
-        **Defines the initial morphological diversity of the 'Cambrian Explosion'.**
-        Each form is a distinct architectural template (e.g., CNN-like, Transformer-like).
-        **Warning:** High values (>20) create a massive initial population, which will be extremely slow and likely crash the app in a cloud environment due to CPU and memory limits.
+        **Simulates the 'Cambrian Explosion' of body plans.** The number of distinct architectural starting points.
+        - **Low (1-3):** Focuses evolution on a few known good priors.
+        - **High (10+):** Creates a massive, diverse ecosystem with many competing lineages.
+        **WARNING:** High values create an immense total population. This is a primary factor for slow performance and potential crashes.
         """,
         key="num_forms_input"
     )
     
     population_per_form = st.sidebar.slider(
-        "Population per Form", min_value=5, max_value=50, value=s.get('population_per_form', 10),
+        "Population per Form", min_value=5, max_value=200, value=s.get('population_per_form', 20),
         key="pop_per_form_slider",
         help="""
-        **The number of individuals sampled for each initial architectural form.**
-        This is the size of the Monte Carlo sample used to approximate the infinite population density ρ(G,t).
-        **Warning:** A larger sample provides a more accurate, but slower, approximation. The total population size is the critical factor for performance.
+        **Simulates the density of the initial gene pool.** The number of individuals for each starting architectural template.
+        A larger population provides more raw genetic material and better resists random genetic drift, mimicking a vast natural population.
+        **WARNING:** The 'Total Initial Population' is the key performance bottleneck. High values here will dramatically slow down each generation.
         """
     )
     
     # Add a dynamic display for total population with a warning
     total_population = num_forms * population_per_form
     st.sidebar.metric("Total Initial Population", f"{total_population:,}")
-    if total_population > 200:
-        st.sidebar.warning(f"High total population ({total_population}). This will be very slow and may crash the app on Streamlit Cloud.")
+    if total_population > 300:
+        st.sidebar.error(f"IMMENSE POPULATION ({total_population}). This will be extremely slow and may crash the app.")
 
     
     st.sidebar.markdown("### Fitness Objectives")
@@ -2128,21 +2129,17 @@ def main():
         "Base Mutation Rate (μ)",
         min_value=0.01, max_value=0.9, value=s.get('mutation_rate', 0.2), step=0.01,
         help="""
-        **The engine of variation.** The base probability of a gene changing.
-        - **Low (0.01-0.1):** Stable evolution, fine-tuning existing designs.
-        - **High (0.5-0.9):** Chaotic, rapid exploration (hypermutation).
-        **Warning:** High rates (>0.6) can lead to a high number of non-viable offspring, slowing down progress.
+        **The engine of variation, analogous to replication errors.** The base probability of a gene changing.
+        - **Low (0.01-0.1):** Simulates a stable genome, favoring fine-tuning.
+        - **High (0.5-0.9):** Simulates hypermutation or a high-stress environment, causing rapid, chaotic exploration.
+        **WARNING:** Very high rates (>0.6) can lead to 'error catastrophe', where most offspring are non-viable, halting evolutionary progress.
         """,
         key="mutation_rate_slider"
     )
     crossover_rate = col2.slider(
         "Crossover Rate",
         min_value=0.0, max_value=1.0, value=s.get('crossover_rate', 0.7), step=0.05,
-        help="""
-        **The engine of recombination.** The probability of creating a child from two parents.
-        - **High:** Quickly combines successful genetic motifs from different lineages.
-        - **Low:** Favors clonal inheritance, relying more on mutation for change.
-        """,
+        help="**The engine of recombination.** The probability of creating a child from two parents. High values quickly combine successful genetic motifs from different lineages, while low values favor clonal inheritance.",
         key="crossover_rate_slider"
     )
     
@@ -2150,8 +2147,9 @@ def main():
         "Innovation Rate (σ)",
         min_value=0.01, max_value=0.5, value=s.get('innovation_rate', 0.05), step=0.01,
         help="""
-        **The engine of discovery.** Rate of adding new modules or connections. This is how architectural complexity grows.
-        **Warning:** High rates (>0.2) can lead to chaotic, non-functional architectures and 'bloat', dramatically increasing computational cost.
+        **The engine of discovery, analogous to gene duplication and neofunctionalization.** Rate of adding new modules or connections.
+        This is how architectural complexity grows over deep time.
+        **WARNING:** High rates (>0.2) can lead to 'genome bloat' and chaotic, non-functional architectures, dramatically increasing computational cost without benefit.
         """,
         key="innovation_rate_slider"
     )
@@ -2159,48 +2157,48 @@ def main():
     with st.sidebar.expander("🏔️ Landscape & Speciation Control", expanded=False):
         st.markdown("Control the deep physics of the evolutionary ecosystem.")
         epistatic_linkage_k = st.slider(
-            "Epistatic Linkage (K)", 0, 8, s.get('epistatic_linkage_k', 1), 1,
+            "Epistatic Linkage (K)", 0, 10, s.get('epistatic_linkage_k', 2), 1,
             help="""
-            **Shapes the fitness landscape itself.** From NK models, K is the number of other genes that influence a single gene's fitness contribution.
-            - **K=0:** Smooth, simple landscape.
-            - **K > 0:** A 'rugged' landscape with many peaks, valleys, and deceptive traps.
-            **Warning:** High K (>4) creates a chaotic, nearly unsearchable landscape, making consistent progress very difficult.
+            **Models the complexity of gene interactions, creating a 'rugged' fitness landscape.** From NK models, K is the number of other genes influencing a single gene's fitness.
+            - **K=0:** Smooth, simple landscape (a single mountain).
+            - **K > 0:** A rugged landscape with many peaks and valleys, like a mountain range.
+            **WARNING:** High K (>5) creates an extremely chaotic, 'glassy' landscape that is nearly unsearchable and can prevent any meaningful adaptation.
             """,
             key="epistatic_linkage_slider"
         )
         gene_flow_rate = st.slider(
             "Gene Flow (Hybridization)", 0.0, 0.2, s.get('gene_flow_rate', 0.01), 0.005,
             help="""
-            **Enables major evolutionary leaps.** Chance for crossover between different species.
-            **Warning:** A powerful but dangerous tool. High rates (>0.1) can destroy protected niches and cause species collapse, leading to a loss of diversity.
+            **Simulates hybridization between species.** The chance for crossover between different species, enabling major, non-linear evolutionary leaps.
+            **WARNING:** This is a powerful but dangerous operator. High rates (>0.1) can destroy protected niches and cause species collapse, leading to a catastrophic loss of diversity. Use sparingly.
             """,
             disabled=not s.get('enable_speciation', True),
             key="gene_flow_rate_slider"
         )
         niche_competition_factor = st.slider(
-            "Niche Competition", 0.0, 3.0, s.get('niche_competition_factor', 1.2), 0.1,
+            "Niche Competition", 0.0, 5.0, s.get('niche_competition_factor', 1.5), 0.1,
             help="""
-            **Simulates ecological pressure.** How strongly species compete for resources.
+            **Simulates the intensity of ecological competition.** How strongly individuals of the same species compete for resources (fitness sharing).
             - **>1:** Forces species to specialize to survive (niche partitioning).
             - **<1:** Allows more species to coexist.
-            - **0:** No competition (fitness is independent of species size).
+            **WARNING:** Very high values (>3) can cause extreme specialization and may lead to species extinction if they cannot find a narrow enough niche.
             """,
             disabled=not s.get('enable_speciation', True),
             key="niche_competition_slider",
         )
         reintroduction_rate = st.slider(
-            "Archive Reintroduction Rate", 0.0, 0.25, s.get('reintroduction_rate', 0.03), 0.005,
+            "Archive Reintroduction Rate", 0.0, 0.5, s.get('reintroduction_rate', 0.05), 0.01,
             help="""
-            **Simulates an infinite gene pool.** Chance to reintroduce a 'fossil' from the gene archive instead of creating a new child. This is a key mechanism to combat genetic drift and simulate the vast memory of a near-infinite population.
-            **Warning:** High rates (>0.1) can slow adaptation by reintroducing outdated genetics.
+            **Simulates a vast, ancient gene pool (the 'fossil record').** Chance to reintroduce a genotype from the archive instead of creating a new child. This is a key mechanism to combat genetic drift and simulate the vast memory of a near-infinite population.
+            **WARNING:** High rates (>0.2) can slow down adaptation to the current environment by constantly reintroducing outdated or less-fit 'fossils'.
             """,
             key="reintroduction_rate_slider"
         )
         max_archive_size = st.slider(
-            "Max Gene Archive Size", 1000, 200000, s.get('max_archive_size', 50000), 1000,
+            "Max Gene Archive Size", 1000, 1000000, s.get('max_archive_size', 100000), 5000,
             help="""
-            **The memory of the 'infinite' gene pool.** A larger archive provides more long-term genetic memory but consumes more RAM.
-            **Warning:** Very large archives (>100,000) can consume significant memory and may cause issues on cloud platforms.
+            **The memory capacity of the 'infinite' gene pool.** A larger archive provides more long-term genetic memory, preventing the permanent loss of innovations.
+            **WARNING:** This directly impacts memory (RAM) usage. An immense archive (>250,000) can consume gigabytes of RAM and will crash the app on Streamlit Cloud.
             """,
             key="max_archive_size_slider"
         )
@@ -2233,10 +2231,10 @@ def main():
         st.markdown("Introduce high-level ecosystem pressures.")
         enable_cataclysms = st.checkbox("Enable Cataclysms", value=s.get('enable_cataclysms', True), help="**Simulates mass extinctions.** Enable rare, random events like asteroid impacts (population crashes) or environmental collapses (fitness function shifts). Tests ecosystem resilience.", key="enable_cataclysms_checkbox")
         cataclysm_probability = st.slider(
-            "Cataclysm Probability", 0.0, 0.25, s.get('cataclysm_probability', 0.01), 0.005,
+            "Cataclysm Probability", 0.0, 0.5, s.get('cataclysm_probability', 0.01), 0.005,
             help="""
-            **The universe's hostility.** Per-generation chance of a cataclysmic event.
-            **Warning:** High probability (>0.1) creates an extremely unstable ecosystem where long-term adaptation may be impossible.
+            **Simulates the hostility of the universe (e.g., asteroid impacts).** Per-generation chance of a cataclysmic event.
+            **WARNING:** High probability (>0.1) creates an extremely unstable ecosystem where long-term, complex adaptations may be impossible to achieve before being wiped out.
             """,
             disabled=not enable_cataclysms,
             key="cataclysm_prob_slider"
@@ -2257,10 +2255,8 @@ def main():
         endosymbiosis_rate = st.slider(
             "Endosymbiosis Rate",
             min_value=0.0, max_value=0.1, value=s.get('endosymbiosis_rate', 0.005), step=0.001,
-            help="""
-            **Rate of major evolutionary leaps.**
-            **Warning:** This should be very rare. High rates (>0.02) will lead to chaotic, Frankenstein-like architectures that are unlikely to be viable.
-            """,
+            help="""**Rate of major evolutionary leaps.**
+            **WARNING:** This should be very rare. High rates (>0.02) will lead to chaotic, Frankenstein-like architectures that are unlikely to be viable.""",
             disabled=not enable_endosymbiosis,
             key="endosymbiosis_rate_slider"
         )
@@ -2279,10 +2275,10 @@ def main():
         )
         adaptive_mutation_strength = st.slider(
             "Adaptive Strength",
-            min_value=0.1, max_value=2.0, value=s.get('adaptive_mutation_strength', 0.6),
+            min_value=0.1, max_value=5.0, value=s.get('adaptive_mutation_strength', 1.0),
             help="""
-            **How desperately the system reacts to stagnation.** A higher value causes a larger spike in mutation rate when progress stalls.
-            **Warning:** High values (>1.0) can cause wild oscillations in mutation rate, destabilizing the evolutionary search.
+            **Simulates desperation in the face of stagnation.** A higher value causes a larger, more explosive spike in mutation rate when progress stalls, forcing the population out of a local optimum.
+            **WARNING:** Very high values (>2.0) can cause wild, chaotic oscillations in mutation rate, destabilizing the evolutionary search and preventing fine-tuning.
             """,
             disabled=(mutation_schedule != 'Adaptive'),
             key="adaptive_mutation_strength_slider"
@@ -2304,12 +2300,13 @@ def main():
         help="**Actively fights premature convergence.** Rewards novel architectures during selection, helping to prevent the population from getting stuck in an evolutionary dead-end by protecting unique but temporarily less-fit individuals."
     )
     diversity_weight = st.sidebar.slider(
-        "Diversity Weight", 0.0, 2.0, s.get('diversity_weight', 0.5), 0.05,
+        "Diversity Weight", 0.0, 5.0, s.get('diversity_weight', 0.8), 0.1,
         disabled=not enable_diversity_pressure,
         help="""
-        **The Exploration vs. Exploitation trade-off.** How much to prioritize novelty vs. raw fitness.
-        - **>1.0:** Strongly favors exploration, creating a bizarre menagerie of unique solutions.
-        - **<0.5:** Prioritizes exploitation of known good solutions.
+        **Controls the core Exploration vs. Exploitation trade-off.** How much to prioritize architectural novelty vs. raw fitness.
+        - **>1.0:** Strongly favors exploration, creating a bizarre menagerie of unique solutions, like nature's wild diversity.
+        - **<0.5:** Prioritizes exploitation, focusing on perfecting known good solutions.
+        **WARNING:** Extreme values (>2.5) can cause the system to ignore fitness almost entirely, leading to beautiful but useless architectures.
         """,
         key="diversity_weight_slider"
     )
@@ -2318,12 +2315,13 @@ def main():
         enable_speciation = st.checkbox("Enable Speciation", value=s.get('enable_speciation', True), help="**Protects innovation by creating niches.** Groups similar individuals into 'species', where they only compete amongst themselves. This allows a novel but currently unoptimized idea to survive and improve without being wiped out by the dominant species.", key="enable_speciation_checkbox")
         compatibility_threshold = st.slider(
             "Compatibility Threshold",
-            min_value=1.0, max_value=20.0, value=s.get('compatibility_threshold', 5.0), step=0.5,
+            min_value=1.0, max_value=50.0, value=s.get('compatibility_threshold', 7.0), step=0.5,
             disabled=not enable_speciation,
             help="""
             **Defines 'what is a species'.** The maximum genomic distance for two individuals to be considered compatible.
-            - **High:** Broad species definitions, fewer species.
-            - **Low:** Narrow definitions, many small, specialized species.
+            - **High:** Broad species definitions, leading to fewer, larger, more diverse species.
+            - **Low:** Narrow definitions, leading to many small, highly specialized species.
+            **WARNING:** Extreme values can disrupt speciation. Too low and every individual is its own species; too high and there is only one species.
             """,
             key="compatibility_threshold_slider"
         )
@@ -2332,10 +2330,12 @@ def main():
     st.sidebar.markdown("### Experiment Settings")
     num_generations = st.sidebar.slider(
         "Generations",
-        min_value=10, max_value=200, value=s.get('num_generations', 50),
+        min_value=10, max_value=1000, value=s.get('num_generations', 100),
         help="""
-        **The timescale of evolution.**
-        **Warning:** Runs with many generations (>100) can take a very long time to complete, especially with large populations.
+        **Simulates deep evolutionary time.** The number of cycles of selection and reproduction.
+        - **Low (10-50):** Short-term adaptation.
+        - **High (200+):** Allows for major evolutionary transitions and complex features to emerge.
+        **WARNING:** Immense timescales (>200) will take a very long time to compute. A 1000-generation run could take hours.
         """,
         key="num_generations_slider"
     )
