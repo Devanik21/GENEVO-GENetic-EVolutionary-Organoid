@@ -2051,6 +2051,64 @@ def main():
             'enable_iterative_seeding': False,
             'num_elites_to_seed': 5,
             'seeded_elite_mutation_strength': 0.4,
+            # --- NEW DYNAMIC ENVIRONMENT DEFAULTS ---
+            'enable_advanced_environment_physics': False,
+            'non_stationarity_mode': 'Drift',
+            'drift_velocity': 0.01,
+            'shift_magnitude': 0.2,
+            'cycle_period': 50,
+            'chaotic_attractor_type': 'Lorenz',
+            'environmental_memory_strength': 0.0,
+            'resource_distribution_mode': 'Uniform',
+            'resource_regeneration_rate': 0.1,
+            'task_space_curvature': 0.0,
+            'environmental_viscosity': 0.0,
+            'environmental_temperature': 0.0,
+            'task_noise_correlation_time': 0.0,
+            'environmental_lag': 0,
+            'resource_scarcity_level': 1.0,
+
+            'enable_advanced_curriculum': False,
+            'curriculum_generation_method': 'Self-Paced',
+            'self_paced_learning_rate': 0.05,
+            'teacher_student_dynamics_enabled': False,
+            'teacher_mutation_rate': 0.1,
+            'task_proposal_rejection_rate': 0.2,
+            'transfer_learning_bonus': 0.1,
+            'catastrophic_forgetting_penalty': 0.1,
+            'curriculum_backtracking_probability': 0.05,
+            'interleaved_learning_ratio': 0.1,
+            'task_decomposition_bonus': 0.0,
+            'procedural_content_generation_complexity': 0.0,
+            'curriculum_difficulty_ceiling': 1.0,
+            'teacher_student_objective_alignment': 1.0,
+
+            'enable_social_environment': False,
+            'communication_channel_bandwidth': 1.0,
+            'communication_channel_noise': 0.0,
+            'social_signal_cost': 0.001,
+            'common_knowledge_bonus': 0.0,
+            'deception_penalty': 0.0,
+            'reputation_system_fidelity': 0.9,
+            'sanctioning_effectiveness': 0.5,
+            'network_reciprocity_bonus': 0.0,
+            'social_learning_mechanism': 'Imitation',
+            'cultural_ratchet_bonus': 0.0,
+            'social_norm_emergence_bonus': 0.0,
+            'tribalism_factor': 0.0,
+
+            'enable_open_endedness': False,
+            'poi_novelty_threshold': 0.1,
+            'minimal_criterion_coevolution_rate': 0.01,
+            'autopoiesis_pressure': 0.0,
+            'environmental_construction_bonus': 0.0,
+            'goal_switching_cost': 0.01,
+            'solution_archive_capacity': 1000,
+            'novelty_metric': 'Behavioral',
+            'local_competition_radius': 0.1,
+            'information_seeking_drive': 0.0,
+            'open_ended_archive_sampling_bias': 'Uniform',
+            'goal_embedding_space_dims': 8,
             # --- NEW FINALIZATION DEFAULTS ---
             'enable_ensemble_creation': False,
             'ensemble_size': 5,
@@ -2383,7 +2441,85 @@ def main():
         )
         curriculum_threshold = st.number_input("Transition Threshold / Generations", value=s.get('curriculum_threshold', 0.6), disabled=not enable_curriculum_learning, key="curriculum_threshold_input")
 
-    
+        st.markdown("---")
+        st.markdown("#### 🌌 Advanced Environmental Physics & Non-Stationarity")
+        enable_advanced_environment_physics = st.checkbox("Enable Advanced Environment Physics", value=s.get('enable_advanced_environment_physics', False), help="**DANGER: HIGHLY EXPERIMENTAL.** Models the environment itself as a complex dynamical system. Can create extremely unpredictable and chaotic task landscapes.", key="enable_advanced_environment_physics_checkbox")
+
+        non_stationarity_mode = st.selectbox(
+            "Non-Stationarity Mode", ['Drift', 'Shift', 'Cycle', 'Chaotic'],
+            index=['Drift', 'Shift', 'Cycle', 'Chaotic'].index(s.get('non_stationarity_mode', 'Drift')),
+            disabled=not enable_advanced_environment_physics, help="**How the environment changes:**\n- **Drift:** Gradual, continuous change.\n- **Shift:** Sudden, discrete jumps.\n- **Cycle:** Periodic, predictable changes.\n- **Chaotic:** Unpredictable but deterministic changes.", key="non_stationarity_mode_selectbox"
+        )
+        drift_velocity = st.slider("Drift Velocity", 0.0, 0.1, s.get('drift_velocity', 0.01), 0.001, format="%.3f", disabled=non_stationarity_mode!='Drift', help="Speed of gradual environmental change.", key="drift_velocity_slider")
+        shift_magnitude = st.slider("Shift Magnitude", 0.0, 1.0, s.get('shift_magnitude', 0.2), 0.05, disabled=non_stationarity_mode!='Shift', help="Size of sudden environmental jumps.", key="shift_magnitude_slider")
+        cycle_period = st.slider("Cycle Period (Generations)", 10, 200, s.get('cycle_period', 50), 5, disabled=non_stationarity_mode!='Cycle', help="Length of periodic environmental changes.", key="cycle_period_slider")
+        chaotic_attractor_type = st.selectbox("Chaotic Attractor Type", ['Lorenz', 'Rössler'], index=['Lorenz', 'Rössler'].index(s.get('chaotic_attractor_type', 'Lorenz')), disabled=non_stationarity_mode!='Chaotic', help="The type of chaotic system governing environmental change.", key="chaotic_attractor_type_selectbox")
+        
+        environmental_memory_strength = st.slider("Environmental Memory (Niche Construction)", 0.0, 1.0, s.get('environmental_memory_strength', 0.0), 0.05, disabled=not enable_advanced_environment_physics, help="How much the population's past actions influence the current state of the environment. High values allow agents to construct their own niches.", key="environmental_memory_strength_slider")
+        resource_distribution_mode = st.selectbox("Resource Distribution", ['Uniform', 'Clustered', 'Power-Law'], index=['Uniform', 'Clustered', 'Power-Law'].index(s.get('resource_distribution_mode', 'Uniform')), disabled=not enable_advanced_environment_physics, help="How fitness 'resources' are distributed in the task space.", key="resource_distribution_mode_selectbox")
+        resource_regeneration_rate = st.slider("Resource Regeneration Rate", 0.0, 1.0, s.get('resource_regeneration_rate', 0.1), 0.05, disabled=not enable_advanced_environment_physics, help="How quickly exploited resources (high-fitness regions) replenish.", key="resource_regeneration_rate_slider")
+        resource_scarcity_level = st.slider("Resource Scarcity Level", 0.1, 2.0, s.get('resource_scarcity_level', 1.0), 0.1, disabled=not enable_advanced_environment_physics, help="Overall availability of fitness resources. < 1.0 means a harsh environment; > 1.0 is a bountiful one.", key="resource_scarcity_level_slider")
+        
+        task_space_curvature = st.slider("Task Space Curvature", -1.0, 1.0, s.get('task_space_curvature', 0.0), 0.05, disabled=not enable_advanced_environment_physics, help="Models the geometry of the problem space. Positive (sphere-like) means local improvements don't generalize far. Negative (hyperbolic) means they do.", key="task_space_curvature_slider")
+        environmental_viscosity = st.slider("Environmental Viscosity", 0.0, 1.0, s.get('environmental_viscosity', 0.0), 0.05, disabled=not enable_advanced_environment_physics, help="A 'drag' force in the task space, making it harder for solutions to change rapidly.", key="environmental_viscosity_slider")
+        environmental_temperature = st.slider("Environmental Temperature", 0.0, 1.0, s.get('environmental_temperature', 0.0), 0.05, disabled=not enable_advanced_environment_physics, help="Stochastic noise in the environment's state transitions, making it less predictable.", key="environmental_temperature_slider")
+        task_noise_correlation_time = st.slider("Task Noise Correlation Time", 0.0, 1.0, s.get('task_noise_correlation_time', 0.0), 0.05, disabled=not enable_advanced_environment_physics, help="How 'smooth' the noise in the fitness evaluation is. High values mean noise is correlated over time (drifts), low values mean it's random (white noise).", key="task_noise_correlation_time_slider")
+        environmental_lag = st.slider("Environmental Lag (Generations)", 0, 20, s.get('environmental_lag', 0), 1, disabled=not enable_advanced_environment_physics, help="Simulates inertia. The number of generations it takes for an environmental change to fully manifest.", key="environmental_lag_slider")
+
+        st.markdown("---")
+        st.markdown("#### 📚 Advanced Curriculum & Task Design")
+        enable_advanced_curriculum = st.checkbox("Enable Advanced Curriculum Design", value=s.get('enable_advanced_curriculum', False), help="**Automate the teaching process.** Enables co-evolution of tasks and curricula, moving beyond fixed sequences.", key="enable_advanced_curriculum_checkbox")
+        
+        curriculum_generation_method = st.selectbox("Curriculum Generation Method", ['Self-Paced', 'Teacher-Student', 'Procedural'], index=['Self-Paced', 'Teacher-Student', 'Procedural'].index(s.get('curriculum_generation_method', 'Self-Paced')), disabled=not enable_advanced_curriculum, help="**How new tasks are generated:**\n- **Self-Paced:** Agents choose tasks from a pool based on their own competence.\n- **Teacher-Student:** A co-evolving 'teacher' proposes tasks.\n- **Procedural:** Tasks are generated algorithmically based on a complexity parameter.", key="curriculum_generation_method_selectbox")
+        self_paced_learning_rate = st.slider("Self-Paced Learning Rate", 0.0, 0.2, s.get('self_paced_learning_rate', 0.05), 0.01, disabled=curriculum_generation_method!='Self-Paced', help="How quickly agents increase the difficulty of tasks they select for themselves.", key="self_paced_learning_rate_slider")
+        procedural_content_generation_complexity = st.slider("PCG Complexity", 0.0, 1.0, s.get('procedural_content_generation_complexity', 0.0), 0.05, disabled=curriculum_generation_method!='Procedural', help="The complexity parameter for procedurally generated tasks.", key="procedural_content_generation_complexity_slider")
+        curriculum_difficulty_ceiling = st.slider("Curriculum Difficulty Ceiling", 0.5, 2.0, s.get('curriculum_difficulty_ceiling', 1.0), 0.05, disabled=not enable_advanced_curriculum, help="The maximum difficulty for any task in the curriculum.", key="curriculum_difficulty_ceiling_slider")
+
+        teacher_student_dynamics_enabled = st.checkbox("Enable Teacher-Student Dynamics", value=s.get('teacher_student_dynamics_enabled', False), disabled=curriculum_generation_method!='Teacher-Student', help="Enables a co-evolving 'teacher' population that proposes tasks to the 'student' (main) population.", key="teacher_student_dynamics_enabled_checkbox")
+        teacher_mutation_rate = st.slider("Teacher Mutation Rate", 0.05, 0.5, s.get('teacher_mutation_rate', 0.1), 0.05, disabled=not teacher_student_dynamics_enabled, help="How quickly the teacher population adapts its task proposals.", key="teacher_mutation_rate_slider")
+        task_proposal_rejection_rate = st.slider("Task Rejection Rate", 0.0, 1.0, s.get('task_proposal_rejection_rate', 0.2), 0.05, disabled=not teacher_student_dynamics_enabled, help="The probability that the student population 'rejects' a proposed task for being too hard or too easy.", key="task_proposal_rejection_rate_slider")
+        teacher_student_objective_alignment = st.slider("Teacher-Student Alignment", 0.0, 1.0, s.get('teacher_student_objective_alignment', 1.0), 0.05, disabled=not teacher_student_dynamics_enabled, help="How aligned the teacher's reward is with the student's. < 1.0 can create interesting adversarial or deceptive teaching strategies.", key="teacher_student_objective_alignment_slider")
+
+        transfer_learning_bonus = st.slider("Transfer Learning Bonus", 0.0, 0.5, s.get('transfer_learning_bonus', 0.1), 0.01, disabled=not enable_advanced_curriculum, help="A direct fitness bonus for successfully applying knowledge from a previous task to a new one.", key="transfer_learning_bonus_slider")
+        catastrophic_forgetting_penalty = st.slider("Catastrophic Forgetting Penalty", 0.0, 0.5, s.get('catastrophic_forgetting_penalty', 0.1), 0.01, disabled=not enable_advanced_curriculum, help="A fitness penalty for performance degradation on old tasks after learning a new one.", key="catastrophic_forgetting_penalty_slider")
+        curriculum_backtracking_probability = st.slider("Curriculum Backtracking Probability", 0.0, 0.5, s.get('curriculum_backtracking_probability', 0.05), 0.01, disabled=not enable_advanced_curriculum, help="Chance per generation to revisit an older, easier task to reinforce learning and prevent forgetting.", key="curriculum_backtracking_probability_slider")
+        interleaved_learning_ratio = st.slider("Interleaved Learning Ratio", 0.0, 1.0, s.get('interleaved_learning_ratio', 0.1), 0.05, disabled=not enable_advanced_curriculum, help="During curriculum transitions, the ratio of new task data vs. old task data presented.", key="interleaved_learning_ratio_slider")
+        task_decomposition_bonus = st.slider("Task Decomposition Bonus", 0.0, 1.0, s.get('task_decomposition_bonus', 0.0), 0.05, disabled=not enable_advanced_curriculum, help="A bonus for architectures that can break down complex tasks into simpler, solvable sub-tasks.", key="task_decomposition_bonus_slider")
+
+        st.markdown("---")
+        st.markdown("#### 🧑‍🤝‍🧑 Social & Multi-Agent Environment")
+        enable_social_environment = st.checkbox("Enable Social Environment", value=s.get('enable_social_environment', False), help="**Models a social world.** The environment's state is influenced by agent interactions, communication, and social structures.", key="enable_social_environment_checkbox")
+        
+        communication_channel_bandwidth = st.slider("Communication Bandwidth", 0.1, 2.0, s.get('communication_channel_bandwidth', 1.0), 0.1, disabled=not enable_social_environment, help="How much information agents can exchange per generation. Higher values allow for more complex social signals.", key="communication_channel_bandwidth_slider")
+        communication_channel_noise = st.slider("Communication Noise", 0.0, 1.0, s.get('communication_channel_noise', 0.0), 0.05, disabled=not enable_social_environment, help="How reliable communication is. High noise favors robust or redundant signaling.", key="communication_channel_noise_slider")
+        social_signal_cost = st.slider("Social Signal Cost", 0.0, 0.1, s.get('social_signal_cost', 0.001), 0.001, format="%.3f", disabled=not enable_social_environment, help="The fitness cost for an agent to send a signal, promoting efficient communication.", key="social_signal_cost_slider")
+        
+        common_knowledge_bonus = st.slider("Common Knowledge Bonus", 0.0, 1.0, s.get('common_knowledge_bonus', 0.0), 0.05, disabled=not enable_social_environment, help="A group-level reward for the population establishing a 'common knowledge' state (e.g., all agents know that all other agents know X).", key="common_knowledge_bonus_slider")
+        deception_penalty = st.slider("Deception Penalty", 0.0, 1.0, s.get('deception_penalty', 0.0), 0.05, disabled=not enable_social_environment, help="A penalty for sending misleading signals (if the system can detect it), punishing 'liars'.", key="deception_penalty_slider")
+        reputation_system_fidelity = st.slider("Reputation System Fidelity", 0.0, 1.0, s.get('reputation_system_fidelity', 0.9), 0.05, disabled=not enable_social_environment, help="How accurately an agent's reputation (e.g., for cooperation) is tracked and propagated through the population.", key="reputation_system_fidelity_slider")
+        sanctioning_effectiveness = st.slider("Sanctioning Effectiveness", 0.0, 1.0, s.get('sanctioning_effectiveness', 0.5), 0.05, disabled=not enable_social_environment, help="How effective punishment mechanisms are for non-cooperators. High values make punishment a strong deterrent.", key="sanctioning_effectiveness_slider")
+        network_reciprocity_bonus = st.slider("Network Reciprocity Bonus", 0.0, 1.0, s.get('network_reciprocity_bonus', 0.0), 0.05, disabled=not enable_social_environment, help="A fitness bonus for forming reciprocal altruistic relationships within a social network structure.", key="network_reciprocity_bonus_slider")
+        social_learning_mechanism = st.selectbox("Social Learning Mechanism", ['Imitation', 'Emulation', 'Instruction'], index=['Imitation', 'Emulation', 'Instruction'].index(s.get('social_learning_mechanism', 'Imitation')), disabled=not enable_social_environment, help="**How agents learn from others:**\n- **Imitation:** Copying actions.\n- **Emulation:** Copying goals/outcomes.\n- **Instruction:** Direct information transfer.", key="social_learning_mechanism_selectbox")
+        cultural_ratchet_bonus = st.slider("Cultural Ratchet Bonus", 0.0, 1.0, s.get('cultural_ratchet_bonus', 0.0), 0.05, disabled=not enable_social_environment, help="A bonus for innovations that are learned by others and then improved upon by the next generation, simulating cumulative culture.", key="cultural_ratchet_bonus_slider")
+        social_norm_emergence_bonus = st.slider("Social Norm Emergence Bonus", 0.0, 1.0, s.get('social_norm_emergence_bonus', 0.0), 0.05, disabled=not enable_social_environment, help="A group-level bonus for converging on a shared, arbitrary behavioral norm, promoting social cohesion.", key="social_norm_emergence_bonus_slider")
+        tribalism_factor = st.slider("Tribalism Factor (In-group Bias)", 0.0, 1.0, s.get('tribalism_factor', 0.0), 0.05, disabled=not enable_social_environment, help="How much agents favor interaction with members of their own species/kin group over outsiders.", key="tribalism_factor_slider")
+
+        st.markdown("---")
+        st.markdown("#### ♾️ Open-Ended & Autotelic Dynamics")
+        enable_open_endedness = st.checkbox("Enable Open-Ended Evolution", value=s.get('enable_open_endedness', False), help="**Removes the fixed goal.** Rewards agents for discovering novel behaviors and constructing their own complex environments, driving towards unbounded complexity.", key="enable_open_endedness_checkbox")
+        
+        novelty_metric = st.selectbox("Novelty Metric", ['Behavioral', 'Genotypic', 'Phenotypic'], index=['Behavioral', 'Genotypic', 'Phenotypic'].index(s.get('novelty_metric', 'Behavioral')), disabled=not enable_open_endedness, help="What is measured to determine novelty. Behavioral is based on actions, Genotypic on genes, Phenotypic on final architecture.", key="novelty_metric_selectbox")
+        poi_novelty_threshold = st.slider("POI Novelty Threshold", 0.0, 1.0, s.get('poi_novelty_threshold', 0.1), 0.05, disabled=not enable_open_endedness, help="Potential of Interest: The threshold for a new behavior/genotype to be considered 'novel' and added to the archive.", key="poi_novelty_threshold_slider")
+        minimal_criterion_coevolution_rate = st.slider("Minimal Criterion Co-evolution Rate", 0.0, 0.1, s.get('minimal_criterion_coevolution_rate', 0.01), 0.005, disabled=not enable_open_endedness, help="Rate at which the objective itself co-evolves to be 'just challenging enough' to maintain progress.", key="minimal_criterion_coevolution_rate_slider")
+        autopoiesis_pressure = st.slider("Autopoiesis Pressure", 0.0, 1.0, s.get('autopoiesis_pressure', 0.0), 0.05, disabled=not enable_open_endedness, help="From Maturana & Varela, a pressure rewarding agents that can actively maintain their own organizational structure against environmental decay.", key="autopoiesis_pressure_slider")
+        environmental_construction_bonus = st.slider("Environmental Construction Bonus", 0.0, 1.0, s.get('environmental_construction_bonus', 0.0), 0.05, disabled=not enable_open_endedness, help="An intrinsic reward for agents that actively modify the environment in complex, novel ways (niche construction).", key="environmental_construction_bonus_slider")
+        goal_switching_cost = st.slider("Goal Switching Cost", 0.0, 0.2, s.get('goal_switching_cost', 0.01), 0.005, disabled=not enable_open_endedness, help="A fitness cost associated with an agent changing its intrinsic goal, promoting goal stability.", key="goal_switching_cost_slider")
+        solution_archive_capacity = st.slider("Solution Archive Capacity", 100, 5000, s.get('solution_archive_capacity', 1000), 100, disabled=not enable_open_endedness, help="The size of the archive of past solutions used to calculate novelty.", key="solution_archive_capacity_slider")
+        local_competition_radius = st.slider("Local Competition Radius", 0.0, 1.0, s.get('local_competition_radius', 0.1), 0.05, disabled=not enable_open_endedness, help="In novelty search, agents only compete for novelty with others within this radius in behavior space, creating local niches.", key="local_competition_radius_slider")
+        information_seeking_drive = st.slider("Information Seeking Drive", 0.0, 1.0, s.get('information_seeking_drive', 0.0), 0.05, disabled=not enable_open_endedness, help="An intrinsic reward for actions that lead to a high reduction in uncertainty about the environment's state (information gain).", key="information_seeking_drive_slider")
+        open_ended_archive_sampling_bias = st.selectbox("Novelty Archive Sampling Bias", ['Uniform', 'Recency', 'Fitness'], index=['Uniform', 'Recency', 'Fitness'].index(s.get('open_ended_archive_sampling_bias', 'Uniform')), disabled=not enable_open_endedness, help="How to sample from the archive for novelty calculation. Recency focuses on recent discoveries, Fitness on high-performing ones.", key="open_ended_archive_sampling_bias_selectbox")
+        goal_embedding_space_dims = st.slider("Goal Embedding Space Dims", 2, 64, s.get('goal_embedding_space_dims', 8), 2, disabled=not enable_open_endedness, help="The dimensionality of the latent space of possible goals agents can pursue.", key="goal_embedding_space_dims_slider")
+
     st.sidebar.markdown("### Population Parameters")
     num_forms = st.sidebar.number_input(
         "Number of Architectural Forms",
@@ -3749,6 +3885,64 @@ def main():
         'enable_iterative_seeding': enable_iterative_seeding,
         'num_elites_to_seed': num_elites_to_seed,
         'seeded_elite_mutation_strength': seeded_elite_mutation_strength,
+        # --- NEW DYNAMIC ENVIRONMENT SETTINGS ---
+        'enable_advanced_environment_physics': enable_advanced_environment_physics,
+        'non_stationarity_mode': non_stationarity_mode,
+        'drift_velocity': drift_velocity,
+        'shift_magnitude': shift_magnitude,
+        'cycle_period': cycle_period,
+        'chaotic_attractor_type': chaotic_attractor_type,
+        'environmental_memory_strength': environmental_memory_strength,
+        'resource_distribution_mode': resource_distribution_mode,
+        'resource_regeneration_rate': resource_regeneration_rate,
+        'task_space_curvature': task_space_curvature,
+        'environmental_viscosity': environmental_viscosity,
+        'environmental_temperature': environmental_temperature,
+        'task_noise_correlation_time': task_noise_correlation_time,
+        'environmental_lag': environmental_lag,
+        'resource_scarcity_level': resource_scarcity_level,
+
+        'enable_advanced_curriculum': enable_advanced_curriculum,
+        'curriculum_generation_method': curriculum_generation_method,
+        'self_paced_learning_rate': self_paced_learning_rate,
+        'teacher_student_dynamics_enabled': teacher_student_dynamics_enabled,
+        'teacher_mutation_rate': teacher_mutation_rate,
+        'task_proposal_rejection_rate': task_proposal_rejection_rate,
+        'transfer_learning_bonus': transfer_learning_bonus,
+        'catastrophic_forgetting_penalty': catastrophic_forgetting_penalty,
+        'curriculum_backtracking_probability': curriculum_backtracking_probability,
+        'interleaved_learning_ratio': interleaved_learning_ratio,
+        'task_decomposition_bonus': task_decomposition_bonus,
+        'procedural_content_generation_complexity': procedural_content_generation_complexity,
+        'curriculum_difficulty_ceiling': curriculum_difficulty_ceiling,
+        'teacher_student_objective_alignment': teacher_student_objective_alignment,
+
+        'enable_social_environment': enable_social_environment,
+        'communication_channel_bandwidth': communication_channel_bandwidth,
+        'communication_channel_noise': communication_channel_noise,
+        'social_signal_cost': social_signal_cost,
+        'common_knowledge_bonus': common_knowledge_bonus,
+        'deception_penalty': deception_penalty,
+        'reputation_system_fidelity': reputation_system_fidelity,
+        'sanctioning_effectiveness': sanctioning_effectiveness,
+        'network_reciprocity_bonus': network_reciprocity_bonus,
+        'social_learning_mechanism': social_learning_mechanism,
+        'cultural_ratchet_bonus': cultural_ratchet_bonus,
+        'social_norm_emergence_bonus': social_norm_emergence_bonus,
+        'tribalism_factor': tribalism_factor,
+
+        'enable_open_endedness': enable_open_endedness,
+        'poi_novelty_threshold': poi_novelty_threshold,
+        'minimal_criterion_coevolution_rate': minimal_criterion_coevolution_rate,
+        'autopoiesis_pressure': autopoiesis_pressure,
+        'environmental_construction_bonus': environmental_construction_bonus,
+        'goal_switching_cost': goal_switching_cost,
+        'solution_archive_capacity': solution_archive_capacity,
+        'novelty_metric': novelty_metric,
+        'local_competition_radius': local_competition_radius,
+        'information_seeking_drive': information_seeking_drive,
+        'open_ended_archive_sampling_bias': open_ended_archive_sampling_bias,
+        'goal_embedding_space_dims': goal_embedding_space_dims,
         # --- NEW FINALIZATION SETTINGS ---
         'enable_ensemble_creation': enable_ensemble_creation,
         'ensemble_size': ensemble_size,
