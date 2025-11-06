@@ -1,4 +1,4 @@
-"""
+:"""
 GENEVO: Advanced Neuroevolutionary System for AGI
 A scientifically rigorous implementation of genetic neural architecture evolution
 
@@ -2193,7 +2193,7 @@ def main():
     s = st.session_state.get('settings', {})
 
     # --- META-EVOLUTION EXPANDER ---
-    with st.sidebar.expander("🤖 Meta-Evolution & Self-Configuration", expanded=False):
+    with st.sidebar.expander("🛰️ Meta-Evolution & Self-Configuration", expanded=False):
         st.markdown("Enable the system to evolve its own hyperparameters, automating the search for optimal evolutionary dynamics.")
         enable_hyperparameter_evolution = st.checkbox(
             "Enable Hyperparameter Co-evolution",
@@ -2465,7 +2465,7 @@ def main():
             key="endosymbiosis_rate_slider"
         )
 
-    with st.sidebar.expander("🤖 Co-evolutionary & Embodiment Dynamics", expanded=False):
+    with st.sidebar.expander("🛰️ Co-evolutionary & Embodiment Dynamics", expanded=False):
         st.markdown("""
         **WARNING: HIGHLY ADVANCED & COMPUTATIONALLY INTENSIVE.**
         
@@ -3297,7 +3297,7 @@ def main():
         st.markdown("Define automated post-evolution analysis and synthesis steps that run after the main evolutionary process concludes.")
         
         st.markdown("---")
-        st.markdown("##### 🤖 Automated Ensemble Creation")
+        st.markdown("##### 🛰️ Automated Ensemble Creation")
         enable_ensemble_creation = st.checkbox(
             "Create Ensemble from Pareto Front",
             value=s.get('enable_ensemble_creation', False),
