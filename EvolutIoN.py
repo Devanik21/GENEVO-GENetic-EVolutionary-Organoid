@@ -2842,7 +2842,7 @@ def main():
         st.markdown("Define automated post-evolution analysis and synthesis steps that run after the main evolutionary process concludes.")
         
         st.markdown("---")
-        st.markdown("#####  Automated Ensemble Creation")
+        st.markdown("#####  ✨ Automated Ensemble Creation")
         enable_ensemble_creation = st.checkbox(
             "Create Ensemble from Pareto Front",
             value=s.get('enable_ensemble_creation', False),
