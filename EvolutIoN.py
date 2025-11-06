@@ -2186,6 +2186,16 @@ def main():
             'embodiment_gravity': 9.8,
             'embodiment_friction': 0.5,
         })
+        # --- NEW MULTI-LEVEL SELECTION DEFAULTS ---
+        st.session_state.settings.update({
+            'enable_multi_level_selection': False,
+            'colony_formation_method': 'Kinship',
+            'colony_size': 10,
+            'group_fitness_weight': 0.3,
+            'selfishness_suppression_cost': 0.05,
+            'caste_specialization_bonus': 0.1,
+            'inter_colony_competition_rate': 0.1,
+        })
         st.toast("Parameters reset to optimal defaults!", icon="⚙️")
         st.rerun()
 
@@ -2591,6 +2601,49 @@ def main():
 
         st.info(
             "Hover over the (?) on each checkbox for a detailed explanation of the dynamic."
+        )
+
+    with st.sidebar.expander("👑 Multi-Level & Social Evolution (Major Transitions)", expanded=False):
+        st.markdown("""
+        **THEORETICAL APEX: SIMULATING THE ORIGINS OF COMPLEXITY.**
+        
+        This section models one of the deepest concepts in evolutionary biology: **Major Evolutionary Transitions**, where groups of individuals become so integrated they form a new, higher-level "superorganism" (e.g., cells to multicellular life, insects to a hive).
+        
+        - **Mechanism:** It introduces a second layer of selection. Individuals are selected based on their own fitness, but they are also grouped into **Colonies**, and these colonies are selected based on group performance.
+        - **Dynamics:** This creates a fundamental conflict between individual selfishness and group cooperation.
+        
+        **WARNING:** This is the most computationally and conceptually complex feature. It simulates populations of populations and can lead to extremely rich but unpredictable social dynamics.
+        """)
+        st.markdown("---")
+        
+        enable_multi_level_selection = st.checkbox(
+            "Enable Multi-Level Selection (MLS)",
+            value=s.get('enable_multi_level_selection', False),
+            help="**Evolve colonies, not just individuals.** Activates a two-tiered selection system, creating a dynamic tension between individual-level and group-level fitness.",
+            key="enable_multi_level_selection_checkbox"
+        )
+        
+        colony_formation_method = st.selectbox(
+            "Colony Formation Method",
+            ['Kinship', 'Random Grouping', 'Trait-Based Assortment'],
+            index=['Kinship', 'Random Grouping', 'Trait-Based Assortment'].index(s.get('colony_formation_method', 'Kinship')),
+            disabled=not enable_multi_level_selection,
+            help="**How colonies are formed:**\n- **Kinship:** Groups are formed from closely related individuals (siblings).\n- **Random Grouping:** Groups are formed randomly.\n- **Trait-Based Assortment:** Individuals with a similar 'social' gene group together.",
+            key="colony_formation_method_selectbox"
+        )
+        
+        colony_size = st.slider("Colony Size", 5, 50, s.get('colony_size', 10), 5, disabled=not enable_multi_level_selection, help="The number of individuals per colony.", key="colony_size_slider")
+        
+        group_fitness_weight = st.slider("Group Fitness Weight (Altruism Pressure)", 0.0, 1.0, s.get('group_fitness_weight', 0.3), 0.05, disabled=not enable_multi_level_selection, help="The proportion of an individual's final fitness that comes from its colony's success. High values reward altruism and punish selfishness.", key="group_fitness_weight_slider")
+        
+        selfishness_suppression_cost = st.slider("Selfishness Suppression Cost", 0.0, 0.2, s.get('selfishness_suppression_cost', 0.05), 0.01, disabled=not enable_multi_level_selection, help="A fitness cost applied to colonies that successfully evolve 'policing' mechanisms to suppress individual cheating, modeling the cost of maintaining social order.", key="selfishness_suppression_cost_slider")
+        
+        caste_specialization_bonus = st.slider("Caste Specialization Bonus", 0.0, 0.5, s.get('caste_specialization_bonus', 0.1), 0.01, disabled=not enable_multi_level_selection, help="A group-level fitness bonus if the colony's members successfully differentiate into distinct phenotypic 'castes' (e.g., workers and soldiers), rewarding division of labor.", key="caste_specialization_bonus_slider")
+        
+        inter_colony_competition_rate = st.slider("Inter-Colony Competition Rate", 0.0, 1.0, s.get('inter_colony_competition_rate', 0.1), 0.05, disabled=not enable_multi_level_selection, help="The rate at which colonies compete with each other, leading to the dissolution of losing colonies and the propagation of winning ones. Simulates tribal warfare or competition between hives.", key="inter_colony_competition_rate_slider")
+        
+        st.info(
+            "Multi-Level Selection is the theoretical framework for understanding the evolution of cooperation and sociality."
         )
 
     with st.sidebar.expander("Advanced Mutation Control"):
@@ -3380,6 +3433,14 @@ def main():
         'physical_realism_factor': physical_realism_factor,
         'embodiment_gravity': embodiment_gravity,
         'embodiment_friction': embodiment_friction,
+        # --- NEW MULTI-LEVEL SELECTION SETTINGS ---
+        'enable_multi_level_selection': enable_multi_level_selection,
+        'colony_formation_method': colony_formation_method,
+        'colony_size': colony_size,
+        'group_fitness_weight': group_fitness_weight,
+        'selfishness_suppression_cost': selfishness_suppression_cost,
+        'caste_specialization_bonus': caste_specialization_bonus,
+        'inter_colony_competition_rate': inter_colony_competition_rate,
         'epistatic_linkage_k': epistatic_linkage_k,
         'gene_flow_rate': gene_flow_rate,
         'niche_competition_factor': niche_competition_factor,
