@@ -2115,6 +2115,59 @@ def main():
             'zpd_scaffolding_bonus': 0.0, 'symbol_grounding_constraint': 0.0,
         }
         st.session_state.settings = optimal_defaults
+        # --- NEW ADVANCED FRAMEWORKS DEFAULTS ---
+        st.session_state.settings.update({
+            'enable_advanced_frameworks': False,
+            # Computational Logic
+            'chaitin_omega_bias': 0.0,
+            'godel_incompleteness_penalty': 0.0,
+            'turing_completeness_bonus': 0.0,
+            'lambda_calculus_isomorphism': 0.0,
+            'proof_complexity_cost': 0.0,
+            'constructive_type_theory_adherence': 0.0,
+            # Learning Theory
+            'pac_bayes_bound_minimization': 0.0,
+            'vc_dimension_constraint': 0.0,
+            'rademacher_complexity_penalty': 0.0,
+            'algorithmic_stability_pressure': 0.0,
+            'maml_readiness_bonus': 0.0,
+            'causal_inference_engine_bonus': 0.0,
+            # Morphogenesis
+            'reaction_diffusion_activator_rate': 0.0,
+            'reaction_diffusion_inhibitor_rate': 0.0,
+            'morphogen_gradient_decay': 0.0,
+            'cell_adhesion_factor': 0.0,
+            'apoptosis_schedule_factor': 0.0,
+            'hox_gene_expression_control': 0.0,
+            # Collective Intelligence
+            'stigmergy_potential_factor': 0.0,
+            'quorum_sensing_threshold': 0.0,
+            'social_learning_fidelity': 0.0,
+            'cultural_transmission_rate': 0.0,
+            'division_of_labor_incentive': 0.0,
+            'consensus_algorithm_efficiency': 0.0,
+            # Game Theory
+            'hawk_dove_strategy_ratio': 0.5,
+            'ultimatum_game_fairness_pressure': 0.0,
+            'principal_agent_alignment_bonus': 0.0,
+            'market_clearing_price_efficiency': 0.0,
+            'contract_theory_enforcement_cost': 0.0,
+            'vickrey_auction_selection_bonus': 0.0,
+            # Neuromodulation
+            'dopamine_reward_prediction_error': 0.0,
+            'serotonin_uncertainty_signal': 0.0,
+            'acetylcholine_attentional_gain': 0.0,
+            'noradrenaline_arousal_level': 0.0,
+            'bcm_rule_sliding_threshold': 0.0,
+            'synaptic_scaling_homeostasis': 0.0,
+            # Abstract Algebra
+            'group_theory_symmetry_bonus': 0.0,
+            'category_theory_functorial_bonus': 0.0,
+            'monad_structure_bonus': 0.0,
+            'lie_algebra_dynamics_prior': 0.0,
+            'simplicial_complex_bonus': 0.0,
+            'sheaf_computation_consistency': 0.0,
+        })
         st.toast("Parameters reset to optimal defaults!", icon="⚙️")
         st.rerun()
 
@@ -2122,7 +2175,7 @@ def main():
     s = st.session_state.get('settings', {})
 
     # --- META-EVOLUTION EXPANDER ---
-    with st.sidebar.expander("Meta-Evolution & Self-Configuration", expanded=False):
+    with st.sidebar.expander("🤖 Meta-Evolution & Self-Configuration", expanded=False):
         st.markdown("Enable the system to evolve its own hyperparameters, automating the search for optimal evolutionary dynamics.")
         enable_hyperparameter_evolution = st.checkbox(
             "Enable Hyperparameter Co-evolution",
@@ -2459,6 +2512,266 @@ def main():
             key="compatibility_threshold_slider"
         )
         st.info("Speciation uses a genomic distance metric based on form, module/connection differences, and parameter differences.")
+
+    with st.sidebar.expander("🌌 Advanced Algorithmic & Theoretical Frameworks", expanded=False):
+        enable_advanced_frameworks = st.checkbox(
+            "Enable Advanced Frameworks Engine",
+            value=s.get('enable_advanced_frameworks', False),
+            help="""
+            **WARNING: HIGHLY EXPERIMENTAL & UNSTABLE.**
+            
+            This section introduces parameters derived from deep theoretical computer science, advanced learning theory, and abstract mathematical concepts. They impose extremely specific and powerful priors on the evolutionary search.
+            
+            - **Effect:** These are not simple fitness bonuses. They fundamentally alter the geometry of the search space itself.
+            - **Use Case:** For research into the absolute cutting-edge of theoretical AI and A-Life. Not for general use.
+            
+            **Enabling this may lead to beautiful, mathematically profound, but completely non-functional architectures. The risk of total evolutionary collapse is extremely high.**
+            """,
+            key="enable_advanced_frameworks_checkbox"
+        )
+
+        if not enable_advanced_frameworks:
+            st.warning("Advanced Frameworks Engine is disabled. These parameters will have no effect.")
+        else:
+            st.success("Advanced Frameworks Engine is ACTIVE. You are manipulating abstract theoretical constructs. Expect the unexpected.")
+
+        st.markdown("---")
+        st.markdown("#### 1. Computational Logic & Metamathematics")
+
+        chaitin_omega_bias = st.slider(
+            "Chaitin's Omega Bias (Algorithmic Randomness)", 0.0, 1.0, s.get('chaitin_omega_bias', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="chaitin_omega_bias_slider",
+            help="**Bias towards incompressible complexity.** Applies a fitness pressure favoring architectures whose description is algorithmically random (high Kolmogorov complexity), simulating a bias towards structures that resemble Chaitin's constant Ω."
+        )
+        godel_incompleteness_penalty = st.slider(
+            "Gödelian Incompleteness Penalty", 0.0, 1.0, s.get('godel_incompleteness_penalty', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="godel_incompleteness_penalty_slider",
+            help="**Penalizes axiomatic rigidity.** Applies a fitness cost to architectures that become too 'formal' or 'axiomatic', promoting systems that remain open to new, unprovable information. A conceptual check against rigid over-specialization."
+        )
+        turing_completeness_bonus = st.slider(
+            "Turing Completeness Bonus", 0.0, 1.0, s.get('turing_completeness_bonus', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="turing_completeness_bonus_slider",
+            help="**Rewards computational universality.** A bonus for architectures that exhibit properties consistent with Turing completeness (e.g., conditional branching, memory manipulation), such as the presence of recurrent loops and gating mechanisms."
+        )
+        lambda_calculus_isomorphism = st.slider(
+            "Lambda Calculus Isomorphism", 0.0, 1.0, s.get('lambda_calculus_isomorphism', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="lambda_calculus_isomorphism_slider",
+            help="**Pressure towards functional programming structures.** Rewards architectures whose graph structure is isomorphic to expressions in lambda calculus (e.g., clear function application, abstraction, and variable binding)."
+        )
+        proof_complexity_cost = st.slider(
+            "Proof Complexity Cost", 0.0, 1.0, s.get('proof_complexity_cost', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="proof_complexity_cost_slider",
+            help="**Cost based on logical verification.** A fitness cost proportional to the complexity of generating a formal 'proof' of the network's output from its input, favoring architectures with simple, verifiable reasoning paths."
+        )
+        constructive_type_theory_adherence = st.slider(
+            "Constructive Type Theory Adherence", 0.0, 1.0, s.get('constructive_type_theory_adherence', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="constructive_type_theory_adherence_slider",
+            help="**Rewards Curry-Howard correspondence.** Favors architectures where modules represent types and connections represent functions, aligning the network structure with principles of constructive mathematics and type theory."
+        )
+
+        st.markdown("---")
+        st.markdown("#### 2. Advanced Statistical Learning Theory")
+
+        pac_bayes_bound_minimization = st.slider(
+            "PAC-Bayes Bound Minimization", 0.0, 1.0, s.get('pac_bayes_bound_minimization', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="pac_bayes_bound_minimization_slider",
+            help="**Directly optimize for generalization.** Applies a fitness pressure to minimize the PAC-Bayesian bound on the generalization error, which balances empirical performance with the 'distance' from a prior distribution over weights."
+        )
+        vc_dimension_constraint = st.slider(
+            "VC Dimension Constraint", 0.0, 1.0, s.get('vc_dimension_constraint', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="vc_dimension_constraint_slider",
+            help="**Penalize model capacity.** Applies a fitness cost based on the estimated Vapnik-Chervonenkis (VC) dimension of the architecture, directly penalizing the model's capacity to shatter data and thus promoting better generalization."
+        )
+        rademacher_complexity_penalty = st.slider(
+            "Rademacher Complexity Penalty", 0.0, 1.0, s.get('rademacher_complexity_penalty', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="rademacher_complexity_penalty_slider",
+            help="**Data-dependent generalization bound.** Penalizes architectures based on their Rademacher complexity, a measure of how well the function class can fit random noise. A more sophisticated alternative to VC dimension."
+        )
+        algorithmic_stability_pressure = st.slider(
+            "Algorithmic Stability Pressure", 0.0, 1.0, s.get('algorithmic_stability_pressure', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="algorithmic_stability_pressure_slider",
+            help="**Reward robustness to data sampling.** Favors architectures whose lifetime learning process is 'stable', meaning small changes in the training data lead to small changes in the final learned model."
+        )
+        maml_readiness_bonus = st.slider(
+            "MAML Readiness Bonus", 0.0, 1.0, s.get('maml_readiness_bonus', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="maml_readiness_bonus_slider",
+            help="**Evolve for fast adaptation.** A fitness bonus for architectures whose parameter landscape is well-suited for meta-learning via Model-Agnostic Meta-Learning (MAML), i.e., they are easy to fine-tune to new tasks."
+        )
+        causal_inference_engine_bonus = st.slider(
+            "Causal Inference Engine Bonus", 0.0, 1.0, s.get('causal_inference_engine_bonus', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="causal_inference_engine_bonus_slider",
+            help="**Reward for reasoning about interventions.** A bonus for architectures that develop structures capable of performing causal inference, for example, by approximating Pearl's do-calculus or having separate observational and interventional pathways."
+        )
+
+        st.markdown("---")
+        st.markdown("#### 3. Morphogenetic Engineering & Artificial Embryogeny")
+
+        reaction_diffusion_activator_rate = st.slider(
+            "Reaction-Diffusion Activator Rate", 0.0, 1.0, s.get('reaction_diffusion_activator_rate', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="reaction_diffusion_activator_rate_slider",
+            help="**Controls the 'activator' in a Turing pattern.** In a simulated reaction-diffusion system for development, this controls the production rate of the self-catalyzing activator chemical."
+        )
+        reaction_diffusion_inhibitor_rate = st.slider(
+            "Reaction-Diffusion Inhibitor Rate", 0.0, 1.0, s.get('reaction_diffusion_inhibitor_rate', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="reaction_diffusion_inhibitor_rate_slider",
+            help="**Controls the 'inhibitor' in a Turing pattern.** This controls the production rate of the long-range inhibitor, which is necessary for forming stable patterns like spots or stripes in module placement."
+        )
+        morphogen_gradient_decay = st.slider(
+            "Morphogen Gradient Decay", 0.0, 1.0, s.get('morphogen_gradient_decay', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="morphogen_gradient_decay_slider",
+            help="**Controls developmental signaling range.** Sets the decay rate of simulated morphogen gradients, which cells use to determine their position and fate. High decay = short-range signaling and sharp boundaries."
+        )
+        cell_adhesion_factor = st.slider(
+            "Cell Adhesion Factor", 0.0, 1.0, s.get('cell_adhesion_factor', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="cell_adhesion_factor_slider",
+            help="**Simulates physical cell-cell adhesion.** A force that encourages modules of the same 'type' to cluster together during simulated development, leading to more cohesive and segregated brain regions."
+        )
+        apoptosis_schedule_factor = st.slider(
+            "Apoptosis Schedule Factor", 0.0, 1.0, s.get('apoptosis_schedule_factor', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="apoptosis_schedule_factor_slider",
+            help="**Controls programmed cell death.** A parameter influencing a developmental timer that triggers apoptosis (programmed death) of certain modules, allowing for sculpting of the final architecture by removal."
+        )
+        hox_gene_expression_control = st.slider(
+            "Hox Gene Expression Control", 0.0, 1.0, s.get('hox_gene_expression_control', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="hox_gene_expression_control_slider",
+            help="**Simulates master developmental genes.** A bonus for architectures that evolve a small set of 'master' genes that control the identity and placement of large regions of the network, analogous to Hox genes defining body segments."
+        )
+
+        st.markdown("---")
+        st.markdown("#### 4. Collective Intelligence & Socio-Cultural Dynamics")
+
+        stigmergy_potential_factor = st.slider(
+            "Stigmergy Potential Factor", 0.0, 1.0, s.get('stigmergy_potential_factor', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="stigmergy_potential_factor_slider",
+            help="**Rewards indirect communication.** A bonus for architectures that can modify a shared 'environment' (e.g., epigenetic markers) that other individuals can then sense, simulating ant-like stigmergic communication."
+        )
+        quorum_sensing_threshold = st.slider(
+            "Quorum Sensing Threshold", 0.0, 1.0, s.get('quorum_sensing_threshold', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="quorum_sensing_threshold_slider",
+            help="**Enables collective action.** In a multi-agent context, this sets the threshold of 'signal' density required for a population to switch to a collective behavior, simulating bacterial quorum sensing."
+        )
+        social_learning_fidelity = st.slider(
+            "Social Learning Fidelity", 0.0, 1.0, s.get('social_learning_fidelity', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="social_learning_fidelity_slider",
+            help="**Controls accuracy of cultural inheritance.** The fidelity with which an individual can copy a structural motif or parameter set from a successful peer (non-genetically). High fidelity allows for rapid cultural evolution."
+        )
+        cultural_transmission_rate = st.slider(
+            "Cultural Transmission Rate (Memetics)", 0.0, 1.0, s.get('cultural_transmission_rate', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="cultural_transmission_rate_slider",
+            help="**The rate of 'meme' propagation.** The probability that a successful architectural motif (a 'meme') is copied horizontally to other individuals in the population, bypassing standard genetic inheritance."
+        )
+        division_of_labor_incentive = st.slider(
+            "Division of Labor Incentive", 0.0, 1.0, s.get('division_of_labor_incentive', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="division_of_labor_incentive_slider",
+            help="**Rewards eco-systemic specialization.** A fitness bonus applied to the whole population if it successfully diversifies into distinct, complementary 'castes' or species that occupy different niches."
+        )
+        consensus_algorithm_efficiency = st.slider(
+            "Consensus Algorithm Efficiency", 0.0, 1.0, s.get('consensus_algorithm_efficiency', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="consensus_algorithm_efficiency_slider",
+            help="**Rewards distributed agreement.** A bonus for populations that evolve mechanisms to quickly and accurately reach a consensus on a shared value, simulating algorithms like Paxos or Raft."
+        )
+
+        st.markdown("---")
+        st.markdown("#### 5. Advanced Game Theory & Economic Models")
+
+        hawk_dove_strategy_ratio = st.slider(
+            "Hawk-Dove Strategy Ratio", 0.0, 1.0, s.get('hawk_dove_strategy_ratio', 0.5), 0.01,
+            disabled=not enable_advanced_frameworks, key="hawk_dove_strategy_ratio_slider",
+            help="**Sets the payoff for aggression.** In a simulated Hawk-Dove game for resources, this sets the cost of conflict. Low values favor aggressive 'Hawk' strategies; high values favor passive 'Dove' strategies."
+        )
+        ultimatum_game_fairness_pressure = st.slider(
+            "Ultimatum Game Fairness Pressure", 0.0, 1.0, s.get('ultimatum_game_fairness_pressure', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="ultimatum_game_fairness_pressure_slider",
+            help="**Rewards 'fair' resource sharing.** Simulates an Ultimatum Game between individuals and rewards populations that converge on 'fair' proposals, promoting the evolution of cooperative norms."
+        )
+        principal_agent_alignment_bonus = st.slider(
+            "Principal-Agent Alignment Bonus", 0.0, 1.0, s.get('principal_agent_alignment_bonus', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="principal_agent_alignment_bonus_slider",
+            help="**Rewards internal goal alignment.** Models the architecture as a 'firm' with a principal (output layer) and agents (internal modules). Rewards architectures where agent behavior (e.g., maximizing local information) aligns with the principal's goal (maximizing fitness)."
+        )
+        market_clearing_price_efficiency = st.slider(
+            "Market Clearing Price Efficiency", 0.0, 1.0, s.get('market_clearing_price_efficiency', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="market_clearing_price_efficiency_slider",
+            help="**Simulates a computational market.** Models connections as a market for information and rewards architectures that achieve an efficient 'market clearing price', balancing supply and demand for computation."
+        )
+        contract_theory_enforcement_cost = st.slider(
+            "Contract Theory Enforcement Cost", 0.0, 1.0, s.get('contract_theory_enforcement_cost', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="contract_theory_enforcement_cost_slider",
+            help="**The cost of enforcing cooperation.** In multi-module systems, this parameter represents the fitness cost of mechanisms that enforce 'contracts' (i.e., expected behavior) between modules, penalizing overly complex control systems."
+        )
+        vickrey_auction_selection_bonus = st.slider(
+            "Vickrey Auction Selection Bonus", 0.0, 1.0, s.get('vickrey_auction_selection_bonus', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="vickrey_auction_selection_bonus_slider",
+            help="**Rewards truthful 'bidding' for survival.** A selection mechanism where individuals 'bid' their fitness, and survivors are chosen via a Vickrey (second-price) auction. This incentivizes the evolution of accurate self-assessment of fitness."
+        )
+
+        st.markdown("---")
+        st.markdown("#### 6. Advanced Neuromodulation & Synaptic Plasticity")
+
+        dopamine_reward_prediction_error = st.slider(
+            "Dopaminergic RPE Modulation", 0.0, 1.0, s.get('dopamine_reward_prediction_error', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="dopamine_reward_prediction_error_slider",
+            help="**Simulates dopamine's role in learning.** Modulates the plasticity of connections based on a simulated Reward Prediction Error (RPE). Positive RPE increases plasticity (learning), negative RPE decreases it."
+        )
+        serotonin_uncertainty_signal = st.slider(
+            "Serotonergic Uncertainty Signal", 0.0, 1.0, s.get('serotonin_uncertainty_signal', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="serotonin_uncertainty_signal_slider",
+            help="**Simulates serotonin's role in mood and risk.** Modulates global learning rates based on environmental uncertainty or volatility. High uncertainty leads to lower learning rates (more cautious updates)."
+        )
+        acetylcholine_attentional_gain = st.slider(
+            "Cholinergic Attentional Gain", 0.0, 1.0, s.get('acetylcholine_attentional_gain', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="acetylcholine_attentional_gain_slider",
+            help="**Simulates acetylcholine's role in attention.** Increases the activation gain (sharpening the response) of modules that are targets of attentional mechanisms."
+        )
+        noradrenaline_arousal_level = st.slider(
+            "Noradrenergic Arousal Level", 0.0, 1.0, s.get('noradrenaline_arousal_level', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="noradrenaline_arousal_level_slider",
+            help="**Simulates noradrenaline's role in arousal/vigilance.** A global signal that affects network excitability and the exploration/exploitation trade-off. High arousal can increase network 'temperature' and promote exploration."
+        )
+        bcm_rule_sliding_threshold = st.slider(
+            "BCM Rule Sliding Threshold", 0.0, 1.0, s.get('bcm_rule_sliding_threshold', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="bcm_rule_sliding_threshold_slider",
+            help="**Controls metaplasticity.** In a Bienenstock-Cooper-Munro (BCM) learning rule simulation, this controls how the threshold between potentiation and depression slides based on past activity, preventing runaway feedback loops."
+        )
+        synaptic_scaling_homeostasis = st.slider(
+            "Synaptic Scaling Homeostasis", 0.0, 1.0, s.get('synaptic_scaling_homeostasis', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="synaptic_scaling_homeostasis_slider",
+            help="**Pressure for stable firing rates.** A fitness pressure that rewards architectures for maintaining stable average firing rates across modules by multiplicatively scaling incoming synaptic weights."
+        )
+
+        st.markdown("---")
+        st.markdown("#### 7. Abstract Algebra & Category Theory Priors")
+
+        group_theory_symmetry_bonus = st.slider(
+            "Group Theory Symmetry Bonus", 0.0, 1.0, s.get('group_theory_symmetry_bonus', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="group_theory_symmetry_bonus_slider",
+            help="**Rewards algebraic symmetries.** A bonus for architectures whose connection graph exhibits specific group symmetries (e.g., rotational, permutational), which is a core concept in equivariant deep learning."
+        )
+        category_theory_functorial_bonus = st.slider(
+            "Category Theory Functorial Bonus", 0.0, 1.0, s.get('category_theory_functorial_bonus', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="category_theory_functorial_bonus_slider",
+            help="**Rewards structure-preserving maps.** Rewards architectures where modules act as 'objects' and connection patterns act as 'functors' that preserve structure between different parts of the network, promoting compositional generalization."
+        )
+        monad_structure_bonus = st.slider(
+            "Monad Structure Bonus", 0.0, 1.0, s.get('monad_structure_bonus', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="monad_structure_bonus_slider",
+            help="**Bonus for composable computations.** Rewards the emergence of monadic structures (an endofunctor with 'return' and 'bind' operations), which are fundamental for sequencing computations in functional programming."
+        )
+        lie_algebra_dynamics_prior = st.slider(
+            "Lie Algebra Dynamics Prior", 0.0, 1.0, s.get('lie_algebra_dynamics_prior', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="lie_algebra_dynamics_prior_slider",
+            help="**Prior for continuous transformations.** A prior favoring network dynamics that can be described by a Lie algebra, promoting the learning of smooth, continuous transformations and symmetries."
+        )
+        simplicial_complex_bonus = st.slider(
+            "Simplicial Complex Bonus", 0.0, 1.0, s.get('simplicial_complex_bonus', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="simplicial_complex_bonus_slider",
+            help="**Rewards higher-order relationships.** A bonus for architectures that form higher-order structures like simplicial complexes (triangles, tetrahedra), allowing for representation of multi-way relationships beyond simple pairwise connections."
+        )
+        sheaf_computation_consistency = st.slider(
+            "Sheaf Computation Consistency", 0.0, 1.0, s.get('sheaf_computation_consistency', 0.0), 0.01,
+            disabled=not enable_advanced_frameworks, key="sheaf_computation_consistency_slider",
+            help="**Rewards locally consistent global data.** From sheaf theory, this rewards architectures that can consistently aggregate local data defined on different modules into a coherent global picture, crucial for distributed sensing."
+        )
 
     with st.sidebar.expander("♾️ Deep Evolutionary Physics & Information Dynamics", expanded=False):
         enable_deep_physics = st.checkbox(
@@ -2842,7 +3155,7 @@ def main():
         st.markdown("Define automated post-evolution analysis and synthesis steps that run after the main evolutionary process concludes.")
         
         st.markdown("---")
-        st.markdown("#####  ✨ Automated Ensemble Creation")
+        st.markdown("##### 🤖 Automated Ensemble Creation")
         enable_ensemble_creation = st.checkbox(
             "Create Ensemble from Pareto Front",
             value=s.get('enable_ensemble_creation', False),
@@ -2951,6 +3264,56 @@ def main():
         'fine_tuning_generations': fine_tuning_generations,
         'fine_tuning_mutation_multiplier': fine_tuning_mutation_multiplier,
         # --- NEW DEEP PHYSICS SETTINGS ---
+        'enable_advanced_frameworks': enable_advanced_frameworks,
+        # Computational Logic
+        'chaitin_omega_bias': chaitin_omega_bias,
+        'godel_incompleteness_penalty': godel_incompleteness_penalty,
+        'turing_completeness_bonus': turing_completeness_bonus,
+        'lambda_calculus_isomorphism': lambda_calculus_isomorphism,
+        'proof_complexity_cost': proof_complexity_cost,
+        'constructive_type_theory_adherence': constructive_type_theory_adherence,
+        # Learning Theory
+        'pac_bayes_bound_minimization': pac_bayes_bound_minimization,
+        'vc_dimension_constraint': vc_dimension_constraint,
+        'rademacher_complexity_penalty': rademacher_complexity_penalty,
+        'algorithmic_stability_pressure': algorithmic_stability_pressure,
+        'maml_readiness_bonus': maml_readiness_bonus,
+        'causal_inference_engine_bonus': causal_inference_engine_bonus,
+        # Morphogenesis
+        'reaction_diffusion_activator_rate': reaction_diffusion_activator_rate,
+        'reaction_diffusion_inhibitor_rate': reaction_diffusion_inhibitor_rate,
+        'morphogen_gradient_decay': morphogen_gradient_decay,
+        'cell_adhesion_factor': cell_adhesion_factor,
+        'apoptosis_schedule_factor': apoptosis_schedule_factor,
+        'hox_gene_expression_control': hox_gene_expression_control,
+        # Collective Intelligence
+        'stigmergy_potential_factor': stigmergy_potential_factor,
+        'quorum_sensing_threshold': quorum_sensing_threshold,
+        'social_learning_fidelity': social_learning_fidelity,
+        'cultural_transmission_rate': cultural_transmission_rate,
+        'division_of_labor_incentive': division_of_labor_incentive,
+        'consensus_algorithm_efficiency': consensus_algorithm_efficiency,
+        # Game Theory
+        'hawk_dove_strategy_ratio': hawk_dove_strategy_ratio,
+        'ultimatum_game_fairness_pressure': ultimatum_game_fairness_pressure,
+        'principal_agent_alignment_bonus': principal_agent_alignment_bonus,
+        'market_clearing_price_efficiency': market_clearing_price_efficiency,
+        'contract_theory_enforcement_cost': contract_theory_enforcement_cost,
+        'vickrey_auction_selection_bonus': vickrey_auction_selection_bonus,
+        # Neuromodulation
+        'dopamine_reward_prediction_error': dopamine_reward_prediction_error,
+        'serotonin_uncertainty_signal': serotonin_uncertainty_signal,
+        'acetylcholine_attentional_gain': acetylcholine_attentional_gain,
+        'noradrenaline_arousal_level': noradrenaline_arousal_level,
+        'bcm_rule_sliding_threshold': bcm_rule_sliding_threshold,
+        'synaptic_scaling_homeostasis': synaptic_scaling_homeostasis,
+        # Abstract Algebra
+        'group_theory_symmetry_bonus': group_theory_symmetry_bonus,
+        'category_theory_functorial_bonus': category_theory_functorial_bonus,
+        'monad_structure_bonus': monad_structure_bonus,
+        'lie_algebra_dynamics_prior': lie_algebra_dynamics_prior,
+        'simplicial_complex_bonus': simplicial_complex_bonus,
+        'sheaf_computation_consistency': sheaf_computation_consistency,
         'enable_deep_physics': enable_deep_physics,
         # Info-Theoretic
         'kolmogorov_pressure': kolmogorov_pressure,
