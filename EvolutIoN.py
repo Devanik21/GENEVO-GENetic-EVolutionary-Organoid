@@ -1,4 +1,4 @@
-:"""
+"""
 GENEVO: Advanced Neuroevolutionary System for AGI
 A scientifically rigorous implementation of genetic neural architecture evolution
 
