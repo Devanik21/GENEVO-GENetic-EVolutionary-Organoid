@@ -2232,25 +2232,99 @@ def main():
     s = st.session_state.get('settings', {})
 
     # --- META-EVOLUTION EXPANDER ---
-    with st.sidebar.expander("🛰️ Meta-Evolution & Self-Configuration", expanded=False):
-        st.markdown("Enable the system to evolve its own hyperparameters, automating the search for optimal evolutionary dynamics.")
+    with st.sidebar.expander("🛰️ Meta-Evolution & Self-Configuration", expanded=True):
+        st.markdown("""
+        **THE APEX OF COMPLEXITY: EVOLVING EVOLUTION ITSELF.**
+        
+        This section provides god-like control over the evolutionary process. The parameters within allow the system to modify its own learning rules, genetic code, and even its core algorithmic structure. This is the realm of **Meta-Evolution**.
+        
+        **WARNING:** These are the most powerful and dangerous controls in the entire system. They enable dynamics that are profoundly complex and computationally explosive. Uninformed use will almost certainly lead to total simulation collapse. **You are editing the source code of evolution.**
+        """)
+        
+        st.markdown("---")
+        st.markdown("#### 1. Hyperparameter Co-evolution")
+        st.markdown("Allow key evolutionary parameters to be encoded in the genome and evolve alongside the architectures.")
         enable_hyperparameter_evolution = st.checkbox(
             "Enable Hyperparameter Co-evolution",
             value=s.get('enable_hyperparameter_evolution', False),
             help="**Automates parameter tuning.** Encodes key hyperparameters (like mutation rate) into each genotype, allowing them to evolve alongside the architecture. The system learns how to learn.",
             key="enable_hyperparameter_evolution_checkbox"
         )
+        
         evolvable_params = st.multiselect(
             "Evolvable Parameters",
-            options=['mutation_rate', 'crossover_rate', 'innovation_rate', 'diversity_weight', 'selection_pressure'],
+            options=['mutation_rate', 'crossover_rate', 'innovation_rate', 'diversity_weight', 'selection_pressure', 'epistatic_linkage_k', 'niche_competition_factor'],
             default=s.get('evolvable_params', ['mutation_rate', 'crossover_rate', 'diversity_weight']),
             disabled=not enable_hyperparameter_evolution,
             help="Select which parameters will be encoded into the genotype and evolved.",
             key="evolvable_params_multiselect"
         )
+        
         hyper_mutation_rate = st.slider("Meta-Mutation Rate", 0.0, 0.2, s.get('hyper_mutation_rate', 0.05), 0.01,
             disabled=not enable_hyperparameter_evolution, help="The rate at which the hyperparameters themselves mutate.", key="hyper_mutation_rate_slider")
 
+        hyper_mutation_distribution = st.selectbox(
+            "Hyper-Mutation Distribution", ['Gaussian', 'Cauchy', 'Uniform'],
+            index=['Gaussian', 'Cauchy', 'Uniform'].index(s.get('hyper_mutation_distribution', 'Gaussian')),
+            disabled=not enable_hyperparameter_evolution, help="The statistical distribution of hyper-mutations. Cauchy allows for occasional large 'leaps' in parameter values.", key="hyper_mutation_distribution_selectbox"
+        )
+        evolvable_param_bounds_leniency = st.slider("Evolvable Param Bounds Leniency", 0.0, 1.0, s.get('evolvable_param_bounds_leniency', 0.0), 0.05, disabled=not enable_hyperparameter_evolution, help="How much an evolved parameter is allowed to exceed its predefined UI bounds. 0.1 = 10% over/under. High values allow for extreme, unbounded evolution.", key="evolvable_param_bounds_leniency_slider")
+        hyperparam_heritability_factor = st.slider("Hyperparameter Heritability", 0.0, 1.0, s.get('hyperparam_heritability_factor', 0.8), 0.05, disabled=not enable_hyperparameter_evolution, help="Controls how hyperparameters are inherited. 1.0 = average of parents. 0.0 = random choice. Intermediate values blend the two.", key="hyperparam_heritability_factor_slider")
+
+        st.markdown("---")
+        st.markdown("#### 2. Genetic Code & Representation Evolution")
+        enable_genetic_code_evolution = st.checkbox("Enable Genetic Code Evolution", value=s.get('enable_genetic_code_evolution', False), help="**DANGER: EVOLVE THE GENOME ITSELF.** Allows the system to invent new gene types (e.g., new activations, normalizations) and alter the structure of the genotype-phenotype map.", key="enable_genetic_code_evolution_checkbox")
+        
+        gene_type_innovation_rate = st.slider("Gene Type Innovation Rate", 0.0, 0.01, s.get('gene_type_innovation_rate', 0.001), 0.0001, format="%.4f", disabled=not enable_genetic_code_evolution, help="Probability per generation of inventing a completely new gene type (e.g., a new activation function).", key="gene_type_innovation_rate_slider")
+        gene_type_extinction_rate = st.slider("Gene Type Extinction Rate", 0.0, 0.01, s.get('gene_type_extinction_rate', 0.0005), 0.0001, format="%.4f", disabled=not enable_genetic_code_evolution, help="Probability per generation of an unused gene type going 'extinct' and being removed from the possible gene pool.", key="gene_type_extinction_rate_slider")
+        evolvable_activation_functions = st.checkbox("Evolve Activation Functions", value=s.get('evolvable_activation_functions', False), disabled=not enable_genetic_code_evolution, help="Allow the system to create novel activation functions by composing simple mathematical primitives (e.g., x, sin(x), x^2).", key="evolvable_activation_functions_checkbox")
+        activation_expression_complexity_limit = st.slider("Activation Expression Complexity Limit", 2, 20, s.get('activation_expression_complexity_limit', 5), 1, disabled=not evolvable_activation_functions, help="The maximum number of operations in an evolved activation function expression tree.", key="activation_expression_complexity_limit_slider")
+        developmental_rule_innovation_rate = st.slider("Developmental Rule Innovation Rate", 0.0, 0.01, s.get('developmental_rule_innovation_rate', 0.001), 0.0001, format="%.4f", disabled=not enable_genetic_code_evolution, help="Rate of inventing new types of developmental rules (e.g., a new trigger condition).", key="developmental_rule_innovation_rate_slider")
+        encoding_plasticity_rate = st.slider("Encoding Plasticity Rate", 0.0, 0.1, s.get('encoding_plasticity_rate', 0.0), 0.005, disabled=not enable_genetic_code_evolution, help="Rate at which the genotype-to-phenotype mapping itself can change, altering how genes are interpreted.", key="encoding_plasticity_rate_slider")
+        genome_length_constraint_pressure = st.slider("Genome Length Constraint Pressure", -1.0, 1.0, s.get('genome_length_constraint_pressure', 0.0), 0.05, disabled=not enable_genetic_code_evolution, help="A pressure on the length of the raw genetic code. Positive values reward longer genomes, negative values reward shorter ones.", key="genome_length_constraint_pressure_slider")
+        intron_ratio_target = st.slider("Intron Ratio Target", 0.0, 0.9, s.get('intron_ratio_target', 0.1), 0.05, disabled=not enable_genetic_code_evolution, help="The target ratio of non-coding 'junk DNA' (introns). Introns can act as an evolutionary buffer and facilitate large-scale rearrangements.", key="intron_ratio_target_slider")
+        gene_regulatory_network_complexity_bonus = st.slider("GRN Complexity Bonus", 0.0, 1.0, s.get('gene_regulatory_network_complexity_bonus', 0.0), 0.05, disabled=not enable_genetic_code_evolution, help="A fitness bonus for evolving a complex Gene Regulatory Network (GRN) within the developmental rules, promoting sophisticated ontogeny.", key="gene_regulatory_network_complexity_bonus_slider")
+        evolvable_normalization_layers = st.checkbox("Evolve Normalization Layers", value=s.get('evolvable_normalization_layers', False), disabled=not enable_genetic_code_evolution, help="Allow the system to invent and use novel normalization layer types beyond the standard ones.", key="evolvable_normalization_layers_checkbox")
+
+        st.markdown("---")
+        st.markdown("#### 3. Evolutionary Algorithm (EA) Dynamics Evolution")
+        enable_ea_dynamics_evolution = st.checkbox("Enable EA Dynamics Evolution", value=s.get('enable_ea_dynamics_evolution', False), help="**DANGER: EVOLVE THE ALGORITHM.** Allows the system to change its own selection, crossover, and population topology rules during the run.", key="enable_ea_dynamics_evolution_checkbox")
+
+        evolvable_selection_mechanism = st.checkbox("Evolve Selection Mechanism", value=s.get('evolvable_selection_mechanism', False), disabled=not enable_ea_dynamics_evolution, help="Allow the population to evolve which selection mechanism is used.", key="evolvable_selection_mechanism_checkbox")
+        selection_mechanism_pool = st.multiselect("Selection Mechanism Pool", ['Tournament', 'Truncation', 'Roulette Wheel', 'SUS'], default=s.get('selection_mechanism_pool', ['Tournament']), disabled=not evolvable_selection_mechanism, help="The set of selection mechanisms the system can evolve to use.", key="selection_mechanism_pool_multiselect")
+        evolvable_tournament_size = st.checkbox("Evolve Tournament Size", value=s.get('evolvable_tournament_size', False), disabled=not enable_ea_dynamics_evolution, help="If using tournament selection, allow the tournament size to evolve.", key="evolvable_tournament_size_checkbox")
+        crossover_operator_pool = st.multiselect("Crossover Operator Pool", ['Homologous', 'Uniform', 'One-Point', 'Two-Point'], default=s.get('crossover_operator_pool', ['Homologous']), disabled=not enable_ea_dynamics_evolution, help="The set of crossover operators the system can evolve to use.", key="crossover_operator_pool_multiselect")
+        mutation_operator_pool = st.multiselect("Mutation Operator Pool", ['Gaussian', 'Cauchy', 'Uniform'], default=s.get('mutation_operator_pool', ['Gaussian']), disabled=not enable_ea_dynamics_evolution, help="The set of mutation distributions the system can evolve to use.", key="mutation_operator_pool_multiselect")
+        population_topology = st.selectbox("Population Topology", ['Panmictic', 'Island Model', 'Cellular Automaton'], index=['Panmictic', 'Island Model', 'Cellular Automaton'].index(s.get('population_topology', 'Panmictic')), disabled=not enable_ea_dynamics_evolution, help="The structure of the population. Island models and CAs create spatial separation, promoting diversity.", key="population_topology_selectbox")
+        evolvable_migration_rate = st.checkbox("Evolve Migration Rate (Islands)", value=s.get('evolvable_migration_rate', False), disabled=(population_topology != 'Island Model'), help="Allow the rate of migration between islands to evolve.", key="evolvable_migration_rate_checkbox")
+        evolvable_island_count = st.checkbox("Evolve Island Count", value=s.get('evolvable_island_count', False), disabled=(population_topology != 'Island Model'), help="Allow the number of islands in the population to evolve.", key="evolvable_island_count_checkbox")
+        topology_reconfiguration_frequency = st.slider("Topology Reconfiguration Frequency", 0, 100, s.get('topology_reconfiguration_frequency', 0), 5, disabled=not enable_ea_dynamics_evolution, help="How often (in generations) the system can change its topology. 0 = never.", key="topology_reconfiguration_frequency_slider")
+        dynamic_speciation_threshold_factor = st.slider("Dynamic Speciation Threshold Factor", -1.0, 1.0, s.get('dynamic_speciation_threshold_factor', 0.0), 0.05, disabled=not enable_ea_dynamics_evolution, help="Allows the speciation threshold to dynamically adjust based on population diversity. Positive values tighten thresholds when diversity is high, negative values loosen them.", key="dynamic_speciation_threshold_factor_slider")
+
+        st.markdown("---")
+        st.markdown("#### 4. Fitness Landscape & Objective Evolution (Autotelic Systems)")
+        enable_objective_evolution = st.checkbox("Enable Objective Evolution", value=s.get('enable_objective_evolution', False), help="**DANGER: EVOLVE THE GOAL.** Allows the system to change its own fitness objectives, creating 'autotelic' (self-motivated) agents that can define their own goals.", key="enable_objective_evolution_checkbox")
+
+        evolvable_objective_weights = st.checkbox("Evolve Objective Weights", value=s.get('evolvable_objective_weights', False), disabled=not enable_objective_evolution, help="Allow the weights of the main objectives (accuracy, efficiency, etc.) to be encoded in the genome and evolve.", key="evolvable_objective_weights_checkbox")
+        objective_weight_mutation_strength = st.slider("Objective Weight Mutation Strength", 0.0, 0.2, s.get('objective_weight_mutation_strength', 0.05), 0.01, disabled=not evolvable_objective_weights, help="The magnitude of mutations applied to the objective weights.", key="objective_weight_mutation_strength_slider")
+        autotelic_novelty_search_weight = st.slider("Autotelic Novelty Search Weight", 0.0, 1.0, s.get('autotelic_novelty_search_weight', 0.0), 0.05, disabled=not enable_objective_evolution, help="An evolvable objective that rewards agents purely for being different from others, driving open-ended exploration.", key="autotelic_novelty_search_weight_slider")
+        autotelic_complexity_drive_weight = st.slider("Autotelic Complexity Drive Weight", 0.0, 1.0, s.get('autotelic_complexity_drive_weight', 0.0), 0.05, disabled=not enable_objective_evolution, help="An evolvable objective that rewards agents simply for increasing their own architectural complexity.", key="autotelic_complexity_drive_weight_slider")
+        autotelic_learning_progress_drive = st.slider("Autotelic Learning Progress Drive", 0.0, 1.0, s.get('autotelic_learning_progress_drive', 0.0), 0.05, disabled=not enable_objective_evolution, help="An evolvable objective that rewards agents for the *magnitude of improvement* during their lifetime learning (Baldwin effect), not just the final score.", key="autotelic_learning_progress_drive_slider")
+        fitness_function_noise_injection_rate = st.slider("Fitness Noise Injection Rate", 0.0, 0.2, s.get('fitness_function_noise_injection_rate', 0.0), 0.01, disabled=not enable_objective_evolution, help="An evolvable parameter that adds noise to the fitness evaluation, which can help escape local optima.", key="fitness_function_noise_injection_rate_slider")
+        fitness_landscape_smoothing_factor = st.slider("Fitness Landscape Smoothing Factor", 0.0, 1.0, s.get('fitness_landscape_smoothing_factor', 0.0), 0.05, disabled=not enable_objective_evolution, help="An evolvable parameter that averages an individual's fitness with its neighbors, effectively smoothing the landscape.", key="fitness_landscape_smoothing_factor_slider")
+        objective_ambition_ratchet = st.slider("Objective Ambition Ratchet", 0.0, 0.1, s.get('objective_ambition_ratchet', 0.0), 0.005, disabled=not enable_objective_evolution, help="A mechanism where, if the population achieves a certain fitness, the objective becomes harder (e.g., the target score increases). This creates a self-induced pressure for continuous improvement.", key="objective_ambition_ratchet_slider")
+        pareto_front_focus_bias = st.slider("Pareto Front Focus Bias", 0.0, 1.0, s.get('pareto_front_focus_bias', 0.0), 0.05, disabled=not enable_objective_evolution, help="An evolvable bias that rewards individuals for being at the 'knees' or sparse areas of the Pareto front, promoting a well-distributed set of solutions.", key="pareto_front_focus_bias_slider")
+
+        st.markdown("---")
+        st.markdown("#### 5. Computational Reflection & Self-Modification")
+        enable_self_modification = st.checkbox("Enable Self-Modification", value=s.get('enable_self_modification', False), help="**ULTIMATE DANGER: SELF-MODIFYING CODE.** Allows a genotype to contain rules that directly modify its own genetic code during its lifetime. This is analogous to a program rewriting its own source code while running.", key="enable_self_modification_checkbox")
+
+        self_modification_probability = st.slider("Self-Modification Probability", 0.0, 0.05, s.get('self_modification_probability', 0.0), 0.001, format="%.3f", disabled=not enable_self_modification, help="The per-lifetime probability that an individual will execute its self-modifying code.", key="self_modification_probability_slider")
+        self_modification_scope = st.selectbox("Self-Modification Scope", ['Parameters', 'Structure', 'All'], index=['Parameters', 'Structure', 'All'].index(s.get('self_modification_scope', 'Parameters')), disabled=not enable_self_modification, help="What parts of the genome can be self-modified. 'All' is extremely unstable.", key="self_modification_scope_selectbox")
+        quine_bonus = st.slider("Quine Bonus", 0.0, 1.0, s.get('quine_bonus', 0.0), 0.05, disabled=not enable_self_modification, help="A fitness bonus for architectures that can output a description of their own structure, a step towards computational self-awareness (a Quine).", key="quine_bonus_slider")
+        meta_genotype_bonus = st.slider("Meta-Genotype Bonus", 0.0, 1.0, s.get('meta_genotype_bonus', 0.0), 0.05, disabled=not enable_self_modification, help="A bonus for genotypes that evolve a 'meta-gene' section that describes how they themselves should be mutated or crossed over.", key="meta_genotype_bonus_slider")
+        self_simulation_bonus = st.slider("Self-Simulation Bonus", 0.0, 1.0, s.get('self_simulation_bonus', 0.0), 0.05, disabled=not enable_self_modification, help="A bonus for architectures that can accurately predict their own fitness score without being evaluated, demonstrating a form of self-modeling.", key="self_simulation_bonus_slider")
+        
 
     if st.sidebar.button("🗑️ Clear Saved State & Reset", width='stretch', key="clear_state_button"):
         db.truncate() # Clear all tables
@@ -3622,6 +3696,52 @@ def main():
         'enable_hyperparameter_evolution': enable_hyperparameter_evolution,
         'evolvable_params': evolvable_params,
         'hyper_mutation_rate': hyper_mutation_rate,
+        # --- NEW META-EVOLUTION SETTINGS ---
+        'hyper_mutation_distribution': hyper_mutation_distribution,
+        'evolvable_param_bounds_leniency': evolvable_param_bounds_leniency,
+        'hyperparam_heritability_factor': hyperparam_heritability_factor,
+        
+        'enable_genetic_code_evolution': enable_genetic_code_evolution,
+        'gene_type_innovation_rate': gene_type_innovation_rate,
+        'gene_type_extinction_rate': gene_type_extinction_rate,
+        'evolvable_activation_functions': evolvable_activation_functions,
+        'activation_expression_complexity_limit': activation_expression_complexity_limit,
+        'developmental_rule_innovation_rate': developmental_rule_innovation_rate,
+        'encoding_plasticity_rate': encoding_plasticity_rate,
+        'genome_length_constraint_pressure': genome_length_constraint_pressure,
+        'intron_ratio_target': intron_ratio_target,
+        'gene_regulatory_network_complexity_bonus': gene_regulatory_network_complexity_bonus,
+        'evolvable_normalization_layers': evolvable_normalization_layers,
+
+        'enable_ea_dynamics_evolution': enable_ea_dynamics_evolution,
+        'evolvable_selection_mechanism': evolvable_selection_mechanism,
+        'selection_mechanism_pool': selection_mechanism_pool,
+        'evolvable_tournament_size': evolvable_tournament_size,
+        'crossover_operator_pool': crossover_operator_pool,
+        'mutation_operator_pool': mutation_operator_pool,
+        'population_topology': population_topology,
+        'evolvable_migration_rate': evolvable_migration_rate,
+        'evolvable_island_count': evolvable_island_count,
+        'topology_reconfiguration_frequency': topology_reconfiguration_frequency,
+        'dynamic_speciation_threshold_factor': dynamic_speciation_threshold_factor,
+
+        'enable_objective_evolution': enable_objective_evolution,
+        'evolvable_objective_weights': evolvable_objective_weights,
+        'objective_weight_mutation_strength': objective_weight_mutation_strength,
+        'autotelic_novelty_search_weight': autotelic_novelty_search_weight,
+        'autotelic_complexity_drive_weight': autotelic_complexity_drive_weight,
+        'autotelic_learning_progress_drive': autotelic_learning_progress_drive,
+        'fitness_function_noise_injection_rate': fitness_function_noise_injection_rate,
+        'fitness_landscape_smoothing_factor': fitness_landscape_smoothing_factor,
+        'objective_ambition_ratchet': objective_ambition_ratchet,
+        'pareto_front_focus_bias': pareto_front_focus_bias,
+
+        'enable_self_modification': enable_self_modification,
+        'self_modification_probability': self_modification_probability,
+        'self_modification_scope': self_modification_scope,
+        'quine_bonus': quine_bonus,
+        'meta_genotype_bonus': meta_genotype_bonus,
+        'self_simulation_bonus': self_simulation_bonus,
         'enable_curriculum_learning': enable_curriculum_learning,
         'curriculum_sequence': curriculum_sequence,
         'curriculum_trigger': curriculum_trigger,
