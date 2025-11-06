@@ -455,6 +455,14 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
         developmental_rules=dev_rules,
         form_id=form_id
     )
+
+    # If hyperparameter evolution is enabled, add the evolvable params to the genotype
+    settings = st.session_state.get('settings', {})
+    if settings.get('enable_hyperparameter_evolution'):
+        evolvable_params = settings.get('evolvable_params', [])
+        for param in evolvable_params:
+            genotype.meta_parameters[param] = settings.get(param)
+
     genotype.complexity = genotype.compute_complexity()
     
     return genotype
@@ -2033,6 +2041,23 @@ def main():
             'early_stopping_patience': 25,
             'checkpoint_frequency': 50,
             'analysis_top_n': 3,
+            'enable_hyperparameter_evolution': False,
+            'evolvable_params': ['mutation_rate', 'crossover_rate', 'diversity_weight'],
+            'hyper_mutation_rate': 0.05,
+            'enable_curriculum_learning': False,
+            'curriculum_sequence': ['Vision (ImageNet)', 'Language (MMLU-Pro)', 'Multi-Task Learning'],
+            'curriculum_trigger': 'Mean Accuracy Threshold',
+            'curriculum_threshold': 0.6,
+            'enable_iterative_seeding': False,
+            'num_elites_to_seed': 5,
+            'seeded_elite_mutation_strength': 0.4,
+            # --- NEW FINALIZATION DEFAULTS ---
+            'enable_ensemble_creation': False,
+            'ensemble_size': 5,
+            'ensemble_selection_strategy': 'K-Means Diversity',
+            'enable_fine_tuning': False,
+            'fine_tuning_generations': 10,
+            'fine_tuning_mutation_multiplier': 0.1,
             # --- NEW DEEP PHYSICS DEFAULTS ---
             'enable_deep_physics': False,
             # Info-Theoretic
@@ -2096,6 +2121,27 @@ def main():
     # Get settings from session state, with hardcoded defaults as fallback
     s = st.session_state.get('settings', {})
 
+    # --- META-EVOLUTION EXPANDER ---
+    with st.sidebar.expander("🤖 Meta-Evolution & Self-Configuration", expanded=False):
+        st.markdown("Enable the system to evolve its own hyperparameters, automating the search for optimal evolutionary dynamics.")
+        enable_hyperparameter_evolution = st.checkbox(
+            "Enable Hyperparameter Co-evolution",
+            value=s.get('enable_hyperparameter_evolution', False),
+            help="**Automates parameter tuning.** Encodes key hyperparameters (like mutation rate) into each genotype, allowing them to evolve alongside the architecture. The system learns how to learn.",
+            key="enable_hyperparameter_evolution_checkbox"
+        )
+        evolvable_params = st.multiselect(
+            "Evolvable Parameters",
+            options=['mutation_rate', 'crossover_rate', 'innovation_rate', 'diversity_weight', 'selection_pressure'],
+            default=s.get('evolvable_params', ['mutation_rate', 'crossover_rate', 'diversity_weight']),
+            disabled=not enable_hyperparameter_evolution,
+            help="Select which parameters will be encoded into the genotype and evolved.",
+            key="evolvable_params_multiselect"
+        )
+        hyper_mutation_rate = st.slider("Meta-Mutation Rate", 0.0, 0.2, s.get('hyper_mutation_rate', 0.05), 0.01,
+            disabled=not enable_hyperparameter_evolution, help="The rate at which the hyperparameters themselves mutate.", key="hyper_mutation_rate_slider")
+
+
     if st.sidebar.button("🗑️ Clear Saved State & Reset", width='stretch', key="clear_state_button"):
         db.truncate() # Clear all tables
         st.session_state.clear()
@@ -2134,6 +2180,25 @@ def main():
             disabled=not dynamic_environment,
             key="env_change_freq_slider"
         )
+        st.markdown("---")
+        enable_curriculum_learning = st.checkbox("Enable Curriculum Learning", value=s.get('enable_curriculum_learning', False), help="**Structured learning progression.** Define a sequence of tasks. The environment will automatically advance to the next task when a performance threshold is met.", key="enable_curriculum_learning_checkbox")
+        curriculum_sequence = st.multiselect(
+            "Curriculum Sequence",
+            options=task_options,
+            default=s.get('curriculum_sequence', ['Vision (ImageNet)', 'Language (MMLU-Pro)', 'Multi-Task Learning']),
+            disabled=not enable_curriculum_learning,
+            help="Drag and drop to define the order of tasks in the curriculum.",
+            key="curriculum_sequence_multiselect"
+        )
+        curriculum_trigger = st.selectbox(
+            "Curriculum Transition Trigger",
+            options=['Fixed Generations', 'Mean Accuracy Threshold', 'Apex Fitness Threshold'],
+            index=['Fixed Generations', 'Mean Accuracy Threshold', 'Apex Fitness Threshold'].index(s.get('curriculum_trigger', 'Mean Accuracy Threshold')),
+            disabled=not enable_curriculum_learning,
+            key="curriculum_trigger_selectbox"
+        )
+        curriculum_threshold = st.number_input("Transition Threshold / Generations", value=s.get('curriculum_threshold', 0.6), disabled=not enable_curriculum_learning, key="curriculum_threshold_input")
+
     
     st.sidebar.markdown("### Population Parameters")
     num_forms = st.sidebar.number_input(
@@ -2758,7 +2823,73 @@ def main():
         help="Number of top-ranked architectures to display in the final analysis section.",
         key="analysis_top_n_input"
     )
+
+    st.sidebar.markdown("###### Iterative Evolution")
+    enable_iterative_seeding = st.sidebar.checkbox(
+        "Seed next run with elites",
+        value=s.get('enable_iterative_seeding', False),
+        help="**Build on previous success.** If checked, initiating a new evolution will use the top individuals from the *last completed run* as the starting population, instead of random initial forms.",
+        key="enable_iterative_seeding_checkbox"
+    )
+    num_elites_to_seed = st.sidebar.slider("Number of Elites to Seed", 1, 50, s.get('num_elites_to_seed', 5), 1, disabled=not enable_iterative_seeding, key="num_elites_to_seed_slider")
+    seeded_elite_mutation_strength = st.sidebar.slider(
+        "Initial Mutation Strength for Seeded Elites", 0.0, 1.0, s.get('seeded_elite_mutation_strength', 0.4), 0.05,
+        disabled=not enable_iterative_seeding,
+        help="How much to mutate the seeded elites to create initial diversity for the new run.", key="seeded_elite_mutation_strength_slider"
+    )
     
+    with st.sidebar.expander("🏁 Finalization & Post-Processing", expanded=False):
+        st.markdown("Define automated post-evolution analysis and synthesis steps that run after the main evolutionary process concludes.")
+        
+        st.markdown("---")
+        st.markdown("##### 🤖 Automated Ensemble Creation")
+        enable_ensemble_creation = st.checkbox(
+            "Create Ensemble from Pareto Front",
+            value=s.get('enable_ensemble_creation', False),
+            help="**From many, one team.** After evolution, automatically select a diverse set of high-performing individuals from the final Pareto frontier to form a robust ensemble model.",
+            key="enable_ensemble_creation_checkbox"
+        )
+        ensemble_size = st.slider(
+            "Ensemble Size", 2, 20, s.get('ensemble_size', 5), 1,
+            disabled=not enable_ensemble_creation,
+            help="The number of distinct architectures to include in the final ensemble.",
+            key="ensemble_size_slider"
+        )
+        ensemble_selection_strategy = st.selectbox(
+            "Ensemble Selection Strategy",
+            ['K-Means Diversity', 'Top N Fittest on Pareto', 'Random from Pareto'],
+            index=['K-Means Diversity', 'Top N Fittest on Pareto', 'Random from Pareto'].index(s.get('ensemble_selection_strategy', 'K-Means Diversity')),
+            disabled=not enable_ensemble_creation,
+            help="""
+            **How to choose the team members:**
+            - **K-Means Diversity:** Clusters the Pareto front in phenotype space (accuracy, efficiency, etc.) and picks the centroid of each cluster. Maximizes strategic diversity.
+            - **Top N Fittest on Pareto:** Simply picks the N individuals with the highest raw fitness from the frontier.
+            - **Random from Pareto:** Randomly samples N individuals from the frontier.
+            """,
+            key="ensemble_selection_strategy_selectbox"
+        )
+
+        st.markdown("---")
+        st.markdown("##### ⚙️ Post-Evolution Fine-Tuning")
+        enable_fine_tuning = st.checkbox(
+            "Enable Post-Evolution Fine-Tuning Phase",
+            value=s.get('enable_fine_tuning', False),
+            help="**From exploration to exploitation.** After the main evolution, run a short, secondary phase where structural mutations are disabled, and only parameters are fine-tuned with a low mutation rate. This polishes the final solutions.",
+            key="enable_fine_tuning_checkbox"
+        )
+        fine_tuning_generations = st.slider(
+            "Fine-Tuning Generations", 5, 50, s.get('fine_tuning_generations', 10), 5,
+            disabled=not enable_fine_tuning,
+            help="Number of extra generations dedicated to fine-tuning the final population.",
+            key="fine_tuning_generations_slider"
+        )
+        fine_tuning_mutation_multiplier = st.slider(
+            "Fine-Tuning Mutation Multiplier", 0.01, 0.5, s.get('fine_tuning_mutation_multiplier', 0.1), 0.01,
+            disabled=not enable_fine_tuning,
+            help="A multiplier applied to the final mutation rate for the fine-tuning phase. A small value (e.g., 0.1) ensures only small parameter adjustments are made.",
+            key="fine_tuning_mutation_multiplier_slider"
+        )
+
     # --- Collect and save current settings ---
     current_settings = {
         'task_type': task_type,
@@ -2802,6 +2933,23 @@ def main():
         'early_stopping_patience': early_stopping_patience,
         'checkpoint_frequency': checkpoint_frequency,
         'analysis_top_n': analysis_top_n,
+        'enable_hyperparameter_evolution': enable_hyperparameter_evolution,
+        'evolvable_params': evolvable_params,
+        'hyper_mutation_rate': hyper_mutation_rate,
+        'enable_curriculum_learning': enable_curriculum_learning,
+        'curriculum_sequence': curriculum_sequence,
+        'curriculum_trigger': curriculum_trigger,
+        'curriculum_threshold': curriculum_threshold,
+        'enable_iterative_seeding': enable_iterative_seeding,
+        'num_elites_to_seed': num_elites_to_seed,
+        'seeded_elite_mutation_strength': seeded_elite_mutation_strength,
+        # --- NEW FINALIZATION SETTINGS ---
+        'enable_ensemble_creation': enable_ensemble_creation,
+        'ensemble_size': ensemble_size,
+        'ensemble_selection_strategy': ensemble_selection_strategy,
+        'enable_fine_tuning': enable_fine_tuning,
+        'fine_tuning_generations': fine_tuning_generations,
+        'fine_tuning_mutation_multiplier': fine_tuning_mutation_multiplier,
         # --- NEW DEEP PHYSICS SETTINGS ---
         'enable_deep_physics': enable_deep_physics,
         # Info-Theoretic
@@ -2892,13 +3040,29 @@ def main():
             st.toast("Using random seed.", icon="🎲")
         
         # Initialize population
-        population = []
-        for form_id in range(1, num_forms + 1):
-            for _ in range(population_per_form):
-                genotype = initialize_genotype(form_id, complexity_level)
-                genotype.generation = 0
-                population.append(genotype)
-                st.session_state.gene_archive.append(genotype.copy()) # Seed the archive
+        if enable_iterative_seeding and st.session_state.get('current_population'):
+            st.toast(f"Seeding new evolution with {num_elites_to_seed} elites from previous run.", icon="🌱")
+            
+            previous_elites = sorted(st.session_state.current_population, key=lambda x: x.fitness, reverse=True)[:num_elites_to_seed]
+            
+            population = []
+            # Create new population from mutated elites
+            while len(population) < total_population:
+                elite_to_copy = random.choice(previous_elites)
+                new_individual = mutate(elite_to_copy, mutation_rate=seeded_elite_mutation_strength, innovation_rate=seeded_elite_mutation_strength/2)
+                new_individual.generation = 0
+                new_individual.parent_ids = [f"SEED_{elite_to_copy.lineage_id}"]
+                population.append(new_individual)
+            
+            population = population[:total_population] # Ensure correct size
+        else:
+            population = []
+            for form_id in range(1, num_forms + 1):
+                for _ in range(population_per_form):
+                    genotype = initialize_genotype(form_id, complexity_level)
+                    genotype.generation = 0
+                    population.append(genotype)
+                    st.session_state.gene_archive.append(genotype.copy()) # Seed the archive
         
         # For adaptive mutation
         last_best_fitness = -1
@@ -2908,7 +3072,14 @@ def main():
         current_mutation_rate = mutation_rate
         
         # For dynamic environment
-        current_task = task_type
+        if enable_curriculum_learning and curriculum_sequence:
+            st.session_state.curriculum_stage = 0
+            current_task = curriculum_sequence[0]
+            st.toast(f"🎓 Curriculum Started! Task 1: {current_task}", icon="📈")
+        else:
+            st.session_state.curriculum_stage = -1 # Mark as disabled
+            current_task = task_type
+
         
         # For ecosystem dynamics
         st.session_state.cataclysm_recovery_mode = 0
@@ -2976,6 +3147,11 @@ def main():
             for individual in population:
                 # Pass the weights from the sidebar
                 # Pass the flags for advanced dynamics
+                if enable_hyperparameter_evolution:
+                    # If evolving, the individual's own meta-params are used for some things
+                    # The fitness function itself doesn't need them, but they affect reproduction
+                    pass
+
                 fitness, component_scores = evaluate_fitness(individual, current_task, gen, active_fitness_weights, enable_epigenetics, enable_baldwin, epistatic_linkage_k, st.session_state.parasite_profile if enable_red_queen else None)
                 individual.fitness = fitness
                 individual.generation = gen
@@ -3134,12 +3310,18 @@ def main():
                     offspring.append(child)
                 else:
                     # --- Create one viable child via normal reproduction, with retries ---
+                    # Determine crossover rate for this reproductive event
+                    p1_crossover_rate = parent1.meta_parameters.get('crossover_rate', crossover_rate) if enable_hyperparameter_evolution else crossover_rate
+
                     max_attempts = 20
                     for _ in range(max_attempts):
                         # Tournament selection using the appropriate fitness key
                         parent1 = max(random.sample(survivors, min(3, len(survivors))), key=selection_key)
                         
-                        if random.random() < crossover_rate:
+                        # Use parent1's crossover rate
+                        effective_crossover_rate = parent1.meta_parameters.get('crossover_rate', crossover_rate) if enable_hyperparameter_evolution else crossover_rate
+
+                        if random.random() < effective_crossover_rate:
                             if enable_speciation and random.random() < gene_flow_rate and len(survivors) > 1:
                                 # Gene Flow: select any other survivor, ignoring species
                                 parent2_candidates = [s for s in survivors if s.lineage_id != parent1.lineage_id]
@@ -3150,12 +3332,22 @@ def main():
                                 parent2 = max(random.sample(compatible, min(2, len(compatible))), key=selection_key) if compatible else parent1 # type: ignore
                             else:
                                 parent2 = parent1
-                            child = crossover(parent1, parent2, crossover_rate)
+                            child = crossover(parent1, parent2, effective_crossover_rate)
                         else:
                             child = parent1.copy()
                         
                         # Mutation and other operators
-                        child = mutate(child, current_mutation_rate, innovation_rate)
+                        # Use child's own inherited rates if they exist
+                        child_mutation_rate = child.meta_parameters.get('mutation_rate', current_mutation_rate) if enable_hyperparameter_evolution else current_mutation_rate
+                        child_innovation_rate = child.meta_parameters.get('innovation_rate', innovation_rate) if enable_hyperparameter_evolution else innovation_rate
+                        
+                        # Mutate the child, which also mutates its own hyperparameters if enabled
+                        child = mutate(child, child_mutation_rate, child_innovation_rate)
+                        if enable_hyperparameter_evolution:
+                            for param in evolvable_params:
+                                if random.random() < current_hyper_mutation_rate:
+                                    child.meta_parameters[param] *= np.random.lognormal(0, 0.1)
+
                         if enable_endosymbiosis and random.random() < endosymbiosis_rate and survivors:
                             child = apply_endosymbiosis(child, survivors)
                         
@@ -3172,7 +3364,14 @@ def main():
                     else: # for-else: runs if the loop finished without break
                         # Fallback if no viable child was found after many attempts
                         parent1 = max(random.sample(survivors, min(3, len(survivors))), key=selection_key)
-                        child = mutate(parent1.copy(), current_mutation_rate, innovation_rate)
+                        child = parent1.copy()
+                        child_mutation_rate = child.meta_parameters.get('mutation_rate', current_mutation_rate) if enable_hyperparameter_evolution else current_mutation_rate
+                        child_innovation_rate = child.meta_parameters.get('innovation_rate', innovation_rate) if enable_hyperparameter_evolution else innovation_rate
+                        child = mutate(child, child_mutation_rate, child_innovation_rate)
+                        if enable_hyperparameter_evolution:
+                            for param in evolvable_params:
+                                if random.random() < current_hyper_mutation_rate:
+                                    child.meta_parameters[param] *= np.random.lognormal(0, 0.1)
                         child.generation = gen + 1
                         offspring.append(child)
             
@@ -3184,17 +3383,23 @@ def main():
 
             # Update mutation rate for next generation
             if mutation_schedule == 'Linear Decay':
-                current_mutation_rate = max(0.01, mutation_rate * (1.0 - ((gen + 1) / num_generations)))
+                # If evolving, this global rate is just a fallback.
+                if not ('mutation_rate' in evolvable_params and enable_hyperparameter_evolution):
+                    current_mutation_rate = max(0.01, mutation_rate * (1.0 - ((gen + 1) / num_generations)))
             elif mutation_schedule == 'Adaptive':
                 current_best_fitness = current_gen_best_fitness # Use already computed value
                 if current_best_fitness > last_best_fitness:
+                    # If not evolving, anneal the global rate
+                    if not ('mutation_rate' in evolvable_params and enable_hyperparameter_evolution):
+                        current_mutation_rate = max(0.05, current_mutation_rate * 0.95) # Anneal
                     stagnation_counter = 0
-                    current_mutation_rate = max(0.05, current_mutation_rate * 0.95) # Anneal
                 else:
                     stagnation_counter += 1
                 
                 if stagnation_counter > 3: # If stagnated for >3 generations
-                    current_mutation_rate = min(0.8, current_mutation_rate * (1 + adaptive_mutation_strength)) # Spike
+                    # If not evolving, spike the global rate
+                    if not ('mutation_rate' in evolvable_params and enable_hyperparameter_evolution):
+                        current_mutation_rate = min(0.8, current_mutation_rate * (1 + adaptive_mutation_strength)) # Spike
                 
                 last_best_fitness = current_best_fitness
             
@@ -3203,6 +3408,26 @@ def main():
                 st.success(f"**EARLY STOPPING TRIGGERED:** Best fitness has not improved for {early_stopping_patience} generations.")
                 st.toast("Evolution stopped early due to stagnation.", icon="🛑")
                 break # Exit the evolution loop
+
+            # --- Curriculum Learning Check ---
+            if enable_curriculum_learning and st.session_state.curriculum_stage != -1:
+                condition_met = False
+                stage = st.session_state.curriculum_stage
+                if curriculum_trigger == 'Fixed Generations':
+                    if (gen + 1) % int(curriculum_threshold) == 0:
+                        condition_met = True
+                elif curriculum_trigger == 'Mean Accuracy Threshold':
+                    mean_accuracy_this_gen = pd.DataFrame(st.session_state.history)[history_df['generation'] == gen]['accuracy'].mean()
+                    if mean_accuracy_this_gen >= curriculum_threshold:
+                        condition_met = True
+                elif curriculum_trigger == 'Apex Fitness Threshold':
+                    if current_gen_best_fitness >= curriculum_threshold:
+                        condition_met = True
+                
+                if condition_met and stage < len(curriculum_sequence) - 1:
+                    st.session_state.curriculum_stage += 1
+                    current_task = curriculum_sequence[st.session_state.curriculum_stage]
+                    st.toast(f"🎓 Curriculum Advanced! New Task: {current_task}", icon="📈")
 
             population = survivors + offspring
             
@@ -3318,11 +3543,25 @@ def main():
             parasite_display = status_text.empty()
 
             # Handle dynamic environment
-            if dynamic_environment and gen > 0 and gen % env_change_frequency == 0:
-                previous_task = current_task
-                current_task = random.choice([t for t in task_options if t != previous_task])
-                st.toast(f"🌍 Environment Shift! New Task: {current_task}", icon="🔄")
-                time.sleep(1.0)
+            if enable_curriculum_learning:
+                # Curriculum logic is handled at the end of the loop
+                pass
+            elif dynamic_environment and gen > 0 and gen % env_change_frequency == 0:
+                # Original random dynamic environment
+                if len(task_options) > 1:
+                    previous_task = current_task
+                    current_task = random.choice([t for t in task_options if t != previous_task])
+                    st.toast(f"🌍 Environment Shift! New Task: {current_task}", icon="🔄")
+                    time.sleep(1.0)
+
+            # Update meta-parameter mutation rate if it's evolving
+            if enable_hyperparameter_evolution and 'hyper_mutation_rate' in evolvable_params:
+                # Use population average for the global rate, individuals use their own
+                current_hyper_mutation_rate = np.mean([ind.meta_parameters.get('hyper_mutation_rate', hyper_mutation_rate) for ind in population])
+            else:
+                current_hyper_mutation_rate = hyper_mutation_rate
+
+
             
             status_text.markdown(f"### 🧬 Generation {gen + 1}/{num_generations} | Task: **{current_task}**")
             
