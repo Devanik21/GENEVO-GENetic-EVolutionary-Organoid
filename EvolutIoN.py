@@ -3387,7 +3387,7 @@ def main():
             "Multi-Level Selection is the theoretical framework for understanding the evolution of cooperation and sociality."
         )
 
-    with st.sidebar.expander("Advanced Mutation Control"):
+    with st.sidebar.expander("Mutation Control"):
         mutation_schedule = st.selectbox(
             "Mutation Rate Schedule",
             ['Constant', 'Linear Decay', 'Adaptive'],
