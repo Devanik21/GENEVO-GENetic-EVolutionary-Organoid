@@ -690,7 +690,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
         'task_accuracy': 0.0,
         'efficiency': 0.0,
         'robustness': 0.0,
-        'generalization': 0.0
+        'generalization': 0.0,
         # Advanced Primary Objectives
         'learning_speed': 0.0,
         'data_parsimony': 0.0,
