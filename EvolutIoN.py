@@ -3406,6 +3406,74 @@ def main():
             key="adaptive_mutation_strength_slider"
         )
     
+    with st.sidebar.expander("🔬 Advanced Mutation Control & Operator Dynamics", expanded=False):
+        enable_advanced_mutation = st.checkbox(
+            "Enable Advanced Mutation Dynamics",
+            value=s.get('enable_advanced_mutation', False),
+            help="**DANGER: HIGHLY EXPERIMENTAL.** Unlocks a suite of sophisticated mutation operators that model complex biological and theoretical phenomena. This provides fine-grained control over the variational properties of the evolutionary search, but can lead to unpredictable dynamics.",
+            key="enable_advanced_mutation_checkbox"
+        )
+
+        st.markdown("---")
+        st.markdown("#### 1. Mutation Distribution & Shape")
+        mutation_distribution_type = st.selectbox("Mutation Distribution", ['Gaussian', 'Cauchy', 'Laplace', 'Log-Normal'], index=['Gaussian', 'Cauchy', 'Laplace', 'Log-Normal'].index(s.get('mutation_distribution_type', 'Gaussian')), disabled=not enable_advanced_mutation, help="The statistical distribution for point mutations. Cauchy allows for rare, large 'leaps'.")
+        mutation_scale_parameter = st.slider("Mutation Scale (σ)", 0.01, 0.5, s.get('mutation_scale_parameter', 0.1), 0.01, disabled=not enable_advanced_mutation, help="The scale parameter (e.g., standard deviation) of the mutation distribution.")
+        structural_mutation_scale = st.slider("Structural Mutation Scale", 0.1, 2.0, s.get('structural_mutation_scale', 1.0), 0.1, disabled=not enable_advanced_mutation, help="A multiplier for the magnitude of structural changes (e.g., size of a new module).")
+        mutation_correlation_factor = st.slider("Mutation Correlation Factor", 0.0, 1.0, s.get('mutation_correlation_factor', 0.0), 0.05, disabled=not enable_advanced_mutation, help="Correlation between mutations applied to different parameters within the same module. High values mean parameters mutate together.")
+        mutation_operator_bias = st.slider("Mutation Operator Bias", -1.0, 1.0, s.get('mutation_operator_bias', 0.0), 0.1, disabled=not enable_advanced_mutation, help="Bias between structural and parameter mutations. >0 favors structural, <0 favors parameter.")
+        mutation_tail_heaviness = st.slider("Mutation Tail Heaviness", 0.1, 5.0, s.get('mutation_tail_heaviness', 1.0), 0.1, disabled=not enable_advanced_mutation, help="Controls the 'heaviness' of the mutation distribution's tails, allowing for more or fewer extreme mutations.")
+        mutation_anisotropy_vector = st.text_input("Mutation Anisotropy Vector", value=s.get('mutation_anisotropy_vector', "1.0,1.0,1.0"), disabled=not enable_advanced_mutation, help="CSV of multipliers for different parameter types (e.g., size,plasticity,lr_mult) to make mutation anisotropic.")
+        mutation_modality = st.slider("Mutation Modality", 1, 5, s.get('mutation_modality', 1), 1, disabled=not enable_advanced_mutation, help="Number of modes in the mutation distribution. >1 creates a multi-modal distribution, offering distinct 'packages' of change.")
+        mutation_step_size_annealing = st.slider("Mutation Step-Size Annealing", 0.9, 1.0, s.get('mutation_step_size_annealing', 0.99), 0.005, disabled=not enable_advanced_mutation, help="Factor by which the mutation scale parameter is multiplied each generation. <1.0 anneals the search.")
+
+        st.markdown("---")
+        st.markdown("#### 2. Context-Dependent & Targeted Mutagenesis")
+        fitness_dependent_mutation_strength = st.slider("Fitness-Dependent Mutation Strength", -1.0, 1.0, s.get('fitness_dependent_mutation_strength', 0.0), 0.1, disabled=not enable_advanced_mutation, help="How mutation rate scales with fitness. <0: fitter individuals mutate less (Lamarckian). >0: fitter individuals mutate more (exploration).")
+        age_dependent_mutation_strength = st.slider("Age-Dependent Mutation Strength", -1.0, 1.0, s.get('age_dependent_mutation_strength', 0.0), 0.1, disabled=not enable_advanced_mutation, help="How mutation rate scales with individual's age. >0 simulates accumulating damage, <0 simulates stabilizing with age.")
+        module_size_dependent_mutation = st.slider("Module Size-Dependent Mutation", -1.0, 1.0, s.get('module_size_dependent_mutation', 0.0), 0.1, disabled=not enable_advanced_mutation, help="How mutation rate scales with module size. >0: larger modules are more mutable. <0: smaller modules are more mutable.")
+        connection_weight_dependent_mutation = st.slider("Connection Weight-Dependent Mutation", -1.0, 1.0, s.get('connection_weight_dependent_mutation', 0.0), 0.1, disabled=not enable_advanced_mutation, help="How mutation rate scales with connection weight. >0: strong connections are more plastic. <0: weak connections are more plastic.")
+        somatic_hypermutation_rate = st.slider("Somatic Hypermutation Rate", 0.0, 0.1, s.get('somatic_hypermutation_rate', 0.0), 0.005, disabled=not enable_advanced_mutation, help="Probability of a 'hypermutation' event in a specific module during an individual's lifetime, simulating affinity maturation in immune systems.")
+        error_driven_mutation_strength = st.slider("Error-Driven Mutation Strength", 0.0, 1.0, s.get('error_driven_mutation_strength', 0.0), 0.05, disabled=not enable_advanced_mutation, help="Strength of a mechanism where modules responsible for high prediction errors have their mutation rates temporarily increased.")
+        gene_centrality_mutation_bias = st.slider("Gene Centrality Mutation Bias", -1.0, 1.0, s.get('gene_centrality_mutation_bias', 0.0), 0.1, disabled=not enable_advanced_mutation, help="Bias mutation towards/away from central nodes in the network graph. >0 protects the core, <0 focuses change on the core.")
+        epigenetic_mutation_influence = st.slider("Epigenetic Mutation Influence", 0.0, 1.0, s.get('epigenetic_mutation_influence', 0.0), 0.05, disabled=not enable_advanced_mutation, help="Degree to which epigenetic markers can directly increase or decrease the mutation rate of the genes they are attached to.")
+        mutation_hotspot_probability = st.slider("Mutation Hotspot Probability", 0.0, 0.1, s.get('mutation_hotspot_probability', 0.0), 0.005, disabled=not enable_advanced_mutation, help="Probability of designating a random gene as a 'hotspot' with a temporarily elevated mutation rate.")
+
+        st.markdown("---")
+        st.markdown("#### 3. Structural & Topological Mutation Control")
+        add_connection_topology_bias = st.selectbox("Add Connection Topology Bias", ['Uniform', 'Local', 'Global'], index=['Uniform', 'Local', 'Global'].index(s.get('add_connection_topology_bias', 'Uniform')), disabled=not enable_advanced_mutation, help="Bias for adding new connections. Local connects nearby nodes, Global connects distant ones.")
+        add_module_method = st.selectbox("Add Module Method", ['Split Connection', 'Orphan Node'], index=['Split Connection', 'Orphan Node'].index(s.get('add_module_method', 'Split Connection')), disabled=not enable_advanced_mutation, help="How new modules are integrated. 'Split Connection' is the classic NEAT method. 'Orphan Node' adds an unconnected module that must evolve connections later.")
+        remove_connection_probability = st.slider("Remove Connection Probability", 0.0, 0.1, s.get('remove_connection_probability', 0.01), 0.005, disabled=not enable_advanced_mutation, help="Probability of removing a random connection during mutation.")
+        remove_module_probability = st.slider("Remove Module Probability", 0.0, 0.05, s.get('remove_module_probability', 0.005), 0.001, disabled=not enable_advanced_mutation, help="Probability of removing a random module (and its connections).")
+        connection_rewiring_probability = st.slider("Connection Rewiring Probability", 0.0, 0.2, s.get('connection_rewiring_probability', 0.0), 0.01, disabled=not enable_advanced_mutation, help="Probability of changing the source or target of an existing connection.")
+        module_duplication_probability = st.slider("Module Duplication Probability", 0.0, 0.05, s.get('module_duplication_probability', 0.0), 0.005, disabled=not enable_advanced_mutation, help="Probability of duplicating an entire module, including its internal parameters but with new connections.")
+        module_fusion_probability = st.slider("Module Fusion Probability", 0.0, 0.05, s.get('module_fusion_probability', 0.0), 0.005, disabled=not enable_advanced_mutation, help="Probability of fusing two connected modules into a single, larger module.")
+        cycle_formation_probability = st.slider("Cycle Formation Probability", 0.0, 0.1, s.get('cycle_formation_probability', 0.01), 0.005, disabled=not enable_advanced_mutation, help="Probability of adding a connection that creates a recurrent cycle in the graph.")
+        structural_mutation_phase = st.selectbox("Structural Mutation Phase", ['Early', 'Late', 'Continuous'], index=['Early', 'Late', 'Continuous'].index(s.get('structural_mutation_phase', 'Continuous')), disabled=not enable_advanced_mutation, help="Restrict structural mutations to a specific phase of the run. Early=first 25%, Late=last 25%.")
+
+        st.markdown("---")
+        st.markdown("#### 4. Metaplasticity & Learning-Guided Mutation")
+        learning_rate_mutation_strength = st.slider("Learning Rate Mutation Strength", 0.0, 0.5, s.get('learning_rate_mutation_strength', 0.1), 0.01, disabled=not enable_advanced_mutation, help="The scale of mutations applied to the learning rate meta-parameter.")
+        plasticity_mutation_strength = st.slider("Plasticity Mutation Strength", 0.0, 0.5, s.get('plasticity_mutation_strength', 0.1), 0.01, disabled=not enable_advanced_mutation, help="The scale of mutations applied to module plasticity parameters.")
+        learning_improvement_mutation_bonus = st.slider("Learning Improvement Mutation Bonus", 0.0, 2.0, s.get('learning_improvement_mutation_bonus', 0.0), 0.1, disabled=not enable_advanced_mutation, help="A multiplier on mutation rate for individuals that showed high learning improvement (Baldwin effect) in their lifetime.")
+        weight_change_mutation_correlation = st.slider("Weight Change-Mutation Correlation", -1.0, 1.0, s.get('weight_change_mutation_correlation', 0.0), 0.1, disabled=not enable_advanced_mutation, help="Correlates mutation direction with the direction of weight changes during lifetime learning. >0 reinforces learning, <0 counteracts it.")
+        synaptic_tagging_credit_assignment = st.slider("Synaptic Tagging Credit Assignment", 0.0, 1.0, s.get('synaptic_tagging_credit_assignment', 0.0), 0.05, disabled=not enable_advanced_mutation, help="Strength of a 'synaptic tagging' mechanism, where mutations are preferentially applied to connections that were recently active and led to a reward.")
+        metaplasticity_rule = st.selectbox("Metaplasticity Rule", ['None', 'BCM', 'Homeostatic'], index=['None', 'BCM', 'Homeostatic'].index(s.get('metaplasticity_rule', 'None')), disabled=not enable_advanced_mutation, help="The rule governing how plasticity itself changes. BCM = Bienenstock-Cooper-Munro, Homeostatic = activity-dependent scaling.")
+        learning_instability_penalty = st.slider("Learning Instability Penalty", 0.0, 1.0, s.get('learning_instability_penalty', 0.0), 0.05, disabled=not enable_advanced_mutation, help="A fitness penalty for individuals whose parameters change drastically during lifetime learning, promoting more stable learners.")
+        gradient_guided_mutation_strength = st.slider("Gradient-Guided Mutation Strength", 0.0, 1.0, s.get('gradient_guided_mutation_strength', 0.0), 0.05, disabled=not enable_advanced_mutation, help="Strength of a mechanism that biases mutations to follow the direction of the fitness gradient (approximated), turning mutation into a form of hill-climbing.")
+        hessian_guided_mutation_strength = st.slider("Hessian-Guided Mutation Strength", 0.0, 1.0, s.get('hessian_guided_mutation_strength', 0.0), 0.05, disabled=not enable_advanced_mutation, help="Strength of a mechanism that biases mutations towards flat regions of the fitness landscape (low Hessian), which often generalize better.")
+
+        st.markdown("---")
+        st.markdown("#### 5. Advanced Crossover & Recombination")
+        crossover_operator = st.selectbox("Crossover Operator", ['Homologous', 'Uniform', 'N-Point'], index=['Homologous', 'Uniform', 'N-Point'].index(s.get('crossover_operator', 'Homologous')), disabled=not enable_advanced_mutation, help="The specific algorithm used for crossover.")
+        crossover_n_points = st.slider("Crossover N-Points", 1, 5, s.get('crossover_n_points', 2), 1, disabled=(crossover_operator != 'N-Point'), help="Number of points for N-Point crossover.")
+        crossover_parent_assortativity = st.slider("Crossover Parent Assortativity", -1.0, 1.0, s.get('crossover_parent_assortativity', 0.0), 0.1, disabled=not enable_advanced_mutation, help="Mating preference. >0: similar individuals mate (assortative). <0: dissimilar individuals mate (disassortative).")
+        crossover_gene_dominance_probability = st.slider("Crossover Gene Dominance Probability", 0.0, 1.0, s.get('crossover_gene_dominance_probability', 0.0), 0.05, disabled=not enable_advanced_mutation, help="Probability that a gene from the fitter parent is always inherited (dominant).")
+        sexual_reproduction_rate = st.slider("Sexual Reproduction Rate", 0.0, 1.0, s.get('sexual_reproduction_rate', 1.0), 0.05, disabled=not enable_advanced_mutation, help="The proportion of offspring produced by crossover (sexually) vs. mutation alone (asexually).")
+        inbreeding_penalty_factor = st.slider("Inbreeding Penalty Factor", 0.0, 1.0, s.get('inbreeding_penalty_factor', 0.0), 0.05, disabled=not enable_advanced_mutation, help="A fitness penalty applied to offspring of closely related parents, promoting outbreeding.")
+        horizontal_gene_transfer_rate = st.slider("Horizontal Gene Transfer Rate", 0.0, 0.05, s.get('horizontal_gene_transfer_rate', 0.0), 0.001, disabled=not enable_advanced_mutation, help="Probability of transferring a single random module/gene from one individual to another in the population, simulating bacterial conjugation.")
+        polyploidy_probability = st.slider("Polyploidy Probability", 0.0, 0.05, s.get('polyploidy_probability', 0.0), 0.001, disabled=not enable_advanced_mutation, help="Probability of an offspring inheriting the entire chromosome set from both parents, leading to a massive increase in genetic material.")
+        meiotic_recombination_rate = st.slider("Meiotic Recombination Rate", 0.0, 1.0, s.get('meiotic_recombination_rate', 0.5), 0.05, disabled=not enable_advanced_mutation, help="Controls the frequency of crossover events along the chromosome during sexual reproduction.")
+
     st.sidebar.markdown("### Selection Strategy")
     selection_pressure = st.sidebar.slider(
         "Selection Pressure", min_value=0.1, max_value=0.9, value=s.get('selection_pressure', 0.4), step=0.05,
@@ -4219,6 +4287,53 @@ def main():
         'w_decision_time': w_decision_time if enable_advanced_objectives else 0.0,
         'mutation_rate': mutation_rate,
         'crossover_rate': crossover_rate,
+        # --- NEW ADVANCED MUTATION SETTINGS ---
+        'enable_advanced_mutation': enable_advanced_mutation,
+        'mutation_distribution_type': mutation_distribution_type,
+        'mutation_scale_parameter': mutation_scale_parameter,
+        'structural_mutation_scale': structural_mutation_scale,
+        'mutation_correlation_factor': mutation_correlation_factor,
+        'mutation_operator_bias': mutation_operator_bias,
+        'mutation_tail_heaviness': mutation_tail_heaviness,
+        'mutation_anisotropy_vector': mutation_anisotropy_vector,
+        'mutation_modality': mutation_modality,
+        'mutation_step_size_annealing': mutation_step_size_annealing,
+        'fitness_dependent_mutation_strength': fitness_dependent_mutation_strength,
+        'age_dependent_mutation_strength': age_dependent_mutation_strength,
+        'module_size_dependent_mutation': module_size_dependent_mutation,
+        'connection_weight_dependent_mutation': connection_weight_dependent_mutation,
+        'somatic_hypermutation_rate': somatic_hypermutation_rate,
+        'error_driven_mutation_strength': error_driven_mutation_strength,
+        'gene_centrality_mutation_bias': gene_centrality_mutation_bias,
+        'epigenetic_mutation_influence': epigenetic_mutation_influence,
+        'mutation_hotspot_probability': mutation_hotspot_probability,
+        'add_connection_topology_bias': add_connection_topology_bias,
+        'add_module_method': add_module_method,
+        'remove_connection_probability': remove_connection_probability,
+        'remove_module_probability': remove_module_probability,
+        'connection_rewiring_probability': connection_rewiring_probability,
+        'module_duplication_probability': module_duplication_probability,
+        'module_fusion_probability': module_fusion_probability,
+        'cycle_formation_probability': cycle_formation_probability,
+        'structural_mutation_phase': structural_mutation_phase,
+        'learning_rate_mutation_strength': learning_rate_mutation_strength,
+        'plasticity_mutation_strength': plasticity_mutation_strength,
+        'learning_improvement_mutation_bonus': learning_improvement_mutation_bonus,
+        'weight_change_mutation_correlation': weight_change_mutation_correlation,
+        'synaptic_tagging_credit_assignment': synaptic_tagging_credit_assignment,
+        'metaplasticity_rule': metaplasticity_rule,
+        'learning_instability_penalty': learning_instability_penalty,
+        'gradient_guided_mutation_strength': gradient_guided_mutation_strength,
+        'hessian_guided_mutation_strength': hessian_guided_mutation_strength,
+        'crossover_operator': crossover_operator,
+        'crossover_n_points': crossover_n_points,
+        'crossover_parent_assortativity': crossover_parent_assortativity,
+        'crossover_gene_dominance_probability': crossover_gene_dominance_probability,
+        'sexual_reproduction_rate': sexual_reproduction_rate,
+        'inbreeding_penalty_factor': inbreeding_penalty_factor,
+        'horizontal_gene_transfer_rate': horizontal_gene_transfer_rate,
+        'polyploidy_probability': polyploidy_probability,
+        'meiotic_recombination_rate': meiotic_recombination_rate,
         'innovation_rate': innovation_rate,
         'enable_development': enable_development,
         'enable_baldwin': enable_baldwin,
