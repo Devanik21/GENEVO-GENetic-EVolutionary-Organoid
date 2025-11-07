@@ -3115,6 +3115,235 @@ def main():
             key="endosymbiosis_rate_slider"
         )
 
+        with st.sidebar.expander("🛰️ Co-evolutionary & Embodiment Dynamics", expanded=False):
+            st.markdown("""
+            **WARNING: HIGHLY ADVANCED & COMPUTATIONALLY INTENSIVE.**
+            
+            This section introduces two powerful co-evolutionary paradigms that fundamentally alter the evolutionary process, moving beyond static fitness functions towards dynamic, interactive adaptation.
+            
+            - **Adversarial Co-evolution:** Creates a "predator-prey" arms race between solutions and co-evolving "critics" that seek to exploit their weaknesses.
+            - **Morphological Co-evolution:** Co-evolves the "body" (morphology) and the "brain" (controller), grounding cognition in a physical form.
+            
+            Enabling these will significantly increase computation time and complexity.
+            """)
+            st.markdown("---")
+            
+            st.markdown("#### 1. Adversarial Co-evolution (Self-Play)")
+            enable_adversarial_coevolution = st.checkbox(
+                "Enable Adversarial Critic Population",
+                value=s.get('enable_adversarial_coevolution', False),
+                help="**Simulates an intellectual arms race.** Co-evolves a separate population of 'critic' agents whose goal is to find inputs or conditions that cause the main agents to fail. The main agents are then rewarded for their robustness against these adversarial attacks.",
+                key="enable_adversarial_coevolution_checkbox"
+            )
+            
+            critic_population_size = st.slider(
+                "Critic Population Size", 5, 100, s.get('critic_population_size', 10), 5,
+                disabled=not enable_adversarial_coevolution,
+                help="The number of critic agents in the co-evolving population.",
+                key="critic_population_size_slider"
+            )
+            
+            critic_mutation_rate = st.slider(
+                "Critic Mutation Rate", 0.05, 0.9, s.get('critic_mutation_rate', 0.3), 0.05,
+                disabled=not enable_adversarial_coevolution,
+                help="How quickly the critics adapt to exploit new weaknesses. Higher rates lead to a more aggressive arms race.",
+                key="critic_mutation_rate_slider"
+            )
+            
+            adversarial_fitness_weight = st.slider(
+                "Adversarial Fitness Weight", 0.0, 1.0, s.get('adversarial_fitness_weight', 0.2), 0.05,
+                disabled=not enable_adversarial_coevolution,
+                help="The portion of an agent's total fitness derived from its performance against the critics. Higher values prioritize robustness over raw task performance.",
+                key="adversarial_fitness_weight_slider"
+            )
+            
+            critic_selection_pressure = st.slider(
+                "Critic Selection Pressure", 0.1, 0.9, s.get('critic_selection_pressure', 0.5), 0.05,
+                disabled=not enable_adversarial_coevolution,
+                help="The fraction of the best critics that survive to reproduce. Higher pressure leads to more expert critics.",
+                key="critic_selection_pressure_slider"
+            )
+            
+            critic_task = st.selectbox(
+                "Critic Objective",
+                ['Find Minimal Perturbation', 'Generate Deceptive Inputs', 'Identify Catastrophic Forgetting'],
+                index=['Find Minimal Perturbation', 'Generate Deceptive Inputs', 'Identify Catastrophic Forgetting'].index(s.get('critic_task', 'Find Minimal Perturbation')),
+                disabled=not enable_adversarial_coevolution,
+                help="**What the critic tries to do:**\n- **Find Minimal Perturbation:** Finds the smallest change to an input that flips the agent's output.\n- **Generate Deceptive Inputs:** Generates novel inputs that look like one class but are classified as another.\n- **Identify Catastrophic Forgetting:** Tests if learning a new task makes the agent forget an old one.",
+                key="critic_task_selectbox"
+            )
+            
+            st.markdown("###### Advanced Adversarial Dynamics")
+            enable_hall_of_fame = st.checkbox(
+                "Enable Critic Hall of Fame",
+                value=s.get('enable_hall_of_fame', False),
+                disabled=not enable_adversarial_coevolution,
+                help="**Prevents forgetting.** Critics compete not just against the current generation, but also against a 'Hall of Fame' of past champion agents. This forces critics to maintain a memory of past exploits and leads to more robust, generalist agents.",
+                key="enable_hall_of_fame_checkbox"
+            )
+            hall_of_fame_size = st.slider(
+                "Hall of Fame Size", 5, 100, s.get('hall_of_fame_size', 20), 5,
+                disabled=not enable_hall_of_fame,
+                help="The number of past champions maintained in the Hall of Fame.",
+                key="hall_of_fame_size_slider"
+            )
+            hall_of_fame_replacement_strategy = st.selectbox(
+                "HoF Replacement Strategy", ['Replace Weakest', 'First-In, First-Out'],
+                index=['Replace Weakest', 'First-In, First-Out'].index(s.get('hall_of_fame_replacement_strategy', 'Replace Weakest')),
+                disabled=not enable_hall_of_fame,
+                help="How the Hall of Fame is updated when a new champion emerges.",
+                key="hall_of_fame_replacement_strategy_selectbox"
+            )
+            critic_evolution_frequency = st.slider(
+                "Critic Evolution Frequency", 1, 10, s.get('critic_evolution_frequency', 1), 1,
+                disabled=not enable_adversarial_coevolution,
+                help="Evolve the critic population every N agent generations. A value > 1 creates an 'asymmetric' arms race where agents have more time to adapt to a static set of critics.",
+                key="critic_evolution_frequency_slider"
+            )
+            critic_cooperation_probability = st.slider(
+                "Critic Cooperation Probability", 0.0, 1.0, s.get('critic_cooperation_probability', 0.0), 0.05,
+                disabled=not enable_adversarial_coevolution,
+                help="The probability that a critic is rewarded for *helping* an agent instead of hindering it. A non-zero value introduces complex competitive-cooperative dynamics.",
+                key="critic_cooperation_probability_slider"
+            )
+            cooperative_reward_scaling = st.slider("Cooperative Reward Scaling", 0.1, 2.0, s.get('cooperative_reward_scaling', 0.5), 0.1, disabled=not enable_adversarial_coevolution or critic_cooperation_probability == 0.0, help="How much a cooperative action from a critic is rewarded, relative to a competitive one.", key="cooperative_reward_scaling_slider")
+            critic_objective_novelty_weight = st.slider("Critic Novelty Weight", 0.0, 1.0, s.get('critic_objective_novelty_weight', 0.0), 0.05, disabled=not enable_adversarial_coevolution, help="A weight in the critic's own fitness function that rewards it for finding *new* or *unusual* ways to make an agent fail, promoting a more diverse set of adversarial attacks.", key="critic_objective_novelty_weight_slider")
+
+            st.markdown("---")
+            st.markdown("#### 2. Morphological Co-evolution (Embodied Cognition)")
+            enable_morphological_coevolution = st.checkbox(
+                "Enable Morphological Co-evolution",
+                value=s.get('enable_morphological_coevolution', False),
+                help="**'The body shapes the mind.'** Co-evolves the physical 'body' (number, type, and placement of modules) alongside the 'brain' (connections). This grounds the architecture in a physical form and allows for the discovery of novel body plans. Disables fixed Architectural Forms.",
+                key="enable_morphological_coevolution_checkbox"
+            )
+            
+            morphological_mutation_rate = st.slider(
+                "Morphological Mutation Rate", 0.01, 0.5, s.get('morphological_mutation_rate', 0.05), 0.01,
+                disabled=not enable_morphological_coevolution,
+                help="The rate of mutations affecting the body plan, such as adding/removing modules or changing their type.",
+                key="morphological_mutation_rate_slider"
+            )
+            
+            max_body_modules = st.slider(
+                "Max Body Modules", 5, 50, s.get('max_body_modules', 20), 1,
+                disabled=not enable_morphological_coevolution,
+                help="The maximum number of modules (body parts) an individual can evolve.",
+                key="max_body_modules_slider"
+            )
+            
+            cost_per_module = st.slider(
+                "Metabolic Cost per Module", 0.0, 0.1, s.get('cost_per_module', 0.01), 0.001,
+                disabled=not enable_morphological_coevolution,
+                help="A fitness penalty applied for each module in the body, simulating metabolic cost and pressuring for efficient morphologies.",
+                key="cost_per_module_slider"
+            )
+            
+            col_morph1, col_morph2 = st.columns(2)
+            enable_sensor_evolution = col_morph1.checkbox(
+                "Evolve Sensors", value=s.get('enable_sensor_evolution', True),
+                disabled=not enable_morphological_coevolution,
+                help="Allow the evolution of sensor module types and their properties.",
+                key="enable_sensor_evolution_checkbox"
+            )
+            enable_actuator_evolution = col_morph2.checkbox(
+                "Evolve Actuators", value=s.get('enable_actuator_evolution', True),
+                disabled=not enable_morphological_coevolution,
+                help="Allow the evolution of actuator (output) module types and their properties.",
+                key="enable_actuator_evolution_checkbox"
+            )
+            
+            st.markdown("###### Physics Simulation")
+            physical_realism_factor = st.slider(
+                "Physical Realism Factor", 0.0, 1.0, s.get('physical_realism_factor', 0.1), 0.05,
+                disabled=not enable_morphological_coevolution,
+                help="How much the simulated physics (gravity, friction) affects fitness. A value of 0 means abstract evolution; 1 means fitness is heavily dependent on physical simulation.",
+                key="physical_realism_factor_slider"
+            )
+            
+            embodiment_gravity = st.slider(
+                "Embodiment Gravity", 0.0, 20.0, s.get('embodiment_gravity', 9.8), 0.1,
+                disabled=not enable_morphological_coevolution or physical_realism_factor == 0.0,
+                help="The strength of the gravitational force in the simulated physical environment.",
+                key="embodiment_gravity_slider"
+            )
+            
+            embodiment_friction = st.slider(
+                "Embodiment Friction", 0.0, 1.0, s.get('embodiment_friction', 0.5), 0.05,
+                disabled=not enable_morphological_coevolution or physical_realism_factor == 0.0,
+                help="The coefficient of friction in the simulated physical environment.",
+                key="embodiment_friction_slider"
+            )
+            
+            st.markdown("###### Morphological Priors & Constraints")
+            bilateral_symmetry_bonus = st.slider(
+                "Bilateral Symmetry Bonus", 0.0, 0.5, s.get('bilateral_symmetry_bonus', 0.0), 0.01,
+                disabled=not enable_morphological_coevolution,
+                help="A fitness bonus for body plans that exhibit left-right (bilateral) symmetry, a powerful and common prior in natural evolution.",
+                key="bilateral_symmetry_bonus_slider"
+            )
+            segmentation_bonus = st.slider(
+                "Segmentation Bonus", 0.0, 0.5, s.get('segmentation_bonus', 0.0), 0.01,
+                disabled=not enable_morphological_coevolution,
+                help="A fitness bonus for body plans composed of repeated, similar segments (e.g., like a centipede or vertebrate spine). Promotes modular and scalable morphologies.",
+                key="segmentation_bonus_slider"
+            )
+            allometric_scaling_exponent = st.slider(
+                "Allometric Scaling Exponent", 0.5, 2.0, s.get('allometric_scaling_exponent', 1.0), 0.05,
+                disabled=not enable_morphological_coevolution,
+                help="Controls how body parts scale relative to each other (e.g., head size vs. body size). An exponent of 1.0 is isometric (uniform scaling); other values create non-uniform scaling seen in nature.",
+                key="allometric_scaling_exponent_slider"
+            )
+
+            st.markdown("###### Material & Advanced Physical Property Evolution")
+            enable_material_evolution = st.checkbox(
+                "Enable Material Evolution", value=s.get('enable_material_evolution', False),
+                disabled=not enable_morphological_coevolution,
+                help="Allows modules to evolve physical material properties like stiffness and density, in addition to their computational function.",
+                key="enable_material_evolution_checkbox"
+            )
+            cost_per_stiffness = st.slider("Cost per Stiffness", 0.0, 0.1, s.get('cost_per_stiffness', 0.01), 0.001, disabled=not enable_material_evolution, help="Metabolic fitness cost associated with evolving stiffer materials.", key="cost_per_stiffness_slider")
+            cost_per_density = st.slider("Cost per Density", 0.0, 0.1, s.get('cost_per_density', 0.01), 0.001, disabled=not enable_material_evolution, help="Metabolic fitness cost associated with evolving denser materials.", key="cost_per_density_slider")
+            
+            st.markdown("###### Advanced Sensor/Actuator & Environment Physics")
+            evolvable_sensor_noise = st.slider(
+                "Evolvable Sensor Noise", 0.0, 0.5, s.get('evolvable_sensor_noise', 0.0), 0.01,
+                disabled=not enable_morphological_coevolution,
+                help="The base noise level for sensors. If non-zero, architectures can evolve to be robust to noisy sensory input.",
+                key="evolvable_sensor_noise_slider"
+            )
+            evolvable_actuator_force = st.slider(
+                "Evolvable Actuator Force", 0.1, 5.0, s.get('evolvable_actuator_force', 1.0), 0.1,
+                disabled=not enable_morphological_coevolution,
+                help="The maximum force an actuator module can exert. Higher force may have higher metabolic costs.",
+                key="evolvable_actuator_force_slider"
+            )
+            fluid_dynamics_viscosity = st.slider(
+                "Fluid Dynamics Viscosity", 0.0, 1.0, s.get('fluid_dynamics_viscosity', 0.0), 0.05,
+                disabled=not enable_morphological_coevolution or physical_realism_factor == 0.0,
+                help="Simulates the viscosity of a surrounding fluid (e.g., water or air), creating a drag force on moving bodies. High values favor streamlined morphologies.",
+                key="fluid_dynamics_viscosity_slider"
+            )
+            surface_tension_factor = st.slider(
+                "Surface Tension Factor", 0.0, 1.0, s.get('surface_tension_factor', 0.0), 0.05,
+                disabled=not enable_morphological_coevolution or physical_realism_factor == 0.0,
+                help="Simulates surface tension forces for agents at the boundary of a medium, relevant for aquatic or amphibious scenarios.",
+                key="surface_tension_factor_slider"
+            )
+
+            st.markdown("---")
+            st.markdown("#### 3. Host-Symbiont Dynamics (Microbiome Simulation)")
+            enable_host_symbiont_coevolution = st.checkbox("Enable Host-Symbiont Co-evolution", value=s.get('enable_host_symbiont_coevolution', False), help="**Simulates a microbiome.** Co-evolves a population of fast-evolving 'symbionts' that live inside the main 'host' agents. The host's fitness is modified by its symbiont colony, creating a two-level evolutionary dynamic.", key="enable_host_symbiont_coevolution_checkbox")
+            symbiont_population_size = st.slider("Symbiont Population per Host", 10, 200, s.get('symbiont_population_size', 50), 10, disabled=not enable_host_symbiont_coevolution, help="The number of symbionts each host carries.", key="symbiont_population_size_slider")
+            symbiont_mutation_rate = st.slider("Symbiont Mutation Rate", 0.1, 1.0, s.get('symbiont_mutation_rate', 0.5), 0.05, disabled=not enable_host_symbiont_coevolution, help="The mutation rate for the rapidly evolving symbionts.", key="symbiont_mutation_rate_slider")
+            symbiont_transfer_rate = st.slider("Symbiont Horizontal Transfer Rate", 0.0, 0.2, s.get('symbiont_transfer_rate', 0.01), 0.01, disabled=not enable_host_symbiont_coevolution, help="The probability of symbionts being transferred between hosts upon 'contact', simulating horizontal gene transfer.", key="symbiont_transfer_rate_slider")
+            symbiont_vertical_inheritance_fidelity = st.slider("Symbiont Vertical Inheritance Fidelity", 0.5, 1.0, s.get('symbiont_vertical_inheritance_fidelity', 0.9), 0.05, disabled=not enable_host_symbiont_coevolution, help="The fidelity with which a host passes its symbiont colony to its offspring. < 1.0 means imperfect inheritance.", key="symbiont_vertical_inheritance_fidelity_slider")
+            host_symbiont_fitness_dependency = st.slider("Host-Symbiont Fitness Dependency", 0.0, 1.0, s.get('host_symbiont_fitness_dependency', 0.1), 0.05, disabled=not enable_host_symbiont_coevolution, help="How much of the host's fitness is determined by the properties of its symbiont colony.", key="host_symbiont_fitness_dependency_slider")
+
+            st.info(
+                "Hover over the (?) on each checkbox for a detailed explanation of the dynamic."
+            )
+
     with st.sidebar.expander("🛰️ Co-evolutionary & Embodiment Dynamics", expanded=False):
         st.markdown("""
         **WARNING: HIGHLY ADVANCED & COMPUTATIONALLY INTENSIVE.**
