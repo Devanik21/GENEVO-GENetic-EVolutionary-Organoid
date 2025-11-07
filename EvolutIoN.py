@@ -2220,12 +2220,12 @@ def main():
             'w_theory_of_mind': 0.0,
             'w_cognitive_dissonance': 0.0,
             'w_goal_achievement': 0.0,
-            'w_learning_speed': 0.0,
-            'w_forgetting_resistance': 0.0,
+            'w_cognitive_learning_speed': 0.0,
+            'w_cognitive_forgetting_resistance': 0.0,
             'w_compositionality': 0.0,
             'w_planning_depth': 0.0,
             # Structural
-            'w_modularity': 0.0,
+            'w_structural_modularity': 0.0,
             'w_hierarchy': 0.0,
             'w_symmetry': 0.0,
             'w_small_worldness': 0.0,
@@ -2788,19 +2788,19 @@ def main():
         st.markdown("---")
         st.markdown("#### 3. Cognitive & Agency-Based Objectives")
         w_curiosity = st.slider("Curiosity", 0.0, 1.0, s.get('w_curiosity', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_curiosity_slider")
-        w_world_model_accuracy = st.slider("World Model Accuracy", 0.0, 1.0, s.get('w_world_model_accuracy', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_world_model_accuracy_slider")
+        w_world_model_accuracy = st.slider("World Model Accuracy", 0.0, 1.0, s.get('w_world_model_accuracy', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_world_model_accuracy_slider") # This key is unique
         w_attention_schema = st.slider("Attention Schema", 0.0, 1.0, s.get('w_attention_schema', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_attention_schema_slider")
         w_theory_of_mind = st.slider("Theory of Mind", 0.0, 1.0, s.get('w_theory_of_mind', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_theory_of_mind_slider")
         w_cognitive_dissonance = st.slider("Cognitive Dissonance", 0.0, 1.0, s.get('w_cognitive_dissonance', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_cognitive_dissonance_slider")
         w_goal_achievement = st.slider("Goal Achievement", 0.0, 1.0, s.get('w_goal_achievement', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_goal_achievement_slider")
-        w_learning_speed = st.slider("Learning Speed", 0.0, 1.0, s.get('w_learning_speed', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_learning_speed_slider")
-        w_forgetting_resistance = st.slider("Forgetting Resistance", 0.0, 1.0, s.get('w_forgetting_resistance', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_forgetting_resistance_slider")
+        w_cognitive_learning_speed = st.slider("Cognitive Learning Speed", 0.0, 1.0, s.get('w_cognitive_learning_speed', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_cognitive_learning_speed_slider", help="An intrinsic motivation for agents to improve their performance over their lifetime.")
+        w_cognitive_forgetting_resistance = st.slider("Cognitive Forgetting Resistance", 0.0, 1.0, s.get('w_cognitive_forgetting_resistance', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_cognitive_forgetting_resistance_slider", help="An intrinsic motivation to retain knowledge of previous tasks.")
         w_compositionality = st.slider("Compositionality", 0.0, 1.0, s.get('w_compositionality', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_compositionality_slider")
         w_planning_depth = st.slider("Planning Depth", 0.0, 1.0, s.get('w_planning_depth', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_planning_depth_slider")
 
         st.markdown("---")
         st.markdown("#### 4. Structural & Topological Objectives")
-        w_modularity = st.slider("Modularity", 0.0, 1.0, s.get('w_modularity', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_modularity_slider")
+        w_structural_modularity = st.slider("Structural Modularity", 0.0, 1.0, s.get('w_structural_modularity', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_structural_modularity_slider", help="An intrinsic motivation for evolving structurally modular architectures.")
         w_hierarchy = st.slider("Hierarchy", 0.0, 1.0, s.get('w_hierarchy', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_hierarchy_slider")
         w_symmetry = st.slider("Symmetry", 0.0, 1.0, s.get('w_symmetry', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_symmetry_slider")
         w_small_worldness = st.slider("Small-Worldness", 0.0, 1.0, s.get('w_small_worldness', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_small_worldness_slider")
@@ -4047,11 +4047,11 @@ def main():
         'w_theory_of_mind': w_theory_of_mind if enable_advanced_objectives else 0.0,
         'w_cognitive_dissonance': w_cognitive_dissonance if enable_advanced_objectives else 0.0,
         'w_goal_achievement': w_goal_achievement if enable_advanced_objectives else 0.0,
-        'w_learning_speed': w_learning_speed if enable_advanced_objectives else 0.0,
-        'w_forgetting_resistance': w_forgetting_resistance if enable_advanced_objectives else 0.0,
+        'w_cognitive_learning_speed': w_cognitive_learning_speed if enable_advanced_objectives else 0.0,
+        'w_cognitive_forgetting_resistance': w_cognitive_forgetting_resistance if enable_advanced_objectives else 0.0,
         'w_compositionality': w_compositionality if enable_advanced_objectives else 0.0,
         'w_planning_depth': w_planning_depth if enable_advanced_objectives else 0.0,
-        'w_modularity': w_modularity if enable_advanced_objectives else 0.0,
+        'w_structural_modularity': w_structural_modularity if enable_advanced_objectives else 0.0,
         'w_hierarchy': w_hierarchy if enable_advanced_objectives else 0.0,
         'w_symmetry': w_symmetry if enable_advanced_objectives else 0.0,
         'w_small_worldness': w_small_worldness if enable_advanced_objectives else 0.0,
