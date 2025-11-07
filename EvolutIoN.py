@@ -2578,7 +2578,7 @@ def main():
     s = st.session_state.get('settings', {})
 
     # --- META-EVOLUTION EXPANDER ---
-    with st.sidebar.expander("🛰️ Meta-Evolution & Self-Configuration", expanded=False):
+    with st.sidebar.expander(" Meta-Evolution & Self-Configuration", expanded=False):
         st.markdown("""
         **THE APEX OF COMPLEXITY: EVOLVING EVOLUTION ITSELF.**
         
@@ -2910,7 +2910,7 @@ def main():
         st.write("Normalized Weights:")
         st.json({k: f"{v:.2f}" for k, v in fitness_weights.items()})
     
-    with st.sidebar.expander("🔬 Advanced Objectives & Intrinsic Motivations", expanded=False):
+    with st.sidebar.expander(" Advanced Objectives & Intrinsic Motivations", expanded=False):
         enable_advanced_objectives = st.checkbox(
             "Enable Advanced Objectives",
             value=s.get('enable_advanced_objectives', False),
@@ -3487,7 +3487,7 @@ def main():
             "Multi-Level Selection is the theoretical framework for understanding the evolution of cooperation and sociality."
         )
 
-    with st.sidebar.expander(" 🧬 Mutation Control"):
+    with st.sidebar.expander("  Mutation Control"):
         mutation_schedule = st.selectbox(
             "Mutation Rate Schedule",
             ['Constant', 'Linear Decay', 'Adaptive'],
@@ -3506,7 +3506,7 @@ def main():
             key="adaptive_mutation_strength_slider"
         )
     
-    with st.sidebar.expander("🔬 Advanced Mutation Control & Operator Dynamics", expanded=False):
+    with st.sidebar.expander(" Advanced Mutation Control & Operator Dynamics", expanded=False):
         enable_advanced_mutation = st.checkbox(
             "Enable Advanced Mutation Dynamics",
             value=s.get('enable_advanced_mutation', False),
@@ -3615,7 +3615,7 @@ def main():
             key="compatibility_threshold_slider"
         )
 
-        with st.expander("🌌 Advanced Speciation & Ecosystem Physics", expanded=False):
+        with st.expander(" Advanced Speciation & Ecosystem Physics", expanded=False):
             enable_advanced_speciation = st.checkbox(
                 "Enable Advanced Speciation Physics",
                 value=s.get('enable_advanced_speciation', False),
@@ -4336,7 +4336,7 @@ def main():
         help="How much to mutate the seeded elites to create initial diversity for the new run.", key="seeded_elite_mutation_strength_slider"
     )
     
-    with st.sidebar.expander("🏁 Finalization & Post-Processing", expanded=False):
+    with st.sidebar.expander(" Finalization & Post-Processing", expanded=False):
         st.markdown("Define automated post-evolution analysis and synthesis steps that run after the main evolutionary process concludes.")
         
         st.markdown("---")
