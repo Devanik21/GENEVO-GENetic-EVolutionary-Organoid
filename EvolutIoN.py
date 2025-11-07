@@ -2282,7 +2282,7 @@ def main():
             'ensemble_size': 5,
             'fitness_autocorrelation_time': 0.0,
             # --- NEW ADVANCED FINALIZATION DEFAULTS ---
-            'enable_advanced_finalization': False,
+            'enable_advanced_finalization': True,
             'pruning_aggressiveness': 0.1,
             'pruning_method': 'Magnitude',
             'fitness_landscape_plasticity': 0.0,
@@ -4918,7 +4918,7 @@ def main():
         'lambda_calculus_isomorphism': lambda_calculus_isomorphism,
         'proof_complexity_cost': proof_complexity_cost,
         'constructive_type_theory_adherence': constructive_type_theory_adherence,
-    }
+        )
 
     # --- Collect and save current settings ---
     current_settings = {
