@@ -4325,6 +4325,601 @@ def main():
             key="fine_tuning_mutation_multiplier_slider"
         )
 
+        st.markdown("---")
+        st.markdown("##### 🔬 Advanced Finalization & Analysis Engine")
+        enable_advanced_finalization = st.checkbox(
+            "Enable Advanced Finalization Engine",
+            value=s.get('enable_advanced_finalization', False),
+            help="**DANGER: HIGHLY EXPERIMENTAL & COMPUTATIONALLY EXPENSIVE.** Unlocks a suite of over 40 advanced post-processing, analysis, and synthesis techniques. These go far beyond simple fine-tuning, employing methods from knowledge distillation, model merging, formal verification, and deep interpretability. Use only for final, in-depth analysis of a completed run.",
+            key="enable_advanced_finalization_checkbox"
+        )
+
+        # --- Define default values for all advanced finalization parameters ---
+        # This prevents NameError when the checkbox is disabled.
+        pruning_method = s.get('pruning_method', 'Magnitude')
+        pruning_aggressiveness = s.get('pruning_aggressiveness', 0.1)
+        model_compression_target_ratio = s.get('model_compression_target_ratio', 0.5)
+        quantization_bits = s.get('quantization_bits', 8)
+        lottery_ticket_pruning_iterations = s.get('lottery_ticket_pruning_iterations', 3)
+        knowledge_distillation_temperature = s.get('knowledge_distillation_temperature', 1.0)
+        distillation_teacher_selection = s.get('distillation_teacher_selection', 'Master')
+        self_distillation_weight = s.get('self_distillation_weight', 0.0)
+        model_merging_method = s.get('model_merging_method', 'Weight Averaging')
+        merging_resolution_method = s.get('merging_resolution_method', 'Functional')
+        model_merging_alpha = s.get('model_merging_alpha', 0.5)
+        bayesian_model_averaging_prior = s.get('bayesian_model_averaging_prior', 0.1)
+        stacking_meta_learner_complexity = s.get('stacking_meta_learner_complexity', 0.2)
+        calibration_method = s.get('calibration_method', 'Temperature Scaling')
+        out_of_distribution_generalization_test = s.get('out_of_distribution_generalization_test', 'Adversarial')
+        formal_verification_engine = s.get('formal_verification_engine', 'SMT Solver')
+        adversarial_robustness_certification_method = s.get('adversarial_robustness_certification_method', 'Interval Bound Propagation')
+        explainability_method = s.get('explainability_method', 'Integrated Gradients')
+        symbolic_regression_complexity_penalty = s.get('symbolic_regression_complexity_penalty', 0.01)
+        causal_model_extraction_method = s.get('causal_model_extraction_method', 'PC Algorithm')
+        concept_extraction_method = s.get('concept_extraction_method', 'TCAV')
+        concept_bottleneck_regularization = s.get('concept_bottleneck_regularization', 0.0)
+        mechanistic_interpretability_circuit_search = s.get('mechanistic_interpretability_circuit_search', False)
+        continual_learning_replay_buffer_size = s.get('continual_learning_replay_buffer_size', 100)
+        elastic_weight_consolidation_lambda = s.get('elastic_weight_consolidation_lambda', 0.1)
+        synaptic_intelligence_c_param = s.get('synaptic_intelligence_c_param', 0.01)
+        solution_export_format = s.get('solution_export_format', 'PyTorch')
+        deployment_latency_constraint = s.get('deployment_latency_constraint', 100.0)
+        energy_consumption_constraint = s.get('energy_consumption_constraint', 10.0)
+        final_report_verbosity = s.get('final_report_verbosity', 'Standard')
+        archive_solution_for_future_seeding = s.get('archive_solution_for_future_seeding', True)
+        generate_evolutionary_lineage_report = s.get('generate_evolutionary_lineage_report', False)
+        perform_sensitivity_analysis_on_hyperparameters = s.get('perform_sensitivity_analysis_on_hyperparameters', False)
+        ablation_study_component_count = s.get('ablation_study_component_count', 3)
+        cross_validation_folds = s.get('cross_validation_folds', 5)
+
+        if not enable_advanced_finalization:
+            st.warning("Advanced Finalization Engine is disabled. The following parameters will have no effect.")
+        else:
+            st.success("Advanced Finalization Engine is ACTIVE. This will significantly increase post-processing time.")
+
+            st.markdown("###### 1. Pruning & Compression")
+            pruning_method = st.selectbox("Pruning Method", ['Magnitude', 'Movement', 'Gradient-Based'], index=['Magnitude', 'Movement', 'Gradient-Based'].index(s.get('pruning_method', 'Magnitude')), disabled=not enable_advanced_finalization, help="Method for pruning weights post-training.")
+            pruning_aggressiveness = st.slider("Pruning Aggressiveness", 0.0, 1.0, s.get('pruning_aggressiveness', 0.1), 0.05, disabled=not enable_advanced_finalization, help="The fraction of weights to prune.")
+            model_compression_target_ratio = st.slider("Model Compression Target Ratio", 0.1, 1.0, s.get('model_compression_target_ratio', 0.5), 0.05, disabled=not enable_advanced_finalization, help="Target size reduction ratio for techniques like quantization.")
+            quantization_bits = st.select_slider("Quantization Bits", options=[4, 8, 16, 32], value=s.get('quantization_bits', 8), disabled=not enable_advanced_finalization, help="Number of bits for weight quantization.")
+            lottery_ticket_pruning_iterations = st.slider("Lottery Ticket Pruning Iterations", 0, 10, s.get('lottery_ticket_pruning_iterations', 3), 1, disabled=not enable_advanced_finalization, help="Number of prune-retrain iterations to find a 'lottery ticket' subnetwork. 0 disables.")
+
+            st.markdown("###### 2. Knowledge Synthesis & Distillation")
+            knowledge_distillation_temperature = st.slider("Knowledge Distillation Temperature", 1.0, 10.0, s.get('knowledge_distillation_temperature', 1.0), 0.5, disabled=not enable_advanced_finalization, help="Softmax temperature for distilling knowledge from a teacher to a student model.")
+            distillation_teacher_selection = st.selectbox("Distillation Teacher Selection", ['Master', 'Ensemble', 'Best Accuracy'], index=['Master', 'Ensemble', 'Best Accuracy'].index(s.get('distillation_teacher_selection', 'Master')), disabled=not enable_advanced_finalization, help="Which model(s) to use as the 'teacher' for distillation.")
+            self_distillation_weight = st.slider("Self-Distillation Weight", 0.0, 1.0, s.get('self_distillation_weight', 0.0), 0.05, disabled=not enable_advanced_finalization, help="Weight for a self-distillation loss, where a model learns from its own past predictions.")
+
+            st.markdown("###### 3. Model Merging & Ensembling")
+            model_merging_method = st.selectbox("Model Merging Method", ['Weight Averaging', 'Task Arithmetic', 'Fisher Merging'], index=['Weight Averaging', 'Task Arithmetic', 'Fisher Merging'].index(s.get('model_merging_method', 'Weight Averaging')), disabled=not enable_advanced_finalization, help="Algorithm for merging parameters from different models.")
+            merging_resolution_method = st.selectbox("Merging Resolution Method", ['Functional', 'Permutation-Based'], index=['Functional', 'Permutation-Based'].index(s.get('merging_resolution_method', 'Functional')), disabled=not enable_advanced_finalization, help="How to align neurons before merging.")
+            model_merging_alpha = st.slider("Model Merging Alpha", 0.0, 1.0, s.get('model_merging_alpha', 0.5), 0.05, disabled=not enable_advanced_finalization, help="Interpolation coefficient for merging two models.")
+            bayesian_model_averaging_prior = st.slider("Bayesian Model Averaging Prior", 0.0, 1.0, s.get('bayesian_model_averaging_prior', 0.1), 0.05, disabled=not enable_advanced_finalization, help="Strength of the prior in Bayesian Model Averaging.")
+            stacking_meta_learner_complexity = st.slider("Stacking Meta-Learner Complexity", 0.1, 1.0, s.get('stacking_meta_learner_complexity', 0.2), 0.1, disabled=not enable_advanced_finalization, help="Complexity of the meta-learner used in stacking ensembles.")
+
+            st.markdown("###### 4. Robustness, Safety & Verification")
+            calibration_method = st.selectbox("Calibration Method", ['Temperature Scaling', 'Isotonic Regression', 'Platt Scaling'], index=['Temperature Scaling', 'Isotonic Regression', 'Platt Scaling'].index(s.get('calibration_method', 'Temperature Scaling')), disabled=not enable_advanced_finalization, help="Method to calibrate model confidence scores.")
+            out_of_distribution_generalization_test = st.selectbox("OOD Generalization Test", ['Adversarial', 'Domain Shift', 'Noise Injection'], index=['Adversarial', 'Domain Shift', 'Noise Injection'].index(s.get('out_of_distribution_generalization_test', 'Adversarial')), disabled=not enable_advanced_finalization, help="Method for testing generalization to unseen data distributions.")
+            formal_verification_engine = st.selectbox("Formal Verification Engine", ['SMT Solver', 'Abstract Interpretation'], index=['SMT Solver', 'Abstract Interpretation'].index(s.get('formal_verification_engine', 'SMT Solver')), disabled=not enable_advanced_finalization, help="Engine for formally verifying properties of the final model.")
+            adversarial_robustness_certification_method = st.selectbox("Adversarial Robustness Certification", ['Interval Bound Propagation', 'Linear Relaxation', 'Randomized Smoothing'], index=['Interval Bound Propagation', 'Linear Relaxation', 'Randomized Smoothing'].index(s.get('adversarial_robustness_certification_method', 'Interval Bound Propagation')), disabled=not enable_advanced_finalization, help="Method to provide certified guarantees of robustness against adversarial attacks.")
+
+            st.markdown("###### 5. Interpretability & Explainability (XAI)")
+            explainability_method = st.selectbox("Explainability Method", ['Integrated Gradients', 'SHAP', 'LIME'], index=['Integrated Gradients', 'SHAP', 'LIME'].index(s.get('explainability_method', 'Integrated Gradients')), disabled=not enable_advanced_finalization, help="Primary method for generating feature attributions.")
+            symbolic_regression_complexity_penalty = st.slider("Symbolic Regression Complexity Penalty", 0.0, 0.1, s.get('symbolic_regression_complexity_penalty', 0.01), 0.005, disabled=not enable_advanced_finalization, help="Penalty on expression complexity when extracting a symbolic formula for the model's function.")
+            causal_model_extraction_method = st.selectbox("Causal Model Extraction Method", ['PC Algorithm', 'FCI', 'LiNGAM'], index=['PC Algorithm', 'FCI', 'LiNGAM'].index(s.get('causal_model_extraction_method', 'PC Algorithm')), disabled=not enable_advanced_finalization, help="Algorithm to extract a causal graph from the model's internal workings.")
+            concept_extraction_method = st.selectbox("Concept Extraction Method", ['TCAV', 'Network Dissection'], index=['TCAV', 'Network Dissection'].index(s.get('concept_extraction_method', 'TCAV')), disabled=not enable_advanced_finalization, help="Method to identify human-understandable concepts learned by internal neurons.")
+            concept_bottleneck_regularization = st.slider("Concept Bottleneck Regularization", 0.0, 1.0, s.get('concept_bottleneck_regularization', 0.0), 0.05, disabled=not enable_advanced_finalization, help="Strength of a regularization term that forces the model to learn through an explicit concept bottleneck layer.")
+            mechanistic_interpretability_circuit_search = st.checkbox("Mechanistic Interpretability Circuit Search", value=s.get('mechanistic_interpretability_circuit_search', False), disabled=not enable_advanced_finalization, help="Perform an automated search for specific computational circuits within the final network (e.g., induction heads).")
+
+            st.markdown("###### 6. Continual Learning & Adaptation")
+            continual_learning_replay_buffer_size = st.slider("Continual Learning Replay Buffer Size", 0, 1000, s.get('continual_learning_replay_buffer_size', 100), 50, disabled=not enable_advanced_finalization, help="Size of the experience replay buffer for testing continual learning capabilities. 0 disables.")
+            elastic_weight_consolidation_lambda = st.slider("Elastic Weight Consolidation (EWC) Lambda", 0.0, 100.0, s.get('elastic_weight_consolidation_lambda', 0.1), 0.1, disabled=not enable_advanced_finalization, help="Strength of the EWC penalty that protects important weights from previous tasks.")
+            synaptic_intelligence_c_param = st.slider("Synaptic Intelligence 'c' Parameter", 0.0, 0.1, s.get('synaptic_intelligence_c_param', 0.01), 0.005, disabled=not enable_advanced_finalization, help="Parameter controlling the per-synapse contribution to the total change in the loss for Synaptic Intelligence.")
+
+            st.markdown("###### 7. Deployment & Reporting")
+            solution_export_format = st.selectbox("Solution Export Format", ['PyTorch', 'TensorFlow', 'ONNX'], index=['PyTorch', 'TensorFlow', 'ONNX'].index(s.get('solution_export_format', 'PyTorch')), disabled=not enable_advanced_finalization, help="The target format for exporting the final, production-ready model.")
+            deployment_latency_constraint = st.number_input("Deployment Latency Constraint (ms)", value=s.get('deployment_latency_constraint', 100.0), disabled=not enable_advanced_finalization, help="A target latency for the final model, used to guide compression and pruning.")
+            energy_consumption_constraint = st.number_input("Energy Consumption Constraint (Joules/inference)", value=s.get('energy_consumption_constraint', 10.0), disabled=not enable_advanced_finalization, help="A target energy budget for the final model.")
+            final_report_verbosity = st.select_slider("Final Report Verbosity", options=['Minimal', 'Standard', 'Exhaustive'], value=s.get('final_report_verbosity', 'Standard'), disabled=not enable_advanced_finalization, help="The level of detail in the final automated analysis report.")
+            archive_solution_for_future_seeding = st.checkbox("Archive Solution for Future Seeding", value=s.get('archive_solution_for_future_seeding', True), disabled=not enable_advanced_finalization, help="Save the final master architecture to a permanent archive for seeding future experiments.")
+            generate_evolutionary_lineage_report = st.checkbox("Generate Evolutionary Lineage Report", value=s.get('generate_evolutionary_lineage_report', False), disabled=not enable_advanced_finalization, help="Generate a detailed report tracing the full ancestry of the final master architecture back to generation 0.")
+            perform_sensitivity_analysis_on_hyperparameters = st.checkbox("Perform Hyperparameter Sensitivity Analysis", value=s.get('perform_sensitivity_analysis_on_hyperparameters', False), disabled=not enable_advanced_finalization, help="Perform a sensitivity analysis on the final model with respect to its key hyperparameters.")
+            ablation_study_component_count = st.slider("Ablation Study Component Count", 0, 10, s.get('ablation_study_component_count', 3), 1, disabled=not enable_advanced_finalization, help="Number of top components to include in an automated ablation study report. 0 disables.")
+            cross_validation_folds = st.slider("Cross-Validation Folds", 2, 10, s.get('cross_validation_folds', 5), 1, disabled=not enable_advanced_finalization, help="Number of folds for a final cross-validation test of the master architecture's robustness.")
+
+        # The original code for this section was removed in the previous diff, so this is a logical correction
+        # to put the UI elements back, but inside the `else` block.
+        # Since the original code is not in the context, I am re-creating it based on the variable names.
+        # The user's request was to add the UI, which I did, but I put it in the wrong scope.
+        # Now I am correcting it.
+
+
+    # --- Collect and save current settings ---
+    current_settings = {
+        'task_type': task_type,
+        'dynamic_environment': dynamic_environment,
+        'env_change_frequency': env_change_frequency,
+        'num_forms': num_forms,
+        'population_per_form': population_per_form,
+        'w_accuracy': w_accuracy,
+        'w_efficiency': w_efficiency,
+        'w_robustness': w_robustness,
+        'w_generalization': w_generalization,
+        # --- NEW ADVANCED PRIMARY OBJECTIVES SETTINGS ---
+        'w_learning_speed': w_learning_speed,
+        'w_data_parsimony': w_data_parsimony,
+        'w_forgetting_resistance': w_forgetting_resistance,
+        'w_adaptability': w_adaptability,
+        'w_latency': w_latency,
+        'w_energy_consumption': w_energy_consumption,
+        'w_development_cost': w_development_cost,
+        'w_modularity': w_modularity,
+        'w_interpretability': w_interpretability,
+        'w_evolvability': w_evolvability,
+        'w_fairness': w_fairness,
+        'w_explainability': w_explainability,
+        'w_value_alignment': w_value_alignment,
+        'w_causal_density': w_causal_density,
+        'w_self_organization': w_self_organization,
+        'w_autopoiesis': w_autopoiesis,
+        'w_computational_irreducibility': w_computational_irreducibility,
+        'w_cognitive_synergy': w_cognitive_synergy,
+        # --- NEW ADVANCED OBJECTIVES SETTINGS ---
+        'enable_advanced_objectives': enable_advanced_objectives,
+        'w_kolmogorov_complexity': w_kolmogorov_complexity if enable_advanced_objectives else 0.0,
+        'w_predictive_information': w_predictive_information if enable_advanced_objectives else 0.0,
+        'w_causal_emergence': w_causal_emergence if enable_advanced_objectives else 0.0,
+        'w_integrated_information': w_integrated_information if enable_advanced_objectives else 0.0,
+        'w_free_energy_minimization': w_free_energy_minimization if enable_advanced_objectives else 0.0,
+        'w_transfer_entropy': w_transfer_entropy if enable_advanced_objectives else 0.0,
+        'w_synergistic_information': w_synergistic_information if enable_advanced_objectives else 0.0,
+        'w_state_compression': w_state_compression if enable_advanced_objectives else 0.0,
+        'w_empowerment': w_empowerment if enable_advanced_objectives else 0.0,
+        'w_semantic_information': w_semantic_information if enable_advanced_objectives else 0.0,
+        'w_effective_information': w_effective_information if enable_advanced_objectives else 0.0,
+        'w_information_closure': w_information_closure if enable_advanced_objectives else 0.0,
+        'w_landauer_cost': w_landauer_cost if enable_advanced_objectives else 0.0,
+        'w_metabolic_efficiency': w_metabolic_efficiency if enable_advanced_objectives else 0.0,
+        'w_heat_dissipation': w_heat_dissipation if enable_advanced_objectives else 0.0,
+        'w_homeostasis': w_homeostasis if enable_advanced_objectives else 0.0,
+        'w_structural_integrity': w_structural_integrity if enable_advanced_objectives else 0.0,
+        'w_entropy_production': w_entropy_production if enable_advanced_objectives else 0.0,
+        'w_resource_acquisition_efficiency': w_resource_acquisition_efficiency if enable_advanced_objectives else 0.0,
+        'w_aging_resistance': w_aging_resistance if enable_advanced_objectives else 0.0,
+        'w_curiosity': w_curiosity if enable_advanced_objectives else 0.0,
+        'w_world_model_accuracy': w_world_model_accuracy if enable_advanced_objectives else 0.0,
+        'w_attention_schema': w_attention_schema if enable_advanced_objectives else 0.0,
+        'w_theory_of_mind': w_theory_of_mind if enable_advanced_objectives else 0.0,
+        'w_cognitive_dissonance': w_cognitive_dissonance if enable_advanced_objectives else 0.0,
+        'w_goal_achievement': w_goal_achievement if enable_advanced_objectives else 0.0,
+        'w_cognitive_learning_speed': w_cognitive_learning_speed if enable_advanced_objectives else 0.0,
+        'w_cognitive_forgetting_resistance': w_cognitive_forgetting_resistance if enable_advanced_objectives else 0.0,
+        'w_compositionality': w_compositionality if enable_advanced_objectives else 0.0,
+        'w_planning_depth': w_planning_depth if enable_advanced_objectives else 0.0,
+        'w_structural_modularity': w_structural_modularity if enable_advanced_objectives else 0.0,
+        'w_hierarchy': w_hierarchy if enable_advanced_objectives else 0.0,
+        'w_symmetry': w_symmetry if enable_advanced_objectives else 0.0,
+        'w_small_worldness': w_small_worldness if enable_advanced_objectives else 0.0,
+        'w_scale_free': w_scale_free if enable_advanced_objectives else 0.0,
+        'w_fractal_dimension': w_fractal_dimension if enable_advanced_objectives else 0.0,
+        'w_hyperbolic_embeddability': w_hyperbolic_embeddability if enable_advanced_objectives else 0.0,
+        'w_autocatalysis': w_autocatalysis if enable_advanced_objectives else 0.0,
+        'w_wiring_cost': w_wiring_cost if enable_advanced_objectives else 0.0,
+        'w_rich_club_coefficient': w_rich_club_coefficient if enable_advanced_objectives else 0.0,
+        'w_assortativity': w_assortativity if enable_advanced_objectives else 0.0,
+        'w_adaptability_speed': w_adaptability_speed if enable_advanced_objectives else 0.0,
+        'w_predictive_horizon': w_predictive_horizon if enable_advanced_objectives else 0.0,
+        'w_behavioral_stability': w_behavioral_stability if enable_advanced_objectives else 0.0,
+        'w_criticality_dynamics': w_criticality_dynamics if enable_advanced_objectives else 0.0,
+        'w_decision_time': w_decision_time if enable_advanced_objectives else 0.0,
+        'mutation_rate': mutation_rate,
+        'crossover_rate': crossover_rate,
+        # --- NEW ADVANCED MUTATION SETTINGS ---
+        'enable_advanced_mutation': enable_advanced_mutation,
+        'mutation_distribution_type': mutation_distribution_type,
+        'mutation_scale_parameter': mutation_scale_parameter,
+        'structural_mutation_scale': structural_mutation_scale,
+        'mutation_correlation_factor': mutation_correlation_factor,
+        'mutation_operator_bias': mutation_operator_bias,
+        'mutation_tail_heaviness': mutation_tail_heaviness,
+        'mutation_anisotropy_vector': mutation_anisotropy_vector,
+        'mutation_modality': mutation_modality,
+        'mutation_step_size_annealing': mutation_step_size_annealing,
+        'fitness_dependent_mutation_strength': fitness_dependent_mutation_strength,
+        'age_dependent_mutation_strength': age_dependent_mutation_strength,
+        'module_size_dependent_mutation': module_size_dependent_mutation,
+        'connection_weight_dependent_mutation': connection_weight_dependent_mutation,
+        'somatic_hypermutation_rate': somatic_hypermutation_rate,
+        'error_driven_mutation_strength': error_driven_mutation_strength,
+        'gene_centrality_mutation_bias': gene_centrality_mutation_bias,
+        'epigenetic_mutation_influence': epigenetic_mutation_influence,
+        'mutation_hotspot_probability': mutation_hotspot_probability,
+        'add_connection_topology_bias': add_connection_topology_bias,
+        'add_module_method': add_module_method,
+        'remove_connection_probability': remove_connection_probability,
+        'remove_module_probability': remove_module_probability,
+        'connection_rewiring_probability': connection_rewiring_probability,
+        'module_duplication_probability': module_duplication_probability,
+        'module_fusion_probability': module_fusion_probability,
+        'cycle_formation_probability': cycle_formation_probability,
+        'structural_mutation_phase': structural_mutation_phase,
+        'learning_rate_mutation_strength': learning_rate_mutation_strength,
+        'plasticity_mutation_strength': plasticity_mutation_strength,
+        'learning_improvement_mutation_bonus': learning_improvement_mutation_bonus,
+        'weight_change_mutation_correlation': weight_change_mutation_correlation,
+        'synaptic_tagging_credit_assignment': synaptic_tagging_credit_assignment,
+        'metaplasticity_rule': metaplasticity_rule,
+        'learning_instability_penalty': learning_instability_penalty,
+        'gradient_guided_mutation_strength': gradient_guided_mutation_strength,
+        'hessian_guided_mutation_strength': hessian_guided_mutation_strength,
+        'crossover_operator': crossover_operator,
+        'crossover_n_points': crossover_n_points,
+        'crossover_parent_assortativity': crossover_parent_assortativity,
+        'crossover_gene_dominance_probability': crossover_gene_dominance_probability,
+        'sexual_reproduction_rate': sexual_reproduction_rate,
+        'inbreeding_penalty_factor': inbreeding_penalty_factor,
+        'horizontal_gene_transfer_rate': horizontal_gene_transfer_rate,
+        'polyploidy_probability': polyploidy_probability,
+        'meiotic_recombination_rate': meiotic_recombination_rate,
+        'innovation_rate': innovation_rate,
+        'enable_development': enable_development,
+        'enable_baldwin': enable_baldwin,
+        'baldwinian_assimilation_rate': baldwinian_assimilation_rate,
+        'enable_epigenetics': enable_epigenetics,
+        'endosymbiosis_rate': endosymbiosis_rate,
+        # --- NEW CO-EVOLUTION & EMBODIMENT SETTINGS ---
+        'enable_adversarial_coevolution': enable_adversarial_coevolution,
+        'critic_population_size': critic_population_size,
+        'critic_mutation_rate': critic_mutation_rate,
+        'adversarial_fitness_weight': adversarial_fitness_weight,
+        'critic_selection_pressure': critic_selection_pressure,
+        'critic_task': critic_task,
+        'enable_morphological_coevolution': enable_morphological_coevolution,
+        'morphological_mutation_rate': morphological_mutation_rate,
+        'max_body_modules': max_body_modules,
+        'cost_per_module': cost_per_module,
+        'enable_sensor_evolution': enable_sensor_evolution,
+        'enable_actuator_evolution': enable_actuator_evolution,
+        'physical_realism_factor': physical_realism_factor,
+        'embodiment_gravity': embodiment_gravity,
+        'embodiment_friction': embodiment_friction,
+        # --- NEW SOPHISTICATED CO-EVOLUTION SETTINGS ---
+        'enable_hall_of_fame': enable_hall_of_fame,
+        'hall_of_fame_size': hall_of_fame_size,
+        'hall_of_fame_replacement_strategy': hall_of_fame_replacement_strategy,
+        'critic_evolution_frequency': critic_evolution_frequency,
+        'critic_cooperation_probability': critic_cooperation_probability,
+        'cooperative_reward_scaling': cooperative_reward_scaling,
+        'critic_objective_novelty_weight': critic_objective_novelty_weight,
+        'bilateral_symmetry_bonus': bilateral_symmetry_bonus,
+        'segmentation_bonus': segmentation_bonus,
+        'allometric_scaling_exponent': allometric_scaling_exponent,
+        'enable_material_evolution': enable_material_evolution,
+        'cost_per_stiffness': cost_per_stiffness,
+        'cost_per_density': cost_per_density,
+        'evolvable_sensor_noise': evolvable_sensor_noise,
+        'evolvable_actuator_force': evolvable_actuator_force,
+        'fluid_dynamics_viscosity': fluid_dynamics_viscosity,
+        'surface_tension_factor': surface_tension_factor,
+        'enable_host_symbiont_coevolution': enable_host_symbiont_coevolution,
+        'symbiont_population_size': symbiont_population_size,
+        'symbiont_mutation_rate': symbiont_mutation_rate,
+        'symbiont_transfer_rate': symbiont_transfer_rate,
+        'symbiont_vertical_inheritance_fidelity': symbiont_vertical_inheritance_fidelity,
+        'host_symbiont_fitness_dependency': host_symbiont_fitness_dependency,
+        # --- NEW MULTI-LEVEL SELECTION SETTINGS ---
+        'enable_multi_level_selection': enable_multi_level_selection,
+        'colony_formation_method': colony_formation_method,
+        'colony_size': colony_size,
+        'group_fitness_weight': group_fitness_weight,
+        'selfishness_suppression_cost': selfishness_suppression_cost,
+        'caste_specialization_bonus': caste_specialization_bonus,
+        'inter_colony_competition_rate': inter_colony_competition_rate,
+        'epistatic_linkage_k': epistatic_linkage_k,
+        'gene_flow_rate': gene_flow_rate,
+        'niche_competition_factor': niche_competition_factor,
+        'max_archive_size': max_archive_size,
+        # --- NEW ADVANCED LANDSCAPE PHYSICS SETTINGS ---
+        'speciation_stagnation_threshold': speciation_stagnation_threshold,
+        'species_extinction_threshold': species_extinction_threshold,
+        'niche_construction_strength': niche_construction_strength,
+        'character_displacement_pressure': character_displacement_pressure,
+        'adaptive_radiation_trigger': adaptive_radiation_trigger,
+        'species_merger_probability': species_merger_probability,
+        'kin_selection_bonus': kin_selection_bonus,
+        'sexual_selection_factor': sexual_selection_factor,
+        'sympatric_speciation_pressure': sympatric_speciation_pressure,
+        'allopatric_speciation_trigger': allopatric_speciation_trigger,
+        'intraspecific_competition_scaling': intraspecific_competition_scaling,
+        'landscape_ruggedness_factor': landscape_ruggedness_factor,
+        'landscape_correlation_length': landscape_correlation_length,
+        'landscape_neutral_network_size': landscape_neutral_network_size,
+        'landscape_holeyness_factor': landscape_holeyness_factor,
+        'landscape_anisotropy_factor': landscape_anisotropy_factor,
+        'landscape_gradient_noise': landscape_gradient_noise,
+        'landscape_time_variance_rate': landscape_time_variance_rate,
+        'multimodality_factor': multimodality_factor,
+        'epistatic_correlation_structure': epistatic_correlation_structure,
+        'fitness_autocorrelation_time': fitness_autocorrelation_time,
+        'fitness_landscape_plasticity': fitness_landscape_plasticity,
+        'information_bottleneck_pressure': information_bottleneck_pressure,
+        'fisher_information_maximization': fisher_information_maximization,
+        'predictive_information_bonus': predictive_information_bonus,
+        'thermodynamic_depth_bonus': thermodynamic_depth_bonus,
+        'integrated_information_bonus': integrated_information_bonus,
+        'free_energy_minimization_pressure': free_energy_minimization_pressure,
+        'empowerment_maximization_drive': empowerment_maximization_drive,
+        'causal_density_target': causal_density_target,
+        'semantic_information_bonus': semantic_information_bonus,
+        'algorithmic_complexity_penalty': algorithmic_complexity_penalty,
+        'computational_irreducibility_bonus': computational_irreducibility_bonus,
+        'altruism_punishment_effectiveness': altruism_punishment_effectiveness,
+        'resource_depletion_rate': resource_depletion_rate,
+        'predator_prey_cycle_period': predator_prey_cycle_period,
+        'mutualism_bonus': mutualism_bonus,
+        'parasitism_virulence_factor': parasitism_virulence_factor,
+        'commensalism_emergence_bonus': commensalism_emergence_bonus,
+        'social_learning_fidelity': social_learning_fidelity,
+        'cultural_evolution_rate': cultural_evolution_rate,
+        'group_selection_strength': group_selection_strength,
+        'tragedy_of_the_commons_penalty': tragedy_of_the_commons_penalty,
+        'reputation_dynamics_factor': reputation_dynamics_factor,
+        'extinction_event_severity': extinction_event_severity,
+        'environmental_shift_magnitude': environmental_shift_magnitude,
+        'punctuated_equilibrium_trigger_sensitivity': punctuated_equilibrium_trigger_sensitivity,
+        'key_innovation_bonus': key_innovation_bonus,
+        'background_extinction_rate': background_extinction_rate,
+        'invasive_species_introduction_prob': invasive_species_introduction_prob,
+        'adaptive_radiation_factor': adaptive_radiation_factor,
+        'refugia_survival_bonus': refugia_survival_bonus,
+        'post_cataclysm_hypermutation_period': post_cataclysm_hypermutation_period,
+        'environmental_press_factor': environmental_press_factor,
+        'cambrian_explosion_trigger': cambrian_explosion_trigger,
+        'reintroduction_rate': reintroduction_rate,
+        'enable_cataclysms': enable_cataclysms,
+        'cataclysm_probability': cataclysm_probability,
+        'cataclysm_extinction_severity': cataclysm_extinction_severity,
+        'cataclysm_landscape_shift_magnitude': cataclysm_landscape_shift_magnitude,
+        'post_cataclysm_hypermutation_multiplier': post_cataclysm_hypermutation_multiplier,
+        'post_cataclysm_hypermutation_duration': post_cataclysm_hypermutation_duration,
+        'cataclysm_selectivity_type': cataclysm_selectivity_type,
+        'red_queen_virulence': red_queen_virulence,
+        'red_queen_adaptation_speed': red_queen_adaptation_speed,
+        'red_queen_target_breadth': red_queen_target_breadth,
+        'enable_red_queen': enable_red_queen,
+        'enable_endosymbiosis': enable_endosymbiosis,
+        'mutation_schedule': mutation_schedule,
+        'adaptive_mutation_strength': adaptive_mutation_strength,
+        'selection_pressure': selection_pressure,
+        'enable_speciation': enable_speciation,
+        'enable_diversity_pressure': enable_diversity_pressure,
+        'diversity_weight': diversity_weight,
+        # --- NEW ADVANCED SPECIATION SETTINGS ---
+        'enable_advanced_speciation': enable_advanced_speciation,
+        'dynamic_threshold_adjustment_rate': dynamic_threshold_adjustment_rate,
+        'distance_weight_c1': distance_weight_c1,
+        'distance_weight_c2': distance_weight_c2,
+        'phenotypic_distance_weight': phenotypic_distance_weight,
+        'age_distance_weight': age_distance_weight,
+        'lineage_distance_factor': lineage_distance_factor,
+        'distance_normalization_factor': distance_normalization_factor,
+        'developmental_rule_distance_weight': developmental_rule_distance_weight,
+        'meta_param_distance_weight': meta_param_distance_weight,
+        'species_stagnation_threshold': species_stagnation_threshold,
+        'stagnation_penalty': stagnation_penalty,
+        'species_age_bonus': species_age_bonus,
+        'species_novelty_bonus': species_novelty_bonus,
+        'min_species_size_for_survival': min_species_size_for_survival,
+        'species_extinction_threshold': species_extinction_threshold,
+        'species_merger_threshold': species_merger_threshold,
+        'species_merger_probability': species_merger_probability,
+        'niche_construction_strength': niche_construction_strength,
+        'character_displacement_pressure': character_displacement_pressure,
+        'intraspecific_competition_scaling': intraspecific_competition_scaling,
+        'interspecific_competition_scaling': interspecific_competition_scaling,
+        'resource_depletion_rate': resource_depletion_rate,
+        'niche_overlap_penalty': niche_overlap_penalty,
+        'niche_capacity': niche_capacity,
+        'sexual_selection_factor': sexual_selection_factor,
+        'mating_preference_strength': mating_preference_strength,
+        'outbreeding_depression_penalty': outbreeding_depression_penalty,
+        'inbreeding_depression_penalty': inbreeding_depression_penalty,
+        'reproductive_isolation_threshold': reproductive_isolation_threshold,
+        'assortative_mating_strength': assortative_mating_strength,
+        'sympatric_speciation_pressure': sympatric_speciation_pressure,
+        'allopatric_speciation_trigger': allopatric_speciation_trigger,
+        'parapatric_speciation_gradient': parapatric_speciation_gradient,
+        'peripatric_speciation_founder_effect': peripatric_speciation_founder_effect,
+        'adaptive_radiation_trigger_threshold': adaptive_radiation_trigger_threshold,
+        'adaptive_radiation_strength': adaptive_radiation_strength,
+        'kin_selection_bonus': kin_selection_bonus,
+        'group_selection_strength': group_selection_strength,
+        'altruism_cost': altruism_cost,
+        'species_reputation_factor': species_reputation_factor,
+        'punctuated_equilibrium_trigger_sensitivity': punctuated_equilibrium_trigger_sensitivity,
+        'background_extinction_rate': background_extinction_rate,
+        'key_innovation_bonus': key_innovation_bonus,
+        'invasive_species_introduction_prob': invasive_species_introduction_prob,
+        'refugia_survival_bonus': refugia_survival_bonus,
+        'phyletic_gradualism_factor': phyletic_gradualism_factor,
+        'species_sorting_strength': species_sorting_strength,
+        'compatibility_threshold': compatibility_threshold,
+        'num_generations': num_generations,
+        'complexity_level': complexity_level,
+        'experiment_name': experiment_name,
+        'random_seed': random_seed,
+        'enable_early_stopping': enable_early_stopping,
+        'early_stopping_patience': early_stopping_patience,
+        'checkpoint_frequency': checkpoint_frequency,
+        'analysis_top_n': analysis_top_n,
+        'enable_hyperparameter_evolution': enable_hyperparameter_evolution,
+        'evolvable_params': evolvable_params,
+        'hyper_mutation_rate': hyper_mutation_rate,
+        # --- NEW META-EVOLUTION SETTINGS ---
+        'hyper_mutation_distribution': hyper_mutation_distribution,
+        'evolvable_param_bounds_leniency': evolvable_param_bounds_leniency,
+        'hyperparam_heritability_factor': hyperparam_heritability_factor,
+        
+        'enable_genetic_code_evolution': enable_genetic_code_evolution,
+        'gene_type_innovation_rate': gene_type_innovation_rate,
+        'gene_type_extinction_rate': gene_type_extinction_rate,
+        'evolvable_activation_functions': evolvable_activation_functions,
+        'activation_expression_complexity_limit': activation_expression_complexity_limit,
+        'developmental_rule_innovation_rate': developmental_rule_innovation_rate,
+        'encoding_plasticity_rate': encoding_plasticity_rate,
+        'genome_length_constraint_pressure': genome_length_constraint_pressure,
+        'intron_ratio_target': intron_ratio_target,
+        'gene_regulatory_network_complexity_bonus': gene_regulatory_network_complexity_bonus,
+        'evolvable_normalization_layers': evolvable_normalization_layers,
+
+        'enable_ea_dynamics_evolution': enable_ea_dynamics_evolution,
+        'evolvable_selection_mechanism': evolvable_selection_mechanism,
+        'selection_mechanism_pool': selection_mechanism_pool,
+        'evolvable_tournament_size': evolvable_tournament_size,
+        'crossover_operator_pool': crossover_operator_pool,
+        'mutation_operator_pool': mutation_operator_pool,
+        'population_topology': population_topology,
+        'evolvable_migration_rate': evolvable_migration_rate,
+        'evolvable_island_count': evolvable_island_count,
+        'topology_reconfiguration_frequency': topology_reconfiguration_frequency,
+        'dynamic_speciation_threshold_factor': dynamic_speciation_threshold_factor,
+
+        'enable_objective_evolution': enable_objective_evolution,
+        'evolvable_objective_weights': evolvable_objective_weights,
+        'objective_weight_mutation_strength': objective_weight_mutation_strength,
+        'autotelic_novelty_search_weight': autotelic_novelty_search_weight,
+        'autotelic_complexity_drive_weight': autotelic_complexity_drive_weight,
+        'autotelic_learning_progress_drive': autotelic_learning_progress_drive,
+        'fitness_function_noise_injection_rate': fitness_function_noise_injection_rate,
+        'fitness_landscape_smoothing_factor': fitness_landscape_smoothing_factor,
+        'objective_ambition_ratchet': objective_ambition_ratchet,
+        'pareto_front_focus_bias': pareto_front_focus_bias,
+
+        'enable_self_modification': enable_self_modification,
+        'self_modification_probability': self_modification_probability,
+        'self_modification_scope': self_modification_scope,
+        'quine_bonus': quine_bonus,
+        'meta_genotype_bonus': meta_genotype_bonus,
+        'self_simulation_bonus': self_simulation_bonus,
+        'enable_curriculum_learning': enable_curriculum_learning,
+        'curriculum_sequence': curriculum_sequence,
+        'curriculum_trigger': curriculum_trigger,
+        'curriculum_threshold': curriculum_threshold,
+        'enable_iterative_seeding': enable_iterative_seeding,
+        'num_elites_to_seed': num_elites_to_seed,
+        'seeded_elite_mutation_strength': seeded_elite_mutation_strength,
+        # --- NEW DYNAMIC ENVIRONMENT SETTINGS ---
+        'enable_advanced_environment_physics': enable_advanced_environment_physics,
+        'non_stationarity_mode': non_stationarity_mode,
+        'drift_velocity': drift_velocity,
+        'shift_magnitude': shift_magnitude,
+        'cycle_period': cycle_period,
+        'chaotic_attractor_type': chaotic_attractor_type,
+        'environmental_memory_strength': environmental_memory_strength,
+        'resource_distribution_mode': resource_distribution_mode,
+        'resource_regeneration_rate': resource_regeneration_rate,
+        'task_space_curvature': task_space_curvature,
+        'environmental_viscosity': environmental_viscosity,
+        'environmental_temperature': environmental_temperature,
+        'task_noise_correlation_time': task_noise_correlation_time,
+        'environmental_lag': environmental_lag,
+        'resource_scarcity_level': resource_scarcity_level,
+
+        'enable_advanced_curriculum': enable_advanced_curriculum,
+        'curriculum_generation_method': curriculum_generation_method,
+        'self_paced_learning_rate': self_paced_learning_rate,
+        'teacher_student_dynamics_enabled': teacher_student_dynamics_enabled,
+        'teacher_mutation_rate': teacher_mutation_rate,
+        'task_proposal_rejection_rate': task_proposal_rejection_rate,
+        'transfer_learning_bonus': transfer_learning_bonus,
+        'catastrophic_forgetting_penalty': catastrophic_forgetting_penalty,
+        'curriculum_backtracking_probability': curriculum_backtracking_probability,
+        'interleaved_learning_ratio': interleaved_learning_ratio,
+        'task_decomposition_bonus': task_decomposition_bonus,
+        'procedural_content_generation_complexity': procedural_content_generation_complexity,
+        'curriculum_difficulty_ceiling': curriculum_difficulty_ceiling,
+        'teacher_student_objective_alignment': teacher_student_objective_alignment,
+
+        'enable_social_environment': enable_social_environment,
+        'communication_channel_bandwidth': communication_channel_bandwidth,
+        'communication_channel_noise': communication_channel_noise,
+        'social_signal_cost': social_signal_cost,
+        'common_knowledge_bonus': common_knowledge_bonus,
+        'deception_penalty': deception_penalty,
+        'reputation_system_fidelity': reputation_system_fidelity,
+        'sanctioning_effectiveness': sanctioning_effectiveness,
+        'network_reciprocity_bonus': network_reciprocity_bonus,
+        'social_learning_mechanism': social_learning_mechanism,
+        'cultural_ratchet_bonus': cultural_ratchet_bonus,
+        'social_norm_emergence_bonus': social_norm_emergence_bonus,
+        'tribalism_factor': tribalism_factor,
+
+        'enable_open_endedness': enable_open_endedness,
+        'poi_novelty_threshold': poi_novelty_threshold,
+        'minimal_criterion_coevolution_rate': minimal_criterion_coevolution_rate,
+        'autopoiesis_pressure': autopoiesis_pressure,
+        'environmental_construction_bonus': environmental_construction_bonus,
+        'goal_switching_cost': goal_switching_cost,
+        'solution_archive_capacity': solution_archive_capacity,
+        'novelty_metric': novelty_metric,
+        'local_competition_radius': local_competition_radius,
+        'information_seeking_drive': information_seeking_drive,
+        'open_ended_archive_sampling_bias': open_ended_archive_sampling_bias,
+        'goal_embedding_space_dims': goal_embedding_space_dims,
+        # --- NEW FINALIZATION SETTINGS ---
+        'enable_ensemble_creation': enable_ensemble_creation,
+        'ensemble_size': ensemble_size,
+        'ensemble_selection_strategy': ensemble_selection_strategy,
+        'enable_fine_tuning': enable_fine_tuning,
+        'fine_tuning_generations': fine_tuning_generations,
+        'fine_tuning_mutation_multiplier': fine_tuning_mutation_multiplier,
+        # --- NEW DEEP PHYSICS SETTINGS ---
+        # --- NEW ADVANCED FINALIZATION SETTINGS ---
+        'enable_advanced_finalization': enable_advanced_finalization,
+        'pruning_method': pruning_method,
+        'pruning_aggressiveness': pruning_aggressiveness,
+        'model_compression_target_ratio': model_compression_target_ratio,
+        'quantization_bits': quantization_bits,
+        'lottery_ticket_pruning_iterations': lottery_ticket_pruning_iterations,
+        'knowledge_distillation_temperature': knowledge_distillation_temperature,
+        'distillation_teacher_selection': distillation_teacher_selection,
+        'self_distillation_weight': self_distillation_weight,
+        'model_merging_method': model_merging_method,
+        'merging_resolution_method': merging_resolution_method,
+        'model_merging_alpha': model_merging_alpha,
+        'bayesian_model_averaging_prior': bayesian_model_averaging_prior,
+        'stacking_meta_learner_complexity': stacking_meta_learner_complexity,
+        'calibration_method': calibration_method,
+        'out_of_distribution_generalization_test': out_of_distribution_generalization_test,
+        'formal_verification_engine': formal_verification_engine,
+        'adversarial_robustness_certification_method': adversarial_robustness_certification_method,
+        'explainability_method': explainability_method,
+        'symbolic_regression_complexity_penalty': symbolic_regression_complexity_penalty,
+        'causal_model_extraction_method': causal_model_extraction_method,
+        'concept_extraction_method': concept_extraction_method,
+        'concept_bottleneck_regularization': concept_bottleneck_regularization,
+        'mechanistic_interpretability_circuit_search': mechanistic_interpretability_circuit_search,
+        'continual_learning_replay_buffer_size': continual_learning_replay_buffer_size,
+        'elastic_weight_consolidation_lambda': elastic_weight_consolidation_lambda,
+        'synaptic_intelligence_c_param': synaptic_intelligence_c_param,
+        'solution_export_format': solution_export_format,
+        'deployment_latency_constraint': deployment_latency_constraint,
+        'energy_consumption_constraint': energy_consumption_constraint,
+        'final_report_verbosity': final_report_verbosity,
+        'archive_solution_for_future_seeding': archive_solution_for_future_seeding,
+        'generate_evolutionary_lineage_report': generate_evolutionary_lineage_report,
+        'perform_sensitivity_analysis_on_hyperparameters': perform_sensitivity_analysis_on_hyperparameters,
+        'ablation_study_component_count': ablation_study_component_count,
+        'cross_validation_folds': cross_validation_folds,
+        'enable_advanced_frameworks': enable_advanced_frameworks,
+        # Computational Logic
+        'chaitin_omega_bias': chaitin_omega_bias,
+        'godel_incompleteness_penalty': godel_incompleteness_penalty,
+        'turing_completeness_bonus': turing_completeness_bonus,
+        'lambda_calculus_isomorphism': lambda_calculus_isomorphism,
+        'proof_complexity_cost': proof_complexity_cost,
+        'constructive_type_theory_adherence': constructive_type_theory_adherence,
+        )
+
     # --- Collect and save current settings ---
     current_settings = {
         'task_type': task_type,
