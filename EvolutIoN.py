@@ -2530,7 +2530,7 @@ def main():
     s = st.session_state.get('settings', {})
 
     # --- META-EVOLUTION EXPANDER ---
-    with st.sidebar.expander("🛰️ Meta-Evolution & Self-Configuration", expanded=True):
+    with st.sidebar.expander("🛰️ Meta-Evolution & Self-Configuration", expanded=False):
         st.markdown("""
         **THE APEX OF COMPLEXITY: EVOLVING EVOLUTION ITSELF.**
         
