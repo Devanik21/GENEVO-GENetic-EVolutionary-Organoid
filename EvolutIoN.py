@@ -4766,7 +4766,7 @@ def main():
         'fine_tuning_mutation_multiplier': fine_tuning_mutation_multiplier,
         # --- NEW DEEP PHYSICS SETTINGS ---
         # --- NEW ADVANCED FINALIZATION SETTINGS ---
-        'enable_advanced_finalization': enable_advanced_finalization,
+        'enable_advanced_finalization': ,
         'pruning_method': pruning_method,
         'pruning_aggressiveness': pruning_aggressiveness,
         'model_compression_target_ratio': model_compression_target_ratio,
