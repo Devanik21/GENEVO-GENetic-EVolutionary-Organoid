@@ -3514,6 +3514,88 @@ def main():
             """,
             key="compatibility_threshold_slider"
         )
+
+        with st.expander("🌌 Advanced Speciation & Ecosystem Physics", expanded=False):
+            enable_advanced_speciation = st.checkbox(
+                "Enable Advanced Speciation Physics",
+                value=s.get('enable_advanced_speciation', False),
+                help="**DANGER: HIGHLY EXPERIMENTAL.** Unlocks a vast suite of parameters that model deep, complex ecosystem dynamics and can lead to unpredictable or unstable evolution. Use with caution and a clear hypothesis.",
+                key="enable_advanced_speciation_checkbox"
+            )
+
+            if not enable_advanced_speciation:
+                st.warning("Advanced Speciation Physics are disabled. These parameters will have no effect.")
+            else:
+                st.success("Advanced Speciation Physics are ACTIVE. You are now manipulating the deep structure of the ecosystem.")
+
+            st.markdown("---")
+            st.markdown("##### 1. Dynamic Compatibility & Distance Metrics")
+            dynamic_threshold_adjustment_rate = st.slider("Dynamic Threshold Adjustment Rate", 0.0, 0.2, s.get('dynamic_threshold_adjustment_rate', 0.0), 0.01, disabled=not enable_advanced_speciation, help="Rate at which the compatibility threshold automatically adjusts based on the number of species. Positive values increase the threshold when there are too many species, and vice-versa.")
+            distance_weight_c1 = st.slider("Distance Weight c1 (Disjoint/Excess)", 0.1, 5.0, s.get('distance_weight_c1', 1.0), 0.1, disabled=not enable_advanced_speciation, help="Weight for disjoint and excess genes in the genomic distance calculation (NEAT's c1).")
+            distance_weight_c2 = st.slider("Distance Weight c2 (Matching Attributes)", 0.1, 5.0, s.get('distance_weight_c2', 0.5), 0.1, disabled=not enable_advanced_speciation, help="Weight for attribute differences in matching genes (NEAT's c3).")
+            phenotypic_distance_weight = st.slider("Phenotypic Distance Weight", 0.0, 1.0, s.get('phenotypic_distance_weight', 0.0), 0.05, disabled=not enable_advanced_speciation, help="Weight for phenotypic traits (e.g., fitness, accuracy) in the distance calculation, blending genotype and phenotype for speciation.")
+            age_distance_weight = st.slider("Age Distance Weight", 0.0, 1.0, s.get('age_distance_weight', 0.0), 0.05, disabled=not enable_advanced_speciation, help="Weight for the difference in age between two individuals in the distance calculation.")
+            lineage_distance_factor = st.slider("Lineage Distance Factor", 0.0, 1.0, s.get('lineage_distance_factor', 0.0), 0.05, disabled=not enable_advanced_speciation, help="A factor that increases distance between individuals from different deep lineages, promoting lineage separation.")
+            distance_normalization_factor = st.slider("Distance Normalization Factor", 0.1, 2.0, s.get('distance_normalization_factor', 1.0), 0.1, disabled=not enable_advanced_speciation, help="A global divisor for the genomic distance calculation to tune its scale.")
+            developmental_rule_distance_weight = st.slider("Developmental Rule Distance Weight", 0.0, 1.0, s.get('developmental_rule_distance_weight', 0.0), 0.05, disabled=not enable_advanced_speciation, help="Weight for differences in developmental rules in the distance calculation.")
+            meta_param_distance_weight = st.slider("Meta-Parameter Distance Weight", 0.0, 1.0, s.get('meta_param_distance_weight', 0.0), 0.05, disabled=not enable_advanced_speciation, help="Weight for differences in evolvable meta-parameters (e.g., mutation rate) in the distance calculation.")
+
+            st.markdown("---")
+            st.markdown("##### 2. Species Lifecycle & Fitness")
+            species_stagnation_threshold = st.slider("Species Stagnation Threshold", 5, 100, s.get('species_stagnation_threshold', 15), 1, disabled=not enable_advanced_speciation, help="Generations a species can go without improvement before being penalized.")
+            stagnation_penalty = st.slider("Stagnation Penalty", 0.0, 1.0, s.get('stagnation_penalty', 0.1), 0.05, disabled=not enable_advanced_speciation, help="Fitness penalty multiplier applied to stagnating species.")
+            species_age_bonus = st.slider("Species Age Bonus", 0.0, 0.2, s.get('species_age_bonus', 0.0), 0.01, disabled=not enable_advanced_speciation, help="A small fitness bonus for members of older, more established species.")
+            species_novelty_bonus = st.slider("Species Novelty Bonus", 0.0, 0.2, s.get('species_novelty_bonus', 0.0), 0.01, disabled=not enable_advanced_speciation, help="A temporary fitness bonus for members of a newly formed species, helping it gain a foothold.")
+            min_species_size_for_survival = st.slider("Min Species Size for Survival", 1, 10, s.get('min_species_size_for_survival', 2), 1, disabled=not enable_advanced_speciation, help="Species with fewer individuals than this are automatically culled.")
+            species_extinction_threshold = st.slider("Species Extinction Fitness Threshold", 0.0, 0.5, s.get('species_extinction_threshold', 0.01), 0.01, disabled=not enable_advanced_speciation, help="Mean fitness below which a species is marked for extinction.")
+            species_merger_threshold = st.slider("Species Merger Threshold", 0.1, 5.0, s.get('species_merger_threshold', 0.5), 0.1, disabled=not enable_advanced_speciation, help="Genomic distance below which two species representatives will cause their species to merge.")
+            species_merger_probability = st.slider("Species Merger Probability", 0.0, 0.1, s.get('species_merger_probability', 0.0), 0.005, disabled=not enable_advanced_speciation, help="Probability per generation for two genomically close species to merge into one.")
+
+            st.markdown("---")
+            st.markdown("##### 3. Niche Dynamics & Competition")
+            niche_construction_strength = st.slider("Niche Construction Strength", 0.0, 1.0, s.get('niche_construction_strength', 0.0), 0.05, disabled=not enable_advanced_speciation, help="How much individuals can modify their local fitness landscape for their descendants.")
+            character_displacement_pressure = st.slider("Character Displacement Pressure", 0.0, 1.0, s.get('character_displacement_pressure', 0.0), 0.05, disabled=not enable_advanced_speciation, help="A direct pressure for competing species to diverge in their phenotypic traits.")
+            intraspecific_competition_scaling = st.slider("Intraspecific Competition Scaling", 0.5, 2.0, s.get('intraspecific_competition_scaling', 1.0), 0.1, disabled=not enable_advanced_speciation, help="Exponent for scaling competition within a species. >1 means more intense competition in large species.")
+            interspecific_competition_scaling = st.slider("Interspecific Competition Scaling", 0.0, 2.0, s.get('interspecific_competition_scaling', 0.5), 0.1, disabled=not enable_advanced_speciation, help="Scaling factor for competition between different species.")
+            resource_depletion_rate = st.slider("Resource Depletion Rate", 0.0, 1.0, s.get('resource_depletion_rate', 0.0), 0.05, disabled=not enable_advanced_speciation, help="How quickly individuals in a niche deplete the available 'fitness resources', increasing competition.")
+            niche_overlap_penalty = st.slider("Niche Overlap Penalty", 0.0, 1.0, s.get('niche_overlap_penalty', 0.0), 0.05, disabled=not enable_advanced_speciation, help="A fitness penalty based on how much a species' phenotypic space overlaps with others.")
+            niche_capacity = st.slider("Niche Capacity", 10, 500, s.get('niche_capacity', 50), 10, disabled=not enable_advanced_speciation, help="The maximum number of individuals a single niche (species) can support.")
+
+            st.markdown("---")
+            st.markdown("##### 4. Reproductive Isolation & Mating")
+            sexual_selection_factor = st.slider("Sexual Selection Factor", 0.0, 1.0, s.get('sexual_selection_factor', 0.0), 0.05, disabled=not enable_advanced_speciation, help="Introduces a 'mating preference' component to selection, where individuals may prefer mates with certain traits.")
+            mating_preference_strength = st.slider("Mating Preference Strength", 0.0, 1.0, s.get('mating_preference_strength', 0.0), 0.05, disabled=not enable_advanced_speciation, help="How strongly individuals prefer mates from their own species.")
+            outbreeding_depression_penalty = st.slider("Outbreeding Depression Penalty", 0.0, 1.0, s.get('outbreeding_depression_penalty', 0.0), 0.05, disabled=not enable_advanced_speciation, help="A fitness penalty for offspring from parents of different species.")
+            inbreeding_depression_penalty = st.slider("Inbreeding Depression Penalty", 0.0, 1.0, s.get('inbreeding_depression_penalty', 0.0), 0.05, disabled=not enable_advanced_speciation, help="A fitness penalty for offspring of very closely related parents within the same species.")
+            reproductive_isolation_threshold = st.slider("Reproductive Isolation Threshold", 1.0, 10.0, s.get('reproductive_isolation_threshold', 3.0), 0.5, disabled=not enable_advanced_speciation, help="A hard genomic distance threshold above which two individuals cannot produce offspring.")
+            assortative_mating_strength = st.slider("Assortative Mating Strength", -1.0, 1.0, s.get('assortative_mating_strength', 0.0), 0.1, disabled=not enable_advanced_speciation, help="Strength of preference for mating with phenotypically similar individuals. Positive is assortative, negative is disassortative.")
+
+            st.markdown("---")
+            st.markdown("##### 5. Speciation Modes & Triggers")
+            sympatric_speciation_pressure = st.slider("Sympatric Speciation Pressure", 0.0, 1.0, s.get('sympatric_speciation_pressure', 0.0), 0.05, disabled=not enable_advanced_speciation, help="A pressure that encourages speciation even without geographic isolation, based on trait differentiation.")
+            allopatric_speciation_trigger = st.slider("Allopatric Speciation Trigger", 0.0, 1.0, s.get('allopatric_speciation_trigger', 0.0), 0.05, disabled=not enable_advanced_speciation, help="If population topology is fragmented (e.g., Island Model), this triggers speciation for isolated groups.")
+            parapatric_speciation_gradient = st.slider("Parapatric Speciation Gradient", 0.0, 1.0, s.get('parapatric_speciation_gradient', 0.0), 0.05, disabled=not enable_advanced_speciation, help="Strength of a spatial gradient in selective pressures that can lead to speciation at the boundary.")
+            peripatric_speciation_founder_effect = st.slider("Peripatric Speciation Founder Effect", 0.0, 1.0, s.get('peripatric_speciation_founder_effect', 0.0), 0.05, disabled=not enable_advanced_speciation, help="Strength of genetic drift in small, isolated 'founder' populations, promoting rapid speciation.")
+            adaptive_radiation_trigger_threshold = st.slider("Adaptive Radiation Trigger Threshold", 0.0, 1.0, s.get('adaptive_radiation_trigger_threshold', 0.0), 0.05, disabled=not enable_advanced_speciation, help="Fitness threshold that, when crossed by a species, triggers a temporary boost in its innovation rate, simulating the opening of new niches.")
+            adaptive_radiation_strength = st.slider("Adaptive Radiation Strength", 1.0, 5.0, s.get('adaptive_radiation_strength', 2.0), 0.5, disabled=not enable_advanced_speciation, help="Multiplier on innovation and mutation rates during an adaptive radiation event.")
+
+            st.markdown("---")
+            st.markdown("##### 6. Social & Kin Dynamics")
+            kin_selection_bonus = st.slider("Kin Selection Bonus", 0.0, 1.0, s.get('kin_selection_bonus', 0.0), 0.05, disabled=not enable_advanced_speciation, help="A fitness bonus applied based on the success of close relatives, promoting altruistic behavior within a species.")
+            group_selection_strength = st.slider("Group (Species) Selection Strength", 0.0, 1.0, s.get('group_selection_strength', 0.0), 0.05, disabled=not enable_advanced_speciation, help="The strength of selection at the species level, promoting species-level traits over individual fitness.")
+            altruism_cost = st.slider("Altruism Cost", 0.0, 0.1, s.get('altruism_cost', 0.0), 0.005, disabled=not enable_advanced_speciation, help="A direct fitness cost for an individual to perform an 'altruistic' action that benefits its species.")
+            species_reputation_factor = st.slider("Species Reputation Factor", 0.0, 1.0, s.get('species_reputation_factor', 0.0), 0.05, disabled=not enable_advanced_speciation, help="How much a species' 'reputation' (e.g., for cooperation) influences interactions with other species.")
+
+            st.markdown("---")
+            st.markdown("##### 7. Macro-Evolutionary Dynamics")
+            punctuated_equilibrium_trigger_sensitivity = st.slider("Punctuated Equilibrium Trigger Sensitivity", 0.0, 1.0, s.get('punctuated_equilibrium_trigger_sensitivity', 0.1), 0.05, disabled=not enable_advanced_speciation, help="Sensitivity to stagnation for triggering a 'punctuation' event (e.g., a massive, temporary mutation rate spike).")
+            background_extinction_rate = st.slider("Background Extinction Rate", 0.0, 0.1, s.get('background_extinction_rate', 0.0), 0.005, disabled=not enable_advanced_speciation, help="A constant, low probability of any individual being removed randomly per generation, simulating random death.")
+            key_innovation_bonus = st.slider("Key Innovation Bonus", 0.0, 1.0, s.get('key_innovation_bonus', 0.0), 0.05, disabled=not enable_advanced_speciation, help="A large, one-time fitness bonus for discovering a 'key innovation' (e.g., a new module type), which can trigger adaptive radiation.")
+            invasive_species_introduction_prob = st.slider("Invasive Species Introduction Probability", 0.0, 0.1, s.get('invasive_species_introduction_prob', 0.0), 0.005, disabled=not enable_advanced_speciation, help="Probability per generation of introducing a pre-evolved, highly-fit individual from an external source.")
+            refugia_survival_bonus = st.slider("Refugia Survival Bonus", 0.0, 1.0, s.get('refugia_survival_bonus', 0.0), 0.05, disabled=not enable_advanced_speciation, help="A bonus to survival probability during a cataclysm for individuals in under-populated regions of the landscape (species refugia).")
+            phyletic_gradualism_factor = st.slider("Phyletic Gradualism Factor", 0.0, 1.0, s.get('phyletic_gradualism_factor', 0.0), 0.05, disabled=not enable_advanced_speciation, help="A factor that smoothes evolutionary changes over time, enforcing a more gradual mode of evolution.")
+            species_sorting_strength = st.slider("Species Sorting Strength", 0.0, 1.0, s.get('species_sorting_strength', 0.0), 0.05, disabled=not enable_advanced_speciation, help="Strength of a macro-evolutionary force where species with certain traits (e.g., high evolvability) have a higher survival rate, regardless of individual fitness.")
+
         st.info("Speciation uses a genomic distance metric based on form, module/connection differences, and parameter differences.")
 
     with st.sidebar.expander("🌌 Advanced Algorithmic & Theoretical Frameworks", expanded=False):
@@ -4466,6 +4548,55 @@ def main():
         'enable_speciation': enable_speciation,
         'enable_diversity_pressure': enable_diversity_pressure,
         'diversity_weight': diversity_weight,
+        # --- NEW ADVANCED SPECIATION SETTINGS ---
+        'enable_advanced_speciation': enable_advanced_speciation,
+        'dynamic_threshold_adjustment_rate': dynamic_threshold_adjustment_rate,
+        'distance_weight_c1': distance_weight_c1,
+        'distance_weight_c2': distance_weight_c2,
+        'phenotypic_distance_weight': phenotypic_distance_weight,
+        'age_distance_weight': age_distance_weight,
+        'lineage_distance_factor': lineage_distance_factor,
+        'distance_normalization_factor': distance_normalization_factor,
+        'developmental_rule_distance_weight': developmental_rule_distance_weight,
+        'meta_param_distance_weight': meta_param_distance_weight,
+        'species_stagnation_threshold': species_stagnation_threshold,
+        'stagnation_penalty': stagnation_penalty,
+        'species_age_bonus': species_age_bonus,
+        'species_novelty_bonus': species_novelty_bonus,
+        'min_species_size_for_survival': min_species_size_for_survival,
+        'species_extinction_threshold': species_extinction_threshold,
+        'species_merger_threshold': species_merger_threshold,
+        'species_merger_probability': species_merger_probability,
+        'niche_construction_strength': niche_construction_strength,
+        'character_displacement_pressure': character_displacement_pressure,
+        'intraspecific_competition_scaling': intraspecific_competition_scaling,
+        'interspecific_competition_scaling': interspecific_competition_scaling,
+        'resource_depletion_rate': resource_depletion_rate,
+        'niche_overlap_penalty': niche_overlap_penalty,
+        'niche_capacity': niche_capacity,
+        'sexual_selection_factor': sexual_selection_factor,
+        'mating_preference_strength': mating_preference_strength,
+        'outbreeding_depression_penalty': outbreeding_depression_penalty,
+        'inbreeding_depression_penalty': inbreeding_depression_penalty,
+        'reproductive_isolation_threshold': reproductive_isolation_threshold,
+        'assortative_mating_strength': assortative_mating_strength,
+        'sympatric_speciation_pressure': sympatric_speciation_pressure,
+        'allopatric_speciation_trigger': allopatric_speciation_trigger,
+        'parapatric_speciation_gradient': parapatric_speciation_gradient,
+        'peripatric_speciation_founder_effect': peripatric_speciation_founder_effect,
+        'adaptive_radiation_trigger_threshold': adaptive_radiation_trigger_threshold,
+        'adaptive_radiation_strength': adaptive_radiation_strength,
+        'kin_selection_bonus': kin_selection_bonus,
+        'group_selection_strength': group_selection_strength,
+        'altruism_cost': altruism_cost,
+        'species_reputation_factor': species_reputation_factor,
+        'punctuated_equilibrium_trigger_sensitivity': punctuated_equilibrium_trigger_sensitivity,
+        'background_extinction_rate': background_extinction_rate,
+        'key_innovation_bonus': key_innovation_bonus,
+        'invasive_species_introduction_prob': invasive_species_introduction_prob,
+        'refugia_survival_bonus': refugia_survival_bonus,
+        'phyletic_gradualism_factor': phyletic_gradualism_factor,
+        'species_sorting_strength': species_sorting_strength,
         'compatibility_threshold': compatibility_threshold,
         'num_generations': num_generations,
         'complexity_level': complexity_level,
