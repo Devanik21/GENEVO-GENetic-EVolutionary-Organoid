@@ -4918,7 +4918,7 @@ def main():
         'lambda_calculus_isomorphism': lambda_calculus_isomorphism,
         'proof_complexity_cost': proof_complexity_cost,
         'constructive_type_theory_adherence': constructive_type_theory_adherence,
-        )
+    }
 
     # --- Collect and save current settings ---
     current_settings = {
