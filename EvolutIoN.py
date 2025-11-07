@@ -2244,6 +2244,27 @@ def main():
             'w_decision_time': 0.0,
             'solution_archive_capacity': 1000,
             'novelty_metric': 'Behavioral',
+            # --- NEW ADVANCED LANDSCAPE PHYSICS DEFAULTS ---
+            'speciation_stagnation_threshold': 15,
+            'species_extinction_threshold': 0.01,
+            'niche_construction_strength': 0.0,
+            'character_displacement_pressure': 0.0,
+            'adaptive_radiation_trigger': 0.0,
+            'species_merger_probability': 0.0,
+            'kin_selection_bonus': 0.0,
+            'sexual_selection_factor': 0.0,
+            'sympatric_speciation_pressure': 0.0,
+            'allopatric_speciation_trigger': 0.0,
+            'intraspecific_competition_scaling': 1.0,
+            'landscape_ruggedness_factor': 0.0,
+            'landscape_correlation_length': 0.1,
+            'landscape_neutral_network_size': 0.0,
+            'landscape_holeyness_factor': 0.0,
+            'landscape_anisotropy_factor': 0.0,
+            'landscape_gradient_noise': 0.0,
+            'landscape_time_variance_rate': 0.0,
+            'multimodality_factor': 0.1,
+            'epistatic_correlation_structure': 'Random',
             'local_competition_radius': 0.1,
             'information_seeking_drive': 0.0,
             'open_ended_archive_sampling_bias': 'Uniform',
@@ -2251,6 +2272,38 @@ def main():
             # --- NEW FINALIZATION DEFAULTS ---
             'enable_ensemble_creation': False,
             'ensemble_size': 5,
+            'fitness_autocorrelation_time': 0.0,
+            'fitness_landscape_plasticity': 0.0,
+            'information_bottleneck_pressure': 0.0,
+            'fisher_information_maximization': 0.0,
+            'predictive_information_bonus': 0.0,
+            'thermodynamic_depth_bonus': 0.0,
+            'integrated_information_bonus': 0.0,
+            'free_energy_minimization_pressure': 0.0,
+            'empowerment_maximization_drive': 0.0,
+            'causal_density_target': 0.0,
+            'semantic_information_bonus': 0.0,
+            'algorithmic_complexity_penalty': 0.0,
+            'computational_irreducibility_bonus': 0.0,
+            'altruism_punishment_effectiveness': 0.0,
+            'resource_depletion_rate': 0.0,
+            'predator_prey_cycle_period': 0,
+            'mutualism_bonus': 0.0,
+            'parasitism_virulence_factor': 0.1,
+            'commensalism_emergence_bonus': 0.0,
+            'social_learning_fidelity': 0.0,
+            'cultural_evolution_rate': 0.0,
+            'group_selection_strength': 0.0,
+            'tragedy_of_the_commons_penalty': 0.0,
+            'reputation_dynamics_factor': 0.0,
+            'extinction_event_severity': 0.9,
+            'environmental_shift_magnitude': 0.5,
+            'punctuated_equilibrium_trigger_sensitivity': 0.1,
+            'key_innovation_bonus': 0.0,
+            'background_extinction_rate': 0.0,
+            'invasive_species_introduction_prob': 0.0,
+            'adaptive_radiation_factor': 2.0,
+            'refugia_survival_bonus': 0.0,
             'ensemble_selection_strategy': 'K-Means Diversity',
             'enable_fine_tuning': False,
             'fine_tuning_generations': 10,
@@ -2291,6 +2344,8 @@ def main():
             'cft_scaling_exponent': 0.0,
             'spacetime_foam_fluctuation': 0.0,
             'entanglement_assisted_comm': 0.0,
+            'post_cataclysm_hypermutation_period': 5,
+            'environmental_press_factor': 0.0,
             # Topology
             'manifold_adherence': 0.0,
             'group_equivariance_prior': 0.0,
@@ -2303,6 +2358,7 @@ def main():
             'network_motif_bonus': 0.0,
             'autocatalytic_set_emergence': 0.0,
             'rents_rule_exponent': 0.0,
+            'cambrian_explosion_trigger': 0.0,
             # Cognitive
             'curiosity_drive': 0.0,
             'world_model_accuracy': 0.0,
@@ -2903,6 +2959,78 @@ def main():
         st.info(
             "These parameters are inspired by theoretical biology to simulate complex evolutionary dynamics like epistasis and niche partitioning."
         )
+
+        with st.expander("🌌 Advanced Landscape & Ecosystem Physics", expanded=False):
+            st.warning("DANGER: HIGHLY EXPERIMENTAL. These parameters model deep, complex ecosystem dynamics and can lead to unpredictable or unstable evolution. Use with caution.")
+
+            st.markdown("##### 1. Advanced Speciation & Niche Dynamics")
+            speciation_stagnation_threshold = st.slider("Speciation Stagnation Threshold", 0, 50, s.get('speciation_stagnation_threshold', 15), 1, help="Generations a species can stagnate before its members receive a fitness penalty.", key="speciation_stagnation_threshold_slider")
+            species_extinction_threshold = st.slider("Species Extinction Fitness Threshold", 0.0, 0.5, s.get('species_extinction_threshold', 0.01), 0.01, help="Mean fitness below which a species is marked for extinction.", key="species_extinction_threshold_slider")
+            niche_construction_strength = st.slider("Niche Construction Strength", 0.0, 1.0, s.get('niche_construction_strength', 0.0), 0.05, help="How much individuals can modify their local fitness landscape for their descendants.", key="niche_construction_strength_slider")
+            character_displacement_pressure = st.slider("Character Displacement Pressure", 0.0, 1.0, s.get('character_displacement_pressure', 0.0), 0.05, help="A direct pressure for competing species to diverge in their phenotypic traits.", key="character_displacement_pressure_slider")
+            adaptive_radiation_trigger = st.slider("Adaptive Radiation Trigger", 0.0, 1.0, s.get('adaptive_radiation_trigger', 0.0), 0.05, help="Fitness threshold that, when crossed by a species, triggers a temporary boost in its innovation rate.", key="adaptive_radiation_trigger_slider")
+            species_merger_probability = st.slider("Species Merger Probability", 0.0, 0.1, s.get('species_merger_probability', 0.0), 0.005, help="Probability per generation for two genomically close species to merge into one.", key="species_merger_probability_slider")
+            kin_selection_bonus = st.slider("Kin Selection Bonus", 0.0, 1.0, s.get('kin_selection_bonus', 0.0), 0.05, help="A fitness bonus applied based on the success of close relatives, promoting altruistic behavior.", key="kin_selection_bonus_slider")
+            sexual_selection_factor = st.slider("Sexual Selection Factor", 0.0, 1.0, s.get('sexual_selection_factor', 0.0), 0.05, help="Introduces a 'mating preference' component to selection, where individuals may prefer mates with certain traits.", key="sexual_selection_factor_slider")
+            sympatric_speciation_pressure = st.slider("Sympatric Speciation Pressure", 0.0, 1.0, s.get('sympatric_speciation_pressure', 0.0), 0.05, help="A pressure that encourages speciation even without geographic isolation, based on trait differentiation.", key="sympatric_speciation_pressure_slider")
+            allopatric_speciation_trigger = st.slider("Allopatric Speciation Trigger", 0.0, 1.0, s.get('allopatric_speciation_trigger', 0.0), 0.05, help="If population topology is fragmented (e.g., Island Model), this triggers speciation for isolated groups.", key="allopatric_speciation_trigger_slider")
+            intraspecific_competition_scaling = st.slider("Intraspecific Competition Scaling", 0.0, 2.0, s.get('intraspecific_competition_scaling', 1.0), 0.1, help="Exponent for scaling competition within a species. >1 means more intense competition in large species.", key="intraspecific_competition_scaling_slider")
+
+            st.markdown("---")
+            st.markdown("##### 2. Landscape Topology & Geometry")
+            landscape_ruggedness_factor = st.slider("Landscape Ruggedness Factor", 0.0, 1.0, s.get('landscape_ruggedness_factor', 0.0), 0.05, help="Adds fine-grained, high-frequency noise to the fitness landscape.", key="landscape_ruggedness_factor_slider")
+            landscape_correlation_length = st.slider("Landscape Correlation Length", 0.0, 1.0, s.get('landscape_correlation_length', 0.1), 0.05, help="How 'smooth' the landscape is. High values mean large, broad peaks; low values mean many sharp peaks.", key="landscape_correlation_length_slider")
+            landscape_neutral_network_size = st.slider("Landscape Neutral Network Size", 0.0, 1.0, s.get('landscape_neutral_network_size', 0.0), 0.05, help="The prevalence of 'neutral networks'—paths in genotype space with equal fitness, which can facilitate exploration.", key="landscape_neutral_network_size_slider")
+            landscape_holeyness_factor = st.slider("Landscape Holeyness Factor", 0.0, 1.0, s.get('landscape_holeyness_factor', 0.0), 0.05, help="Creates 'holes' or regions of zero fitness in the genotype space, representing lethal mutations.", key="landscape_holeyness_factor_slider")
+            landscape_anisotropy_factor = st.slider("Landscape Anisotropy Factor", 0.0, 1.0, s.get('landscape_anisotropy_factor', 0.0), 0.05, help="Stretches the fitness landscape along certain genotypic axes, making some directions of mutation more impactful than others.", key="landscape_anisotropy_factor_slider")
+            landscape_gradient_noise = st.slider("Landscape Gradient Noise", 0.0, 1.0, s.get('landscape_gradient_noise', 0.0), 0.05, help="Adds noise to the fitness gradient, making it harder to find the true direction of steepest ascent.", key="landscape_gradient_noise_slider")
+            landscape_time_variance_rate = st.slider("Landscape Time-Variance Rate", 0.0, 0.1, s.get('landscape_time_variance_rate', 0.0), 0.005, help="The rate at which the underlying fitness landscape itself slowly and randomly changes over time.", key="landscape_time_variance_rate_slider")
+            multimodality_factor = st.slider("Multimodality Factor", 0.0, 1.0, s.get('multimodality_factor', 0.1), 0.05, help="Controls the number of major peaks in the fitness landscape. High values create more distinct optima to discover.", key="multimodality_factor_slider")
+            epistatic_correlation_structure = st.selectbox("Epistatic Correlation Structure", ['Random', 'Block', 'Modular'], index=['Random', 'Block', 'Modular'].index(s.get('epistatic_correlation_structure', 'Random')), help="The structure of gene interactions. 'Block' or 'Modular' creates more structured epistasis.", key="epistatic_correlation_structure_selectbox")
+            fitness_autocorrelation_time = st.slider("Fitness Autocorrelation Time", 0.0, 1.0, s.get('fitness_autocorrelation_time', 0.0), 0.05, help="How correlated an individual's fitness is with its fitness in the previous generation. High values smooth out fitness trajectories.", key="fitness_autocorrelation_time_slider")
+            fitness_landscape_plasticity = st.slider("Fitness Landscape Plasticity", 0.0, 1.0, s.get('fitness_landscape_plasticity', 0.0), 0.05, help="How much the fitness landscape is deformed by the population's presence (niche construction).", key="fitness_landscape_plasticity_slider")
+
+            st.markdown("---")
+            st.markdown("##### 3. Information-Theoretic Landscape Dynamics")
+            information_bottleneck_pressure = st.slider("Information Bottleneck Pressure", 0.0, 1.0, s.get('information_bottleneck_pressure', 0.0), 0.05, help="Rewards architectures that compress environmental information into a minimal internal representation.", key="information_bottleneck_pressure_slider")
+            fisher_information_maximization = st.slider("Fisher Information Maximization", 0.0, 1.0, s.get('fisher_information_maximization', 0.0), 0.05, help="A drive to maximize the population's Fisher Information, which is inversely related to fitness variance and can accelerate adaptation.", key="fisher_information_maximization_slider")
+            predictive_information_bonus = st.slider("Predictive Information Bonus", 0.0, 1.0, s.get('predictive_information_bonus', 0.0), 0.05, help="Rewards architectures that are highly predictive of their own future internal states.", key="predictive_information_bonus_slider")
+            thermodynamic_depth_bonus = st.slider("Thermodynamic Depth Bonus", 0.0, 1.0, s.get('thermodynamic_depth_bonus', 0.0), 0.05, help="A bonus for architectures whose creation process is computationally 'deep' or complex, rewarding non-trivial structures.", key="thermodynamic_depth_bonus_slider")
+            integrated_information_bonus = st.slider("Integrated Information (Φ) Bonus", 0.0, 1.0, s.get('integrated_information_bonus', 0.0), 0.05, help="A bonus for architectures with high integrated information (a measure of consciousness from IIT), promoting integrated and differentiated structures.", key="integrated_information_bonus_slider")
+            free_energy_minimization_pressure = st.slider("Free Energy Minimization Pressure", 0.0, 1.0, s.get('free_energy_minimization_pressure', 0.0), 0.05, help="A pressure for architectures to minimize their variational free energy, effectively rewarding the creation of an accurate world model.", key="free_energy_minimization_pressure_slider")
+            empowerment_maximization_drive = st.slider("Empowerment Maximization Drive", 0.0, 1.0, s.get('empowerment_maximization_drive', 0.0), 0.05, help="An intrinsic motivation to maximize the channel capacity between an agent's actuators and its future sensors, promoting agency and control.", key="empowerment_maximization_drive_slider")
+            causal_density_target = st.slider("Causal Density Target", 0.0, 1.0, s.get('causal_density_target', 0.0), 0.05, help="A target for the density of causal links within the network, can be used to promote or penalize dense connectivity.", key="causal_density_target_slider")
+            semantic_information_bonus = st.slider("Semantic Information Bonus", 0.0, 1.0, s.get('semantic_information_bonus', 0.0), 0.05, help="Rewards information that is meaningful or relevant to the agent's goals, as opposed to just raw statistical information.", key="semantic_information_bonus_slider")
+            algorithmic_complexity_penalty = st.slider("Algorithmic Complexity Penalty", 0.0, 1.0, s.get('algorithmic_complexity_penalty', 0.0), 0.05, help="A penalty for high algorithmic (Kolmogorov) complexity of the genotype, favoring elegant and compressible solutions.", key="algorithmic_complexity_penalty_slider")
+            computational_irreducibility_bonus = st.slider("Computational Irreducibility Bonus", 0.0, 1.0, s.get('computational_irreducibility_bonus', 0.0), 0.05, help="A bonus for computations that cannot be 'shortcut', rewarding processes that are fundamentally complex.", key="computational_irreducibility_bonus_slider")
+
+            st.markdown("---")
+            st.markdown("##### 4. Socio-Ecological Dynamics")
+            altruism_punishment_effectiveness = st.slider("Altruism Punishment Effectiveness", 0.0, 1.0, s.get('altruism_punishment_effectiveness', 0.0), 0.05, help="In a social context, how effective 'policing' mechanisms are at penalizing selfish individuals.", key="altruism_punishment_effectiveness_slider")
+            resource_depletion_rate = st.slider("Resource Depletion Rate", 0.0, 1.0, s.get('resource_depletion_rate', 0.0), 0.05, help="How quickly individuals in a niche deplete the available 'fitness resources', increasing competition.", key="resource_depletion_rate_slider")
+            predator_prey_cycle_period = st.slider("Predator-Prey Cycle Period", 0, 100, s.get('predator_prey_cycle_period', 0), 5, help="If > 0, introduces an oscillating 'predator' pressure that targets the most populous species, creating boom-bust cycles.", key="predator_prey_cycle_period_slider")
+            mutualism_bonus = st.slider("Mutualism Bonus", 0.0, 1.0, s.get('mutualism_bonus', 0.0), 0.05, help="A fitness bonus for individuals of different species that co-exist in a way that benefits both.", key="mutualism_bonus_slider")
+            parasitism_virulence_factor = st.slider("Parasitism Virulence Factor", 0.0, 1.0, s.get('parasitism_virulence_factor', 0.1), 0.05, help="How damaging the 'Red Queen' parasite is to its targets. Higher values increase the negative fitness impact.", key="parasitism_virulence_factor_slider")
+            commensalism_emergence_bonus = st.slider("Commensalism Emergence Bonus", 0.0, 1.0, s.get('commensalism_emergence_bonus', 0.0), 0.05, help="A bonus for species that have a neutral-positive interaction (one benefits, the other is unaffected).", key="commensalism_emergence_bonus_slider")
+            social_learning_fidelity = st.slider("Social Learning Fidelity", 0.0, 1.0, s.get('social_learning_fidelity', 0.0), 0.05, help="How accurately traits or behaviors can be copied non-genetically from peers.", key="social_learning_fidelity_slider")
+            cultural_evolution_rate = st.slider("Cultural Evolution Rate", 0.0, 1.0, s.get('cultural_evolution_rate', 0.0), 0.05, help="The rate of non-genetic 'meme' propagation, allowing successful motifs to spread horizontally.", key="cultural_evolution_rate_slider")
+            group_selection_strength = st.slider("Group Selection Strength", 0.0, 1.0, s.get('group_selection_strength', 0.0), 0.05, help="The strength of selection at the group/colony level, promoting group-beneficial traits over individual selfishness.", key="group_selection_strength_slider")
+            tragedy_of_the_commons_penalty = st.slider("Tragedy of the Commons Penalty", 0.0, 1.0, s.get('tragedy_of_the_commons_penalty', 0.0), 0.05, help="A penalty applied to groups that over-exploit a shared resource, promoting sustainable strategies.", key="tragedy_of_the_commons_penalty_slider")
+            reputation_dynamics_factor = st.slider("Reputation Dynamics Factor", 0.0, 1.0, s.get('reputation_dynamics_factor', 0.0), 0.05, help="How quickly an individual's reputation (e.g., for cooperation) changes based on its actions.", key="reputation_dynamics_factor_slider")
+
+            st.markdown("---")
+            st.markdown("##### 5. Catastrophic & Punctuated Equilibria")
+            extinction_event_severity = st.slider("Extinction Event Severity", 0.1, 1.0, s.get('extinction_event_severity', 0.9), 0.05, help="Percentage of the population wiped out during a cataclysmic event. 1.0 = total extinction.", key="extinction_event_severity_slider")
+            environmental_shift_magnitude = st.slider("Environmental Shift Magnitude", 0.0, 1.0, s.get('environmental_shift_magnitude', 0.5), 0.05, help="How drastically the fitness function changes during an environmental collapse event.", key="environmental_shift_magnitude_slider")
+            punctuated_equilibrium_trigger_sensitivity = st.slider("Punctuated Equilibrium Trigger Sensitivity", 0.0, 1.0, s.get('punctuated_equilibrium_trigger_sensitivity', 0.1), 0.05, help="Sensitivity to stagnation for triggering a 'punctuation' event (e.g., a massive, temporary mutation rate spike).", key="punctuated_equilibrium_trigger_sensitivity_slider")
+            key_innovation_bonus = st.slider("Key Innovation Bonus", 0.0, 1.0, s.get('key_innovation_bonus', 0.0), 0.05, help="A large, one-time fitness bonus for discovering a 'key innovation' (e.g., a new module type), which can trigger adaptive radiation.", key="key_innovation_bonus_slider")
+            background_extinction_rate = st.slider("Background Extinction Rate", 0.0, 0.1, s.get('background_extinction_rate', 0.0), 0.005, help="A constant, low probability of any individual being removed randomly per generation, simulating random death.", key="background_extinction_rate_slider")
+            invasive_species_introduction_prob = st.slider("Invasive Species Introduction Probability", 0.0, 0.1, s.get('invasive_species_introduction_prob', 0.0), 0.005, help="Probability per generation of introducing a pre-evolved, highly-fit individual from an external source.", key="invasive_species_introduction_prob_slider")
+            adaptive_radiation_factor = st.slider("Adaptive Radiation Factor", 1.0, 10.0, s.get('adaptive_radiation_factor', 2.0), 0.5, help="Multiplier on innovation rate for a few generations after a mass extinction, simulating the rapid filling of empty niches.", key="adaptive_radiation_factor_slider")
+            refugia_survival_bonus = st.slider("Refugia Survival Bonus", 0.0, 1.0, s.get('refugia_survival_bonus', 0.0), 0.05, help="A bonus to survival probability during a cataclysm for individuals in under-populated regions of the landscape.", key="refugia_survival_bonus_slider")
+            post_cataclysm_hypermutation_period = st.slider("Post-Cataclysm Hypermutation Period", 0, 50, s.get('post_cataclysm_hypermutation_period', 5), 1, help="Number of generations with elevated mutation rates after a cataclysm.", key="post_cataclysm_hypermutation_period_slider")
+            environmental_press_factor = st.slider("Environmental Press Factor", 0.0, 0.1, s.get('environmental_press_factor', 0.0), 0.005, help="A slow, constant, directional change in the environment over deep time, forcing continuous adaptation.", key="environmental_press_factor_slider")
+            cambrian_explosion_trigger = st.slider("Cambrian Explosion Trigger", 0.0, 1.0, s.get('cambrian_explosion_trigger', 0.0), 0.05, help="A threshold for environmental complexity that, when crossed, triggers a massive, one-time increase in the number of available architectural forms.", key="cambrian_explosion_trigger_slider")
     
     with st.sidebar.expander("🗂️ Experiment Management", expanded=False):
         st.markdown("Export the full configuration to reproduce this experiment, or import a previous configuration.")
@@ -4127,6 +4255,62 @@ def main():
         'gene_flow_rate': gene_flow_rate,
         'niche_competition_factor': niche_competition_factor,
         'max_archive_size': max_archive_size,
+        # --- NEW ADVANCED LANDSCAPE PHYSICS SETTINGS ---
+        'speciation_stagnation_threshold': speciation_stagnation_threshold,
+        'species_extinction_threshold': species_extinction_threshold,
+        'niche_construction_strength': niche_construction_strength,
+        'character_displacement_pressure': character_displacement_pressure,
+        'adaptive_radiation_trigger': adaptive_radiation_trigger,
+        'species_merger_probability': species_merger_probability,
+        'kin_selection_bonus': kin_selection_bonus,
+        'sexual_selection_factor': sexual_selection_factor,
+        'sympatric_speciation_pressure': sympatric_speciation_pressure,
+        'allopatric_speciation_trigger': allopatric_speciation_trigger,
+        'intraspecific_competition_scaling': intraspecific_competition_scaling,
+        'landscape_ruggedness_factor': landscape_ruggedness_factor,
+        'landscape_correlation_length': landscape_correlation_length,
+        'landscape_neutral_network_size': landscape_neutral_network_size,
+        'landscape_holeyness_factor': landscape_holeyness_factor,
+        'landscape_anisotropy_factor': landscape_anisotropy_factor,
+        'landscape_gradient_noise': landscape_gradient_noise,
+        'landscape_time_variance_rate': landscape_time_variance_rate,
+        'multimodality_factor': multimodality_factor,
+        'epistatic_correlation_structure': epistatic_correlation_structure,
+        'fitness_autocorrelation_time': fitness_autocorrelation_time,
+        'fitness_landscape_plasticity': fitness_landscape_plasticity,
+        'information_bottleneck_pressure': information_bottleneck_pressure,
+        'fisher_information_maximization': fisher_information_maximization,
+        'predictive_information_bonus': predictive_information_bonus,
+        'thermodynamic_depth_bonus': thermodynamic_depth_bonus,
+        'integrated_information_bonus': integrated_information_bonus,
+        'free_energy_minimization_pressure': free_energy_minimization_pressure,
+        'empowerment_maximization_drive': empowerment_maximization_drive,
+        'causal_density_target': causal_density_target,
+        'semantic_information_bonus': semantic_information_bonus,
+        'algorithmic_complexity_penalty': algorithmic_complexity_penalty,
+        'computational_irreducibility_bonus': computational_irreducibility_bonus,
+        'altruism_punishment_effectiveness': altruism_punishment_effectiveness,
+        'resource_depletion_rate': resource_depletion_rate,
+        'predator_prey_cycle_period': predator_prey_cycle_period,
+        'mutualism_bonus': mutualism_bonus,
+        'parasitism_virulence_factor': parasitism_virulence_factor,
+        'commensalism_emergence_bonus': commensalism_emergence_bonus,
+        'social_learning_fidelity': social_learning_fidelity,
+        'cultural_evolution_rate': cultural_evolution_rate,
+        'group_selection_strength': group_selection_strength,
+        'tragedy_of_the_commons_penalty': tragedy_of_the_commons_penalty,
+        'reputation_dynamics_factor': reputation_dynamics_factor,
+        'extinction_event_severity': extinction_event_severity,
+        'environmental_shift_magnitude': environmental_shift_magnitude,
+        'punctuated_equilibrium_trigger_sensitivity': punctuated_equilibrium_trigger_sensitivity,
+        'key_innovation_bonus': key_innovation_bonus,
+        'background_extinction_rate': background_extinction_rate,
+        'invasive_species_introduction_prob': invasive_species_introduction_prob,
+        'adaptive_radiation_factor': adaptive_radiation_factor,
+        'refugia_survival_bonus': refugia_survival_bonus,
+        'post_cataclysm_hypermutation_period': post_cataclysm_hypermutation_period,
+        'environmental_press_factor': environmental_press_factor,
+        'cambrian_explosion_trigger': cambrian_explosion_trigger,
         'reintroduction_rate': reintroduction_rate,
         'enable_cataclysms': enable_cataclysms,
         'cataclysm_probability': cataclysm_probability,
