@@ -788,6 +788,54 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             connection_density * 0.15 +
             np.random.normal(0, 0.05)
         )
+
+    # --- NEW MODALITIES ---
+    elif task_type == 'Video Understanding (Kinetics)':
+        # Rewards architectures with temporal processing and spatial features
+        conv_rec_count = sum(1 for m in genotype.modules if m.module_type in ['conv', 'recurrent'])
+        scores['task_accuracy'] = (
+            (conv_rec_count / len(genotype.modules)) * 0.6 +
+            avg_plasticity * 0.2 +
+            np.random.normal(0, 0.05)
+        )
+
+    elif task_type == 'Speech Recognition (LibriSpeech)':
+        # Rewards recurrent and attention mechanisms
+        rec_attn_count = sum(1 for m in genotype.modules if m.module_type in ['recurrent', 'attention'])
+        scores['task_accuracy'] = (
+            (rec_attn_count / len(genotype.modules)) * 0.7 +
+            avg_plasticity * 0.1 +
+            np.random.normal(0, 0.05)
+        )
+
+    elif task_type == 'Robotics Control (MuJoCo)':
+        # Rewards low-latency, high-plasticity architectures
+        mlp_count = sum(1 for m in genotype.modules if m.module_type == 'mlp')
+        scores['task_accuracy'] = (
+            (mlp_count / len(genotype.modules)) * 0.3 +
+            avg_plasticity * 0.4 +
+            (1.0 / (1.0 + len(genotype.modules))) * 0.3 + # Latency proxy
+            np.random.normal(0, 0.05)
+        )
+
+    elif task_type == 'Visual Question Answering (VQA)':
+        # Rewards hybrid architectures combining vision and language modules
+        vision_modules = sum(1 for m in genotype.modules if m.module_type in ['conv', 'attention'])
+        lang_modules = sum(1 for m in genotype.modules if m.module_type in ['attention', 'recurrent'])
+        scores['task_accuracy'] = (
+            (vision_modules / len(genotype.modules)) * 0.4 +
+            (lang_modules / len(genotype.modules)) * 0.4 +
+            connection_density * 0.2 +
+            np.random.normal(0, 0.05)
+        )
+    
+    elif task_type == 'Protein Folding (AlphaFold)':
+        # Rewards graph and attention mechanisms for relational reasoning
+        graph_attn_count = sum(1 for m in genotype.modules if m.module_type in ['graph', 'attention'])
+        scores['task_accuracy'] = (
+            (graph_attn_count / len(genotype.modules)) * 0.8 +
+            np.random.normal(0, 0.05)
+        )
     
     # Apply epigenetic bonus to the base score
     scores['task_accuracy'] += epigenetic_bonus
@@ -2634,8 +2682,23 @@ def main():
     st.sidebar.markdown("### Task Environment")
     task_options = [
         'Abstract Reasoning (ARC-AGI-2)',
+        # Vision Modalities
         'Vision (ImageNet)',
+        'Video Understanding (Kinetics)',
+        'Object Detection (COCO)',
+        # Language & Code Modalities
         'Language (MMLU-Pro)',
+        'Code Generation (HumanEval)',
+        # Audio & Speech Modalities
+        'Speech Recognition (LibriSpeech)',
+        'Audio Classification (AudioSet)',
+        'Music Generation (MAESTRO)',
+        # Embodied & RL Modalities
+        'Robotics Control (MuJoCo)',
+        # Scientific & Structured Data
+        'Protein Folding (AlphaFold)',
+        # Multi-Modal
+        'Visual Question Answering (VQA)',
         'Sequential Prediction',
         'Multi-Task Learning'
     ]
