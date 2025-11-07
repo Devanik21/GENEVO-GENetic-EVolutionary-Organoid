@@ -691,12 +691,31 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
         'efficiency': 0.0,
         'robustness': 0.0,
         'generalization': 0.0
+        # Advanced Primary Objectives
+        'learning_speed': 0.0,
+        'data_parsimony': 0.0,
+        'forgetting_resistance': 0.0,
+        'adaptability': 0.0,
+        'latency': 0.0,
+        'energy_consumption': 0.0,
+        'development_cost': 0.0,
+        'modularity': 0.0,
+        'interpretability': 0.0,
+        'evolvability': 0.0,
+        'fairness': 0.0,
+        'explainability': 0.0,
+        'value_alignment': 0.0,
+        'causal_density': 0.0,
+        'self_organization': 0.0,
+        'autopoiesis': 0.0,
+        'computational_irreducibility': 0.0,
+        'cognitive_synergy': 0.0,
     }
     
     # Compute architectural properties
     total_params = sum(m.size for m in genotype.modules)
-    avg_plasticity = np.mean([m.plasticity for m in genotype.modules])
-    connection_density = len(genotype.connections) / (len(genotype.modules) ** 2 + 1)
+    avg_plasticity = np.mean([m.plasticity for m in genotype.modules]) if genotype.modules else 0.0
+    connection_density = len(genotype.connections) / (len(genotype.modules) ** 2 + 1) if genotype.modules else 0.0
     
     # 1a. Epigenetic Inheritance Bonus
     # Apply bonus from markers inherited from parents.
@@ -808,7 +827,46 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
         avg_plasticity * 0.3
     )
 
-    # 6. Epigenetic Marking (Lamarckian-like learning)
+    # 6. Advanced Primary Objectives (Conceptual Calculations)
+    # These are simplified proxies for complex concepts.
+    
+    # Learning & Adaptation
+    scores['learning_speed'] = avg_plasticity
+    scores['data_parsimony'] = 1.0 / (1.0 + np.log(1 + total_params / 10000))
+    scores['forgetting_resistance'] = (scores.get('modularity', 0.0) + avg_plasticity) / 2.0
+    scores['adaptability'] = avg_plasticity
+
+    # Resource & Cost
+    scores['latency'] = 1.0 / (1.0 + len(genotype.modules))
+    scores['energy_consumption'] = 1.0 / (1.0 + np.log(1 + total_params + len(genotype.connections)))
+    scores['development_cost'] = 1.0 / (1.0 + len(genotype.developmental_rules))
+
+    # Structural & Interpretability
+    try:
+        G = nx.DiGraph()
+        for m in genotype.modules: G.add_node(m.id)
+        for c in genotype.connections: G.add_edge(c.source, c.target)
+        # Using a simple approximation for modularity based on connection density sweet spot
+        scores['modularity'] = 1.0 - abs(connection_density - 0.3) * 2
+    except:
+        scores['modularity'] = 0.0
+    scores['interpretability'] = scores['efficiency']  # Reuse efficiency as a proxy for simplicity
+    module_type_diversity = len(set(m.module_type for m in genotype.modules)) / 5.0
+    scores['evolvability'] = np.clip(module_type_diversity, 0, 1)
+
+    # Safety & Alignment (purely conceptual placeholders)
+    scores['fairness'] = np.random.uniform(0.3, 0.7)
+    scores['explainability'] = np.random.uniform(0.2, 0.6)
+    scores['value_alignment'] = np.random.uniform(0.1, 0.5)
+
+    # Deep Theoretical Pressures (purely conceptual placeholders)
+    scores['causal_density'] = connection_density
+    scores['self_organization'] = genotype.complexity
+    scores['autopoiesis'] = scores['robustness']  # Robustness is a proxy for maintaining organization
+    scores['computational_irreducibility'] = np.random.uniform(0.1, 0.9)
+    scores['cognitive_synergy'] = np.random.uniform(0.2, 0.8)
+
+    # 7. Epigenetic Marking (Lamarckian-like learning)
     # The individual "learns" from its performance, creating a marker for its offspring.
     # This maps current performance to a small, heritable aptitude value.
     if enable_epigenetics:
@@ -817,7 +875,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
         current_aptitude = genotype.epigenetic_markers.get(aptitude_key, 0.0)
         genotype.epigenetic_markers[aptitude_key] = np.clip(current_aptitude + performance_marker, -0.15, 0.15)
     
-    # 7. Epistatic Contribution (NK Landscape Simulation)
+    # 8. Epistatic Contribution (NK Landscape Simulation)
     # Models how gene interactions create a rugged fitness landscape.
     epistatic_contribution = 0.0
     if epistatic_linkage_k > 0 and len(genotype.modules) > epistatic_linkage_k:
@@ -841,13 +899,22 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             weights = {'task_accuracy': 0.5, 'efficiency': 0.3, 'robustness': 0.1, 'generalization': 0.1}
         else:
             weights = {'task_accuracy': 0.6, 'efficiency': 0.2, 'robustness': 0.1, 'generalization': 0.1}
+        # Add new weights with 0 default to prevent key errors if not passed
+        new_weights = {
+            'learning_speed': 0.0, 'data_parsimony': 0.0, 'forgetting_resistance': 0.0, 'adaptability': 0.0,
+            'latency': 0.0, 'energy_consumption': 0.0, 'development_cost': 0.0, 'modularity': 0.0,
+            'interpretability': 0.0, 'evolvability': 0.0, 'fairness': 0.0, 'explainability': 0.0,
+            'value_alignment': 0.0, 'causal_density': 0.0, 'self_organization': 0.0, 'autopoiesis': 0.0,
+            'computational_irreducibility': 0.0, 'cognitive_synergy': 0.0
+        }
+        weights.update(new_weights)
         
-    total_fitness = sum(scores[k] * weights[k] for k in weights)
+    total_fitness = sum(scores.get(k, 0.0) * v for k, v in weights.items())
     
     # Apply epistatic effect to final fitness
     total_fitness += epistatic_contribution
     
-    # 8. Red Queen Coevolution (Parasite Attack)
+    # 9. Red Queen Coevolution (Parasite Attack)
     # If a genotype has a trait targeted by the co-evolving parasite, its fitness is penalized.
     if parasite_profile:
         vulnerability_score = 0.0
@@ -2009,6 +2076,25 @@ def main():
             'w_efficiency': 0.15,
             'w_robustness': 0.1,
             'w_generalization': 0.15,
+            # --- NEW ADVANCED PRIMARY OBJECTIVES DEFAULTS ---
+            'w_learning_speed': 0.0,
+            'w_data_parsimony': 0.0,
+            'w_forgetting_resistance': 0.0,
+            'w_adaptability': 0.0,
+            'w_latency': 0.0,
+            'w_energy_consumption': 0.0,
+            'w_development_cost': 0.0,
+            'w_modularity': 0.0,
+            'w_interpretability': 0.0,
+            'w_evolvability': 0.0,
+            'w_fairness': 0.0,
+            'w_explainability': 0.0,
+            'w_value_alignment': 0.0,
+            'w_causal_density': 0.0,
+            'w_self_organization': 0.0,
+            'w_autopoiesis': 0.0,
+            'w_computational_irreducibility': 0.0,
+            'w_cognitive_synergy': 0.0,
             'mutation_rate': 0.2,
             'crossover_rate': 0.7,
             'innovation_rate': 0.05,
@@ -2610,13 +2696,51 @@ def main():
         w_efficiency = st.slider("Efficiency Weight", 0.0, 1.0, s.get('w_efficiency', 0.15), key="w_efficiency_slider", help="**How much to penalize computational cost (parameters, connections).** Promotes smaller, faster models.")
         w_robustness = st.slider("Robustness Weight", 0.0, 1.0, s.get('w_robustness', 0.1), key="w_robustness_slider", help="**How much to value stability under perturbation.** Favors architectures that are less sensitive to noise.")
         w_generalization = st.slider("Generalization Weight", 0.0, 1.0, s.get('w_generalization', 0.15), key="w_generalization_slider", help="**How much to value traits linked to generalizing to unseen data.** Promotes modularity and plasticity.")
-        
-        total_w = w_accuracy + w_efficiency + w_robustness + w_generalization + 1e-9
+
+        with st.expander("🔬 Advanced Primary Objectives", expanded=False):
+            st.markdown("These objectives are always active and add further dimensions to the fitness landscape, pushing evolution towards more sophisticated solutions.")
+            st.markdown("##### 1. Learning & Adaptation Dynamics")
+            w_learning_speed = st.slider("Learning Speed", 0.0, 1.0, s.get('w_learning_speed', 0.0), 0.01, key="w_learning_speed_slider", help="Rewards faster convergence during lifetime learning (Baldwin effect).")
+            w_data_parsimony = st.slider("Data Parsimony", 0.0, 1.0, s.get('w_data_parsimony', 0.0), 0.01, key="w_data_parsimony_slider", help="Rewards high performance with less data (conceptual).")
+            w_forgetting_resistance = st.slider("Forgetting Resistance", 0.0, 1.0, s.get('w_forgetting_resistance', 0.0), 0.01, key="w_forgetting_resistance_slider", help="Penalizes performance drops on old tasks after learning new ones.")
+            w_adaptability = st.slider("Adaptability", 0.0, 1.0, s.get('w_adaptability', 0.0), 0.01, key="w_adaptability_slider", help="Rewards quick recovery of fitness after an environmental shift.")
+
+            st.markdown("##### 2. Resource & Implementation Costs")
+            w_latency = st.slider("Latency", 0.0, 1.0, s.get('w_latency', 0.0), 0.01, key="w_latency_slider", help="Penalizes high inference time (conceptual).")
+            w_energy_consumption = st.slider("Energy Consumption", 0.0, 1.0, s.get('w_energy_consumption', 0.0), 0.01, key="w_energy_consumption_slider", help="Penalizes high simulated energy usage (related to params and activity).")
+            w_development_cost = st.slider("Development Cost", 0.0, 1.0, s.get('w_development_cost', 0.0), 0.01, key="w_development_cost_slider", help="Penalizes complex or lengthy developmental processes.")
+
+            st.markdown("##### 3. Structural & Interpretability Properties")
+            w_modularity = st.slider("Modularity", 0.0, 1.0, s.get('w_modularity', 0.0), 0.01, key="w_modularity_slider", help="Rewards architectures with high modularity (dense intra-module connections, sparse inter-module ones).")
+            w_interpretability = st.slider("Interpretability", 0.0, 1.0, s.get('w_interpretability', 0.0), 0.01, key="w_interpretability_slider", help="Rewards architectures that are structurally simpler or sparser, making them easier to analyze.")
+            w_evolvability = st.slider("Evolvability", 0.0, 1.0, s.get('w_evolvability', 0.0), 0.01, key="w_evolvability_slider", help="Rewards architectures with a higher potential for beneficial mutations (a smoother local fitness landscape).")
+
+            st.markdown("##### 4. Safety & Alignment (Conceptual)")
+            w_fairness = st.slider("Fairness", 0.0, 1.0, s.get('w_fairness', 0.0), 0.01, key="w_fairness_slider", help="Penalizes biased outputs across different conceptual data subgroups.")
+            w_explainability = st.slider("Explainability", 0.0, 1.0, s.get('w_explainability', 0.0), 0.01, key="w_explainability_slider", help="Rewards models that can generate explanations for their decisions (conceptual).")
+            w_value_alignment = st.slider("Value Alignment", 0.0, 1.0, s.get('w_value_alignment', 0.0), 0.01, key="w_value_alignment_slider", help="Rewards alignment with a predefined set of ethical principles (conceptual).")
+
+            st.markdown("##### 5. Deep Theoretical Pressures (Conceptual)")
+            w_causal_density = st.slider("Causal Density", 0.0, 1.0, s.get('w_causal_density', 0.0), 0.01, key="w_causal_density_slider", help="Rewards high causal interaction and information flow between components.")
+            w_self_organization = st.slider("Self-Organization", 0.0, 1.0, s.get('w_self_organization', 0.0), 0.01, key="w_self_organization_slider", help="Rewards systems that spontaneously increase their own complexity/order over time.")
+            w_autopoiesis = st.slider("Autopoiesis", 0.0, 1.0, s.get('w_autopoiesis', 0.0), 0.01, key="w_autopoiesis_slider", help="Rewards systems that can actively maintain their own organization against perturbation.")
+            w_computational_irreducibility = st.slider("Computational Irreducibility", 0.0, 1.0, s.get('w_computational_irreducibility', 0.0), 0.01, key="w_computational_irreducibility_slider", help="Rewards computational processes that cannot be predicted by a simpler process.")
+            w_cognitive_synergy = st.slider("Cognitive Synergy", 0.0, 1.0, s.get('w_cognitive_synergy', 0.0), 0.01, key="w_cognitive_synergy_slider", help="Rewards architectures where the whole is greater than the sum of its parts (high synergistic information).")
+
+        all_weights = {
+            'task_accuracy': w_accuracy, 'efficiency': w_efficiency, 'robustness': w_robustness, 'generalization': w_generalization,
+            'learning_speed': w_learning_speed, 'data_parsimony': w_data_parsimony, 'forgetting_resistance': w_forgetting_resistance,
+            'adaptability': w_adaptability, 'latency': w_latency, 'energy_consumption': w_energy_consumption,
+            'development_cost': w_development_cost, 'modularity': w_modularity, 'interpretability': w_interpretability,
+            'evolvability': w_evolvability, 'fairness': w_fairness, 'explainability': w_explainability,
+            'value_alignment': w_value_alignment, 'causal_density': w_causal_density, 'self_organization': w_self_organization,
+            'autopoiesis': w_autopoiesis, 'computational_irreducibility': w_computational_irreducibility,
+            'cognitive_synergy': w_cognitive_synergy
+        }
+
+        total_w = sum(all_weights.values()) + 1e-9
         fitness_weights = {
-            'task_accuracy': w_accuracy / total_w,
-            'efficiency': w_efficiency / total_w,
-            'robustness': w_robustness / total_w,
-            'generalization': w_generalization / total_w
+            k: v / total_w for k, v in all_weights.items()
         }
         
         st.write("Normalized Weights:")
@@ -3876,6 +4000,25 @@ def main():
         'w_efficiency': w_efficiency,
         'w_robustness': w_robustness,
         'w_generalization': w_generalization,
+        # --- NEW ADVANCED PRIMARY OBJECTIVES SETTINGS ---
+        'w_learning_speed': w_learning_speed,
+        'w_data_parsimony': w_data_parsimony,
+        'w_forgetting_resistance': w_forgetting_resistance,
+        'w_adaptability': w_adaptability,
+        'w_latency': w_latency,
+        'w_energy_consumption': w_energy_consumption,
+        'w_development_cost': w_development_cost,
+        'w_modularity': w_modularity,
+        'w_interpretability': w_interpretability,
+        'w_evolvability': w_evolvability,
+        'w_fairness': w_fairness,
+        'w_explainability': w_explainability,
+        'w_value_alignment': w_value_alignment,
+        'w_causal_density': w_causal_density,
+        'w_self_organization': w_self_organization,
+        'w_autopoiesis': w_autopoiesis,
+        'w_computational_irreducibility': w_computational_irreducibility,
+        'w_cognitive_synergy': w_cognitive_synergy,
         # --- NEW ADVANCED OBJECTIVES SETTINGS ---
         'enable_advanced_objectives': enable_advanced_objectives,
         'w_kolmogorov_complexity': w_kolmogorov_complexity if enable_advanced_objectives else 0.0,
