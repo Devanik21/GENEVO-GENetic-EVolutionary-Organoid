@@ -2622,6 +2622,80 @@ def main():
         st.write("Normalized Weights:")
         st.json({k: f"{v:.2f}" for k, v in fitness_weights.items()})
     
+    with st.sidebar.expander("🔬 Advanced Objectives & Intrinsic Motivations", expanded=False):
+        enable_advanced_objectives = st.checkbox(
+            "Enable Advanced Objectives",
+            value=s.get('enable_advanced_objectives', False),
+            help="**EXPERIMENTAL:** Introduce a vast suite of fitness objectives derived from information theory, thermodynamics, and cognitive science. These create complex pressures for emergent properties beyond simple task performance.",
+            key="enable_advanced_objectives_checkbox"
+        )
+
+        if not enable_advanced_objectives:
+            st.warning("Advanced Objectives are disabled. These weights will have no effect.")
+        else:
+            st.success("Advanced Objectives are ACTIVE. The fitness landscape is now shaped by deep theoretical principles.")
+
+        st.markdown("---")
+        st.markdown("#### 1. Information-Theoretic Objectives")
+        w_kolmogorov_complexity = st.slider("Kolmogorov Complexity", 0.0, 1.0, s.get('w_kolmogorov_complexity', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_kolmogorov_complexity_slider")
+        w_predictive_information = st.slider("Predictive Information", 0.0, 1.0, s.get('w_predictive_information', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_predictive_information_slider")
+        w_causal_emergence = st.slider("Causal Emergence", 0.0, 1.0, s.get('w_causal_emergence', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_causal_emergence_slider")
+        w_integrated_information = st.slider("Integrated Information (Φ)", 0.0, 1.0, s.get('w_integrated_information', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_integrated_information_slider")
+        w_free_energy_minimization = st.slider("Free Energy Minimization", 0.0, 1.0, s.get('w_free_energy_minimization', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_free_energy_minimization_slider")
+        w_transfer_entropy = st.slider("Transfer Entropy", 0.0, 1.0, s.get('w_transfer_entropy', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_transfer_entropy_slider")
+        w_synergistic_information = st.slider("Synergistic Information", 0.0, 1.0, s.get('w_synergistic_information', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_synergistic_information_slider")
+        w_state_compression = st.slider("State Compression", 0.0, 1.0, s.get('w_state_compression', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_state_compression_slider")
+        w_empowerment = st.slider("Empowerment", 0.0, 1.0, s.get('w_empowerment', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_empowerment_slider")
+        w_semantic_information = st.slider("Semantic Information", 0.0, 1.0, s.get('w_semantic_information', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_semantic_information_slider")
+        w_effective_information = st.slider("Effective Information", 0.0, 1.0, s.get('w_effective_information', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_effective_information_slider")
+        w_information_closure = st.slider("Information Closure", 0.0, 1.0, s.get('w_information_closure', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_information_closure_slider")
+
+        st.markdown("---")
+        st.markdown("#### 2. Thermodynamic & Metabolic Objectives")
+        w_landauer_cost = st.slider("Landauer Cost", 0.0, 1.0, s.get('w_landauer_cost', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_landauer_cost_slider")
+        w_metabolic_efficiency = st.slider("Metabolic Efficiency", 0.0, 1.0, s.get('w_metabolic_efficiency', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_metabolic_efficiency_slider")
+        w_heat_dissipation = st.slider("Heat Dissipation", 0.0, 1.0, s.get('w_heat_dissipation', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_heat_dissipation_slider")
+        w_homeostasis = st.slider("Homeostasis", 0.0, 1.0, s.get('w_homeostasis', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_homeostasis_slider")
+        w_structural_integrity = st.slider("Structural Integrity", 0.0, 1.0, s.get('w_structural_integrity', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_structural_integrity_slider")
+        w_entropy_production = st.slider("Entropy Production", 0.0, 1.0, s.get('w_entropy_production', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_entropy_production_slider")
+        w_resource_acquisition_efficiency = st.slider("Resource Acquisition Efficiency", 0.0, 1.0, s.get('w_resource_acquisition_efficiency', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_resource_acquisition_efficiency_slider")
+        w_aging_resistance = st.slider("Aging Resistance", 0.0, 1.0, s.get('w_aging_resistance', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_aging_resistance_slider")
+
+        st.markdown("---")
+        st.markdown("#### 3. Cognitive & Agency-Based Objectives")
+        w_curiosity = st.slider("Curiosity", 0.0, 1.0, s.get('w_curiosity', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_curiosity_slider")
+        w_world_model_accuracy = st.slider("World Model Accuracy", 0.0, 1.0, s.get('w_world_model_accuracy', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_world_model_accuracy_slider")
+        w_attention_schema = st.slider("Attention Schema", 0.0, 1.0, s.get('w_attention_schema', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_attention_schema_slider")
+        w_theory_of_mind = st.slider("Theory of Mind", 0.0, 1.0, s.get('w_theory_of_mind', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_theory_of_mind_slider")
+        w_cognitive_dissonance = st.slider("Cognitive Dissonance", 0.0, 1.0, s.get('w_cognitive_dissonance', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_cognitive_dissonance_slider")
+        w_goal_achievement = st.slider("Goal Achievement", 0.0, 1.0, s.get('w_goal_achievement', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_goal_achievement_slider")
+        w_learning_speed = st.slider("Learning Speed", 0.0, 1.0, s.get('w_learning_speed', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_learning_speed_slider")
+        w_forgetting_resistance = st.slider("Forgetting Resistance", 0.0, 1.0, s.get('w_forgetting_resistance', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_forgetting_resistance_slider")
+        w_compositionality = st.slider("Compositionality", 0.0, 1.0, s.get('w_compositionality', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_compositionality_slider")
+        w_planning_depth = st.slider("Planning Depth", 0.0, 1.0, s.get('w_planning_depth', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_planning_depth_slider")
+
+        st.markdown("---")
+        st.markdown("#### 4. Structural & Topological Objectives")
+        w_modularity = st.slider("Modularity", 0.0, 1.0, s.get('w_modularity', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_modularity_slider")
+        w_hierarchy = st.slider("Hierarchy", 0.0, 1.0, s.get('w_hierarchy', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_hierarchy_slider")
+        w_symmetry = st.slider("Symmetry", 0.0, 1.0, s.get('w_symmetry', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_symmetry_slider")
+        w_small_worldness = st.slider("Small-Worldness", 0.0, 1.0, s.get('w_small_worldness', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_small_worldness_slider")
+        w_scale_free = st.slider("Scale-Free", 0.0, 1.0, s.get('w_scale_free', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_scale_free_slider")
+        w_fractal_dimension = st.slider("Fractal Dimension", 0.0, 1.0, s.get('w_fractal_dimension', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_fractal_dimension_slider")
+        w_hyperbolic_embeddability = st.slider("Hyperbolic Embeddability", 0.0, 1.0, s.get('w_hyperbolic_embeddability', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_hyperbolic_embeddability_slider")
+        w_autocatalysis = st.slider("Autocatalysis", 0.0, 1.0, s.get('w_autocatalysis', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_autocatalysis_slider")
+        w_wiring_cost = st.slider("Wiring Cost", 0.0, 1.0, s.get('w_wiring_cost', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_wiring_cost_slider")
+        w_rich_club_coefficient = st.slider("Rich-Club Coefficient", 0.0, 1.0, s.get('w_rich_club_coefficient', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_rich_club_coefficient_slider")
+        w_assortativity = st.slider("Assortativity", 0.0, 1.0, s.get('w_assortativity', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_assortativity_slider")
+
+        st.markdown("---")
+        st.markdown("#### 5. Temporal Dynamics Objectives")
+        w_adaptability_speed = st.slider("Adaptability Speed", 0.0, 1.0, s.get('w_adaptability_speed', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_adaptability_speed_slider")
+        w_predictive_horizon = st.slider("Predictive Horizon", 0.0, 1.0, s.get('w_predictive_horizon', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_predictive_horizon_slider")
+        w_behavioral_stability = st.slider("Behavioral Stability", 0.0, 1.0, s.get('w_behavioral_stability', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_behavioral_stability_slider")
+        w_criticality_dynamics = st.slider("Criticality Dynamics", 0.0, 1.0, s.get('w_criticality_dynamics', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_criticality_dynamics_slider")
+        w_decision_time = st.slider("Decision Time", 0.0, 1.0, s.get('w_decision_time', 0.0), 0.01, disabled=not enable_advanced_objectives, key="w_decision_time_slider")
+
     st.sidebar.markdown("### Evolutionary Operators")
     
     col1, col2 = st.sidebar.columns(2)
