@@ -2110,6 +2110,14 @@ def main():
             'max_archive_size': 100000,
             'enable_cataclysms': False,
             'cataclysm_probability': 0.01,
+            'cataclysm_extinction_severity': 0.9,
+            'cataclysm_landscape_shift_magnitude': 0.5,
+            'post_cataclysm_hypermutation_multiplier': 2.0,
+            'post_cataclysm_hypermutation_duration': 10,
+            'cataclysm_selectivity_type': 'Uniform',
+            'red_queen_virulence': 0.15,
+            'red_queen_adaptation_speed': 0.2,
+            'red_queen_target_breadth': 0.3,
             'enable_red_queen': True,
             'enable_endosymbiosis': True,
             'mutation_schedule': 'Adaptive',
@@ -3065,7 +3073,21 @@ def main():
             disabled=not enable_cataclysms,
             key="cataclysm_prob_slider"
         )
+        st.markdown("###### Cataclysm Effects")
+        cataclysm_extinction_severity = st.slider("Extinction Severity", 0.1, 1.0, s.get('cataclysm_extinction_severity', 0.9), 0.05, disabled=not enable_cataclysms, help="Percentage of population wiped out during an extinction event.", key="cataclysm_extinction_severity_slider")
+        cataclysm_landscape_shift_magnitude = st.slider("Landscape Shift Magnitude", 0.0, 1.0, s.get('cataclysm_landscape_shift_magnitude', 0.5), 0.05, disabled=not enable_cataclysms, help="How drastically the fitness function changes during an environmental collapse.", key="cataclysm_landscape_shift_magnitude_slider")
+        cataclysm_selectivity_type = st.selectbox("Cataclysm Selectivity", ['Uniform', 'Fitness-Based (Weakest)', 'Trait-Based (Most Common)'], index=['Uniform', 'Fitness-Based (Weakest)', 'Trait-Based (Most Common)'].index(s.get('cataclysm_selectivity_type', 'Uniform')), disabled=not enable_cataclysms, help="Determines which individuals are most affected by a cataclysm.", key="cataclysm_selectivity_type_selectbox")
+
+        st.markdown("###### Post-Cataclysm Response")
+        post_cataclysm_hypermutation_multiplier = st.slider("Hypermutation Multiplier", 1.0, 10.0, s.get('post_cataclysm_hypermutation_multiplier', 2.0), 0.5, disabled=not enable_cataclysms, help="Multiplier on mutation rate after a cataclysm, simulating adaptive radiation.", key="post_cataclysm_hypermutation_multiplier_slider")
+        post_cataclysm_hypermutation_duration = st.slider("Hypermutation Duration (Gens)", 0, 50, s.get('post_cataclysm_hypermutation_duration', 10), 1, disabled=not enable_cataclysms, help="Number of generations the hypermutation period lasts.", key="post_cataclysm_hypermutation_duration_slider")
+
+        st.markdown("---")
         enable_red_queen = st.checkbox("Enable Red Queen Dynamics", value=s.get('enable_red_queen', True), help="**'It takes all the running you can do, to keep in the same place.'** A co-evolving 'parasite' creates an arms race by targeting the most common traits, forcing continuous adaptation and preventing stagnation.", key="enable_red_queen_checkbox")
+        st.markdown("###### Red Queen Parameters")
+        red_queen_virulence = st.slider("Parasite Virulence", 0.0, 1.0, s.get('red_queen_virulence', 0.15), 0.05, disabled=not enable_red_queen, help="The fitness penalty inflicted by the parasite on vulnerable hosts.", key="red_queen_virulence_slider")
+        red_queen_adaptation_speed = st.slider("Parasite Adaptation Speed", 0.0, 1.0, s.get('red_queen_adaptation_speed', 0.2), 0.05, disabled=not enable_red_queen, help="How quickly the parasite adapts to target new common traits. 1.0 = adapts every generation.", key="red_queen_adaptation_speed_slider")
+        red_queen_target_breadth = st.slider("Parasite Target Breadth", 0.0, 1.0, s.get('red_queen_target_breadth', 0.3), 0.05, disabled=not enable_red_queen, help="How specific the parasite's attack is. 0.0 = targets one exact trait. 1.0 = targets a broad class of traits.", key="red_queen_target_breadth_slider")
         st.info(
             "These features test the ecosystem's resilience and ability to escape static equilibria through external shocks and internal arms races."
         )
@@ -4314,6 +4336,14 @@ def main():
         'reintroduction_rate': reintroduction_rate,
         'enable_cataclysms': enable_cataclysms,
         'cataclysm_probability': cataclysm_probability,
+        'cataclysm_extinction_severity': cataclysm_extinction_severity,
+        'cataclysm_landscape_shift_magnitude': cataclysm_landscape_shift_magnitude,
+        'post_cataclysm_hypermutation_multiplier': post_cataclysm_hypermutation_multiplier,
+        'post_cataclysm_hypermutation_duration': post_cataclysm_hypermutation_duration,
+        'cataclysm_selectivity_type': cataclysm_selectivity_type,
+        'red_queen_virulence': red_queen_virulence,
+        'red_queen_adaptation_speed': red_queen_adaptation_speed,
+        'red_queen_target_breadth': red_queen_target_breadth,
         'enable_red_queen': enable_red_queen,
         'enable_endosymbiosis': enable_endosymbiosis,
         'mutation_schedule': mutation_schedule,
