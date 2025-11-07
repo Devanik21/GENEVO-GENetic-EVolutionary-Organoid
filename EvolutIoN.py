@@ -3414,7 +3414,6 @@ def main():
             key="enable_advanced_mutation_checkbox"
         )
 
-        st.markdown("---")
         st.markdown("#### 1. Mutation Distribution & Shape")
         mutation_distribution_type = st.selectbox("Mutation Distribution", ['Gaussian', 'Cauchy', 'Laplace', 'Log-Normal'], index=['Gaussian', 'Cauchy', 'Laplace', 'Log-Normal'].index(s.get('mutation_distribution_type', 'Gaussian')), disabled=not enable_advanced_mutation, help="The statistical distribution for point mutations. Cauchy allows for rare, large 'leaps'.")
         mutation_scale_parameter = st.slider("Mutation Scale (σ)", 0.01, 0.5, s.get('mutation_scale_parameter', 0.1), 0.01, disabled=not enable_advanced_mutation, help="The scale parameter (e.g., standard deviation) of the mutation distribution.")
