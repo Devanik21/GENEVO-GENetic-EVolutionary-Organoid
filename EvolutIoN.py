@@ -3566,7 +3566,7 @@ def main():
         )
         social_learning_fidelity = st.slider(
             "Social Learning Fidelity", 0.0, 1.0, s.get('social_learning_fidelity', 0.0), 0.01,
-            disabled=not enable_advanced_frameworks, key="social_learning_fidelity_slider",
+            disabled=not enable_advanced_frameworks, key="social_learning_fidelity_slider_2835g",
             help="**Controls accuracy of cultural inheritance.** The fidelity with which an individual can copy a structural motif or parameter set from a successful peer (non-genetically). High fidelity allows for rapid cultural evolution."
         )
         cultural_transmission_rate = st.slider(
