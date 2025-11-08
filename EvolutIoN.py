@@ -471,15 +471,32 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
 
 def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: float = 0.05) -> Genotype:
     """Biologically-inspired mutation with innovation"""
+    # --- Genetic Code Evolution: Invent new module types ---
+    # With a very small probability, the system can invent a new type of module.
+    # This new type is added to the pool of available modules for future mutations.
+    gene_type_innovation_rate = st.session_state.settings.get('gene_type_innovation_rate', 0.001) if 'settings' in st.session_state else 0.0
+    if random.random() < gene_type_innovation_rate:
+        prefixes = ['Hyper', 'Quantum', 'Causal', 'Temporal', 'Phase', 'Symbolic', 'Vector', 'Tensor', 'Field', 'Logic', 'Meta', 'Recursive']
+        suffixes = ['Processor', 'Unit', 'Matrix', 'Field', 'Gate', 'Node', 'Engine', 'Core', 'Layer', 'Operator', 'Manifold']
+        new_type_name = f"{random.choice(prefixes)}{random.choice(suffixes)}_{random.randint(0, 99)}"
+        
+        if 'module_types' not in st.session_state:
+            st.session_state.module_types = ['mlp', 'attention', 'conv', 'recurrent', 'graph']
+        
+        if new_type_name not in st.session_state.module_types:
+            st.session_state.module_types.append(new_type_name)
+            st.toast(f"💥 Genetic Innovation! New module type discovered: **{new_type_name}**", icon="💡")
+
     mutated = genotype.copy()
     mutated.age = 0
     
     # 1. Point mutations (module parameters)
     for module in mutated.modules:
         if random.random() < mutation_rate:
-            # Size mutation with drift
-            change_factor = np.random.lognormal(0, 0.2)
-            module.size = int(module.size * change_factor)
+            # Size mutation with drift, preventing runaway growth
+            change_factor = np.random.lognormal(0, 0.2) if module.size < 2048 else np.random.uniform(0.8, 1.0)
+            new_size = module.size * change_factor
+            module.size = int(new_size)
             module.size = int(np.clip(module.size, 16, 1024))
         
         if random.random() < mutation_rate * 0.5:
@@ -494,7 +511,10 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
         
         if random.random() < mutation_rate * 0.2:
             # Activation function mutation
-            module.activation = random.choice(['relu', 'gelu', 'silu', 'swish'])
+            module.activation = random.choice(['relu', 'gelu', 'silu', 'swish', 'tanh', 'sigmoid'])
+        
+        if random.random() < mutation_rate * 0.1 and 'module_types' in st.session_state and st.session_state.module_types:
+            module.module_type = random.choice(st.session_state.module_types)
     
     # 2. Connection weight mutations
     for connection in mutated.connections:
@@ -525,10 +545,14 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
     if random.random() < innovation_rate * 0.5:
         # Add new module (rare)
         new_id = f"evolved_{len(mutated.modules)}"
-        avg_size = int(np.mean([m.size for m in mutated.modules]))
+        avg_size = int(np.mean([m.size for m in mutated.modules])) if mutated.modules else 128
+        
+        # Use the dynamic pool of module types
+        available_types = st.session_state.get('module_types', ['mlp', 'attention', 'graph'])
+
         new_module = ModuleGene(
-            new_id, random.choice(['mlp', 'attention', 'graph']),
-            avg_size, random.choice(['gelu', 'swish']), 'layer',
+            new_id, random.choice(available_types),
+            int(np.clip(avg_size * np.random.uniform(0.5, 1.5), 16, 512)), random.choice(['gelu', 'swish']), 'layer',
             0.2, 1.0, 0.5, '#DDA15E',
             (len(mutated.modules), 0, 0)
         )
@@ -5589,6 +5613,10 @@ def main():
         st.session_state.history = []
         st.session_state.evolutionary_metrics = [] # type: ignore
         st.session_state.gene_archive = [] # Initialize the infinite gene pool
+        
+        # Initialize the dynamic pool of module types for this run
+        st.session_state.module_types = ['mlp', 'attention', 'conv', 'recurrent', 'graph']
+
         
         # --- Seeding for reproducibility ---
         if random_seed != -1:
