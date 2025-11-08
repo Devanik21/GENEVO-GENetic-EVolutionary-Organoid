@@ -492,7 +492,7 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
             
             # Computer Science / Info Theory
             'Algorithmic', 'Automata', 'Boolean', 'Computable', 'Finite', 'Graph', 
-            'Heuristic', 'Lexical', 'Logic', 'Meta', 'Predictive', 'Recursive', 
+            'Heuristic', 'Inductive', 'Lexical', 'Logic', 'Predictive', 'Recursive', # Replaced 'Meta' with 'Inductive'
             'Semantic', 'Symbolic', 'Syntactic', 'Tensor', 'Vector',
             
             # Biology / Neuroscience
@@ -501,24 +501,25 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
             'Motor', 'Neural', 'Sensory', 'Somatic', 'Synaptic', 'Thalamic',
             
             # Engineering / Control
-            'Adaptive', 'Control', 'Feedback', 'Feedforward', 'Hyper', 'Kalman'
+            'Adaptive', 'Control', 'Feedback', 'Feedforward', 'Optimal', 'Kalman' # Replaced 'Hyper' with 'Optimal'
         ]
         
         suffixes = [
             # Mathematics / Topology
             'Bundle', 'Chain', 'Complex', 'Functor', 'Gradient', 'Group', 'Homomorphism', 
             'Isomorphism', 'Kernel', 'Manifold', 'Matrix', 'Metric', 'Ring', 'Sheaf', 
-            'Space', 'Topology', 'Transform',
+            'Space', 'Topology', 'Transform', 'Lattice', 'Vertex', # Added 'Lattice', 'Vertex'
             
             # Physics
             'Condensate', 'Detector', 'Emitter', 'Fluctuation', 'Modulator', 'Oscillator', 
             'Potential', 'Resonator',
             
             # Computer Science / Info Theory
-            'Accumulator', 'Automaton', 'Classifier', 'Compiler', 'Core', 'Decoder', 
-            'Discriminator', 'Encoder', 'Engine', 'Gate', 'Generator', 'Interpreter', 
-            'Layer', 'Model', 'Multiplexer', 'Node', 'Operator', 'Parser', 'Predictor', 
-            'Processor', 'Register', 'Regressor', 'Router', 'Unit', 'Validator',
+            'Accumulator', 'Automaton', 'Classifier', 'Compiler', 'Decoder', 
+            'Discriminator', 'Encoder', 'Generator', 'Interpreter', 'Gate', # Removed 'Core', 'Engine'
+            'Layer', 'Multiplexer', 'Operator', 'Parser', 'Predictor', 
+            'Processor', 'Register', 'Regressor', 'Router', 'Validator',
+            'Solver', 'Representation', 'Cell', # Added 'Solver', 'Representation', 'Cell' (replacing Unit, Model, Node)
             
             # Biology / Neuroscience
             'Assembly', 'Cascade', 'Channel', 'Circuit', 'Column', 'Cortex', 'Ganglion', 
@@ -526,11 +527,11 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
             
             # Engineering / Control
             'Actuator', 'Controller', 'Differentiator', 'Estimator', 'Field', 'Filter', 
-            'Integrator', 'Network', 'Sensor', 'System'
+            'Integrator', 'Sensor', 'Array', 'Structure' # Removed 'Network', 'System', Added 'Array', 'Structure'
         ]
         
         # --- END OF EXPANDED LISTS ---
-        new_type_name = f"{random.choice(prefixes)}{random.choice(suffixes)}_{random.randint(0, 999999999)}" # Increased unique ID
+        new_type_name = f"{random.choice(prefixes)}{random.choice(suffixes)}_{random.randint(0, 999)}" # Increased unique ID
         
         if 'module_types' not in st.session_state:
             # --- START OF EXPANDED MODULE LIST ---
