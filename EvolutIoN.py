@@ -530,7 +530,7 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
         ]
         
         # --- END OF EXPANDED LISTS ---
-        new_type_name = f"{random.choice(prefixes)}{random.choice(suffixes)}_{random.randint(0, 9999)}" # Increased unique ID
+        new_type_name = f"{random.choice(prefixes)}{random.choice(suffixes)}_{random.randint(0, 999999999)}" # Increased unique ID
         
         if 'module_types' not in st.session_state:
             # --- START OF EXPANDED MODULE LIST ---
