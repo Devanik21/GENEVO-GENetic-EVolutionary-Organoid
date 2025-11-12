@@ -311,7 +311,9 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
     complexity_scales = {
         'minimal': (32, 128, 0.3),
         'medium': (64, 256, 0.5),
-        'high': (128, 512, 0.8)
+        'high': (128, 512, 0.8),
+        'extreme': (256, 1024, 0.9),   # New Level 1
+        'colossal': (512, 2048, 1.0)
     }
     
     base_size, max_size, connection_density = complexity_scales[complexity_level]
@@ -4438,7 +4440,7 @@ def main():
         key="num_generations_slider"
     )
     
-    complexity_options = ['minimal', 'medium', 'high']
+    complexity_options = ['minimal', 'medium', 'high', 'extreme', 'colossal']
     complexity_level = st.sidebar.select_slider(
         "Initial Complexity",
         options=complexity_options,
