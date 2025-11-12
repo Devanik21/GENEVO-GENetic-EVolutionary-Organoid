@@ -46,6 +46,14 @@ from tinydb import TinyDB, Query
 from collections import Counter
 import json
 
+
+# ==================== GLOBAL CONSTANTS ====================
+
+# Define the universe of possible activation functions
+# This central list is used for mutation and parasite targeting.
+
+POSSIBLE_ACTIVATIONS = ['relu', 'gelu', 'silu', 'swish', 'tanh', 'sigmoid']
+
 # ==================== THEORETICAL FOUNDATIONS ====================
 
 class EvolutionaryTheory:
@@ -609,7 +617,7 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
         
         if random.random() < mutation_rate * 0.2:
             # Activation function mutation
-            module.activation = random.choice(['relu', 'gelu', 'silu', 'swish', 'tanh', 'sigmoid'])
+            module.activation = random.choice(POSSIBLE_ACTIVATIONS)
         
         # --- [YOUR NEW CODE: Module Type Mutation] ---
         # This is a powerful new mutation operator you added!
@@ -5796,9 +5804,13 @@ def main():
         # For ecosystem dynamics
         st.session_state.cataclysm_recovery_mode = 0
         st.session_state.cataclysm_weights = None
+        # Initialize the parasite to target a random common module type and a random activation
+        # This prevents it from always starting on the same pair.
+        initial_target_type = random.choice(['mlp', 'attention', 'conv', 'recurrent', 'graph','phasor'])
+        initial_target_activation = random.choice(POSSIBLE_ACTIVATIONS)
         st.session_state.parasite_profile = {
-            'target_type': 'attention',
-            'target_activation': 'gelu'
+            'target_type': initial_target_type,
+            'target_activation': initial_target_activation
         }
 
         # Progress tracking
