@@ -3392,6 +3392,28 @@ def main():
                         else: settings_table.insert(st.session_state.settings)
                         
                         st.toast("✅ Checkpoint Loaded! You can now 'Resume Evolution'.", icon="🎉")
+                        
+                        # --- START NEW DETAILED DISPLAY ---
+                        last_gen = st.session_state.history[-1]['generation'] if st.session_state.history else 0
+                        start_next_gen = last_gen + 1
+                        total_pop = len(st.session_state.current_population) if st.session_state.current_population else 0
+                        archive_size = len(st.session_state.get('gene_archive', []))
+
+                        st.sidebar.success(f"**Checkpoint Restored!**")
+                        st.sidebar.info(
+                            f"""
+                            **Loaded Experiment:** `{st.session_state.settings.get('experiment_name', 'Unnamed Run')}`
+                            - **Last Completed Generation:** **{last_gen}**
+                            - **Next Generation Start:** **{start_next_gen}** 🚀
+                            - **Total Population Size:** {total_pop} organisms
+                            - **Gene Archive Size:** {archive_size:,} genotypes
+                            - **Current Task:** `{st.session_state.settings.get('task_type', 'N/A')}`
+
+                            Click **'🔄 Resume Evolution'** to continue the run!
+                            """
+                        )
+                        # --- END NEW DETAILED DISPLAY ---
+
                         st.rerun()
                         
                     else:
@@ -3404,8 +3426,7 @@ def main():
         
         st.markdown("---")
         
-        # --- The rest of the expander UI is still needed, re-adding the config export UI here ---
-        # (This is just to make sure you have the necessary UI elements after the new load block)
+        # --- Configuration Export UI ---
         st.markdown("#### Configuration Export (Settings Only)")
         st.download_button(
             label="Export Current Config (JSON)",
