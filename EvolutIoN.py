@@ -3322,28 +3322,49 @@ def main():
         uploaded_file = st.file_uploader("Upload universe_results.json or .zip", type=["json", "zip"], key="import_checkpoint_uploader")
         
         # Export button (Saves the FULL state, including history and populations)
+        # Export button (Saves the FULL state, including history and populations)
         if st.session_state.get('history'):
-            full_data_to_save = {
-                'settings': st.session_state.settings,
-                'history': st.session_state.history,
-                'evolutionary_metrics': st.session_state.evolutionary_metrics,
-                # --- CRITICAL STATE VARIABLES ---
-                'final_population_genotypes': [genotype_to_dict(p) for p in st.session_state.current_population] if st.session_state.current_population else [],
-                'gene_archive': [genotype_to_dict(p) for p in st.session_state.get('gene_archive', [])],
-                'module_types': st.session_state.get('module_types', []),
-                'parasite_profile': st.session_state.get('parasite_profile', {'target_type': 'attention', 'target_activation': 'gelu'}),
-                'curriculum_stage': st.session_state.get('curriculum_stage', -1),
-            }
-            json_string = json.dumps(full_data_to_save, indent=2)
-            
-            st.download_button(
-                label="📥 Download FULL Checkpoint (.json)",
-                data=json_string,
-                file_name=f"{s.get('experiment_name', 'genevo').replace(' ', '_')}_checkpoint.json",
-                mime="application/json",
-                width='stretch',
-                help="Saves settings, history, metrics, and all current populations for resuming later."
-            )
+            try:
+                full_data_to_save = {
+                    'settings': st.session_state.settings,
+                    'history': st.session_state.history,
+                    'evolutionary_metrics': st.session_state.evolutionary_metrics,
+                    # --- CRITICAL STATE VARIABLES ---
+                    'final_population_genotypes': [genotype_to_dict(p) for p in st.session_state.current_population] if st.session_state.current_population else [],
+                    'gene_archive': [genotype_to_dict(p) for p in st.session_state.get('gene_archive', [])],
+                    'module_types': st.session_state.get('module_types', []),
+                    'parasite_profile': st.session_state.get('parasite_profile', {'target_type': 'attention', 'target_activation': 'gelu'}),
+                    'curriculum_stage': st.session_state.get('curriculum_stage', -1),
+                }
+
+                # --- NEW ZIP FILE LOGIC ---
+                
+                # 1. Create a "virtual file" in memory
+                zip_buffer = io.BytesIO()
+
+                # 2. Create a zip file and write to the buffer
+                #    We use ZIP_DEFLATED for compression
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+                    # 3. Serialize the data to a string
+                    #    (This file uses genotype_to_dict, so no custom 'cls' is needed here)
+                    json_string = json.dumps(full_data_to_save, indent=2)
+                    
+                    # 4. Write the string to a file *inside* the zip
+                    file_name_in_zip = f"{s.get('experiment_name', 'genevo').replace(' ', '_')}_checkpoint.json"
+                    # We must encode the string to bytes to write it
+                    zf.writestr(file_name_in_zip, json_string.encode('utf-8'))
+
+                # 5. The zip buffer is now complete. Pass its *value* to the download button.
+                st.download_button(
+                    label="📥 Download FULL Checkpoint (.zip)", # <-- CHANGED
+                    data=zip_buffer.getvalue(), # <-- Pass the bytes from the buffer
+                    file_name=f"{s.get('experiment_name', 'genevo').replace(' ', '_')}_checkpoint.zip", # <-- CHANGED
+                    mime="application/zip", # <-- CHANGED
+                    width='stretch',
+                    help="Saves settings, history, metrics, and all current populations as a compressed .zip file."
+                )
+            except Exception as e:
+                st.error(f"Could not prepare download: {e}")
         
         if st.button("LOAD FROM UPLOADED FILE", width='stretch', key="load_checkpoint_button_exec"):
             if uploaded_file is not None:
