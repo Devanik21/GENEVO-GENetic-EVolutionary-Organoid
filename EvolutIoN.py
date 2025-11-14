@@ -1058,6 +1058,11 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
         scores['modularity'] = 1.0 - abs(connection_density - 0.3) * 2
     except:
         scores['modularity'] = 0.0
+
+   # --- ADD THE NEW COMPLEXITY SCORE CALCULATION ---
+    # The complexity score is already calculated and stored in genotype.complexity (around line 208)
+    scores['architectural_complexity'] = genotype.complexity 
+    # ----------------------------------------------------
     scores['interpretability'] = scores['efficiency']  # Reuse efficiency as a proxy for simplicity
     module_type_diversity = len(set(m.module_type for m in genotype.modules)) / 5.0
     scores['evolvability'] = np.clip(module_type_diversity, 0, 1)
@@ -1113,7 +1118,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             'latency': 0.0, 'energy_consumption': 0.0, 'development_cost': 0.0, 'modularity': 0.0,
             'interpretability': 0.0, 'evolvability': 0.0, 'fairness': 0.0, 'explainability': 0.0,
             'value_alignment': 0.0, 'causal_density': 0.0, 'self_organization': 0.0, 'autopoiesis': 0.0,
-            'computational_irreducibility': 0.0, 'cognitive_synergy': 0.0
+            'computational_irreducibility': 0.0, 'cognitive_synergy': 0.0,'architectural_complexity': 0.0 # <-- NEW
         }
         weights.update(new_weights)
         
@@ -2285,6 +2290,7 @@ def main():
             'w_robustness': 0.1,
             'w_generalization': 0.15,
             # --- NEW ADVANCED PRIMARY OBJECTIVES DEFAULTS ---
+           'w_arch_complexity': 0.0, # <-- NEW COMPLEXITY WEIGHT
             'w_learning_speed': 0.0,
             'w_data_parsimony': 0.0,
             'w_forgetting_resistance': 0.0,
@@ -3036,6 +3042,13 @@ def main():
 
             st.markdown("##### 3. Structural & Interpretability Properties")
             w_modularity = st.slider("Modularity", 0.0, 5.0, s.get('w_modularity', 0.0), 0.01, key="w_modularity_slider", help="Rewards architectures with high modularity (dense intra-module connections, sparse inter-module ones).")
+            # --- ADD YOUR NEW COMPLEXITY SLIDER HERE ---
+            w_arch_complexity = st.slider(
+                "Architectural Complexity", 
+                0.0, 1.0, s.get('w_arch_complexity', 0.0), 0.01, 
+                key="w_arch_complexity_slider", 
+                help="Directly rewards higher Architectural Complexity (more parameters, more connections, more modules). **Use this to force the evolution of massive neural graphs.**"
+            )
             w_interpretability = st.slider("Interpretability", 0.0, 5.0, s.get('w_interpretability', 0.0), 0.01, key="w_interpretability_slider", help="Rewards architectures that are structurally simpler or sparser, making them easier to analyze.")
             w_evolvability = st.slider("Evolvability", 0.0, 5.0, s.get('w_evolvability', 0.0), 0.01, key="w_evolvability_slider", help="Rewards architectures with a higher potential for beneficial mutations (a smoother local fitness landscape).")
 
@@ -4763,6 +4776,7 @@ def main():
         'w_adaptability': w_adaptability,
         'w_latency': w_latency,
         'w_energy_consumption': w_energy_consumption,
+        'w_arch_complexity': w_arch_complexity,
         'w_development_cost': w_development_cost,
         'w_modularity': w_modularity,
         'w_interpretability': w_interpretability,
