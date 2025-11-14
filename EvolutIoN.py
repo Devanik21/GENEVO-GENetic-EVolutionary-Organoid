@@ -3035,14 +3035,14 @@ def main():
             w_development_cost = st.slider("Development Cost", 0.0, 1.0, s.get('w_development_cost', 0.0), 0.01, key="w_development_cost_slider", help="Penalizes complex or lengthy developmental processes.")
 
             st.markdown("##### 3. Structural & Interpretability Properties")
-            w_modularity = st.slider("Modularity", 0.0, 1.0, s.get('w_modularity', 0.0), 0.01, key="w_modularity_slider", help="Rewards architectures with high modularity (dense intra-module connections, sparse inter-module ones).")
-            w_interpretability = st.slider("Interpretability", 0.0, 1.0, s.get('w_interpretability', 0.0), 0.01, key="w_interpretability_slider", help="Rewards architectures that are structurally simpler or sparser, making them easier to analyze.")
-            w_evolvability = st.slider("Evolvability", 0.0, 1.0, s.get('w_evolvability', 0.0), 0.01, key="w_evolvability_slider", help="Rewards architectures with a higher potential for beneficial mutations (a smoother local fitness landscape).")
+            w_modularity = st.slider("Modularity", 0.0, 5.0, s.get('w_modularity', 0.0), 0.01, key="w_modularity_slider", help="Rewards architectures with high modularity (dense intra-module connections, sparse inter-module ones).")
+            w_interpretability = st.slider("Interpretability", 0.0, 5.0, s.get('w_interpretability', 0.0), 0.01, key="w_interpretability_slider", help="Rewards architectures that are structurally simpler or sparser, making them easier to analyze.")
+            w_evolvability = st.slider("Evolvability", 0.0, 5.0, s.get('w_evolvability', 0.0), 0.01, key="w_evolvability_slider", help="Rewards architectures with a higher potential for beneficial mutations (a smoother local fitness landscape).")
 
             st.markdown("##### 4. Safety & Alignment (Conceptual)")
-            w_fairness = st.slider("Fairness", 0.0, 1.0, s.get('w_fairness', 0.0), 0.01, key="w_fairness_slider", help="Penalizes biased outputs across different conceptual data subgroups.")
-            w_explainability = st.slider("Explainability", 0.0, 1.0, s.get('w_explainability', 0.0), 0.01, key="w_explainability_slider", help="Rewards models that can generate explanations for their decisions (conceptual).")
-            w_value_alignment = st.slider("Value Alignment", 0.0, 1.0, s.get('w_value_alignment', 0.0), 0.01, key="w_value_alignment_slider", help="Rewards alignment with a predefined set of ethical principles (conceptual).")
+            w_fairness = st.slider("Fairness", 0.0, 5.0, s.get('w_fairness', 0.0), 0.01, key="w_fairness_slider", help="Penalizes biased outputs across different conceptual data subgroups.")
+            w_explainability = st.slider("Explainability", 0.0, 5.0, s.get('w_explainability', 0.0), 0.01, key="w_explainability_slider", help="Rewards models that can generate explanations for their decisions (conceptual).")
+            w_value_alignment = st.slider("Value Alignment", 0.0, 5.0, s.get('w_value_alignment', 0.0), 0.01, key="w_value_alignment_slider", help="Rewards alignment with a predefined set of ethical principles (conceptual).")
 
             st.markdown("##### 5. Deep Theoretical Pressures (Conceptual)")
             w_causal_density = st.slider("Causal Density", 0.0, 1.0, s.get('w_causal_density', 0.0), 0.01, key="w_causal_density_slider", help="Rewards high causal interaction and information flow between components.")
