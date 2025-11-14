@@ -3045,7 +3045,7 @@ def main():
             # --- ADD YOUR NEW COMPLEXITY SLIDER HERE ---
             w_arch_complexity = st.slider(
                 "Architectural Complexity", 
-                0.0, 1.0, s.get('w_arch_complexity', 0.0), 0.01, 
+                0.0, 10.0, s.get('w_arch_complexity', 0.0), 0.01, 
                 key="w_arch_complexity_slider", 
                 help="Directly rewards higher Architectural Complexity (more parameters, more connections, more modules). **Use this to force the evolution of massive neural graphs.**"
             )
