@@ -45,7 +45,8 @@ import os
 from tinydb import TinyDB, Query
 from collections import Counter
 import json
-
+import zipfile # <-- ADD THIS
+import io      # <-- ADD THIS
 
 # ==================== GLOBAL CONSTANTS ====================
 
@@ -3302,21 +3303,110 @@ def main():
     with st.sidebar.expander("🗂️ Experiment Management", expanded=False):
         st.markdown("Export the full configuration to reproduce this experiment, or import a previous configuration.")
         
-        # Export button
+        # --- NEW UPLOAD WIDGET AND LOGIC ---
+        st.markdown("#### 💾 Load/Save Checkpoint")
+        
+        uploaded_file = st.file_uploader("Upload universe_results.json or .zip", type=["json", "zip"], key="import_checkpoint_uploader")
+        
+        # Export button (Saves the FULL state, including history and populations)
+        if st.session_state.get('history'):
+            full_data_to_save = {
+                'settings': st.session_state.settings,
+                'history': st.session_state.history,
+                'evolutionary_metrics': st.session_state.evolutionary_metrics,
+                # --- CRITICAL STATE VARIABLES ---
+                'final_population_genotypes': [genotype_to_dict(p) for p in st.session_state.current_population] if st.session_state.current_population else [],
+                'gene_archive': [genotype_to_dict(p) for p in st.session_state.get('gene_archive', [])],
+                'module_types': st.session_state.get('module_types', []),
+                'parasite_profile': st.session_state.get('parasite_profile', {'target_type': 'attention', 'target_activation': 'gelu'}),
+                'curriculum_stage': st.session_state.get('curriculum_stage', -1),
+            }
+            json_string = json.dumps(full_data_to_save, indent=2)
+            
+            st.download_button(
+                label="📥 Download FULL Checkpoint (.json)",
+                data=json_string,
+                file_name=f"{s.get('experiment_name', 'genevo').replace(' ', '_')}_checkpoint.json",
+                mime="application/json",
+                width='stretch',
+                help="Saves settings, history, metrics, and all current populations for resuming later."
+            )
+        
+        if st.button("LOAD FROM UPLOADED FILE", width='stretch', key="load_checkpoint_button_exec"):
+            if uploaded_file is not None:
+                try:
+                    data = None
+                    file_bytes = uploaded_file.getvalue()
+
+                    if uploaded_file.name.endswith('.zip'):
+                        st.toast("Unzipping checkpoint... Please wait.", icon="📦")
+                        with zipfile.ZipFile(io.BytesIO(file_bytes), 'r') as zf:
+                            json_filename = next((f for f in zf.namelist() if f.endswith('.json') and not f.startswith('__MACOSX')), None)
+                            if json_filename:
+                                with zf.open(json_filename) as f:
+                                    data = json.load(f)
+                            else:
+                                st.error("No .json file found inside the .zip archive.")
+                    
+                    elif uploaded_file.name.endswith('.json'):
+                        data = json.loads(file_bytes)
+
+                    if data is not None:
+                        st.toast("Checkpoint data found. Restoring state...", icon="⏳")
+                        
+                        # --- 1. Restore Settings ---
+                        st.session_state.settings.update(data.get('settings', {}))
+                        
+                        # --- 2. Restore History & Metrics ---
+                        st.session_state.history = data.get('history', [])
+                        st.session_state.evolutionary_metrics = data.get('evolutionary_metrics', [])
+                        
+                        # --- 3. Restore Populations (using project's function) ---
+                        pop_dicts = data.get('final_population_genotypes', [])
+                        st.session_state.current_population = [dict_to_genotype(d) for d in pop_dicts] if pop_dicts else None
+                        
+                        # --- 4. Restore Gene Archive (Fossil Record) ---
+                        archive_dicts = data.get('gene_archive', [])
+                        st.session_state.gene_archive = [dict_to_genotype(d) for d in archive_dicts]
+                        
+                        # --- 5. Restore Evolving State Variables (The "Tiniest Things") ---
+                        st.session_state.module_types = data.get('module_types', POSSIBLE_ACTIVATIONS) # Restores invented module types
+                        st.session_state.parasite_profile = data.get('parasite_profile', st.session_state.get('parasite_profile', {'target_type': 'attention', 'target_activation': 'gelu'})) # Restores Red Queen target
+                        st.session_state.curriculum_stage = data.get('curriculum_stage', -1) # Restores curriculum stage
+
+                        # Force settings to update in the session state before rerun
+                        if settings_table.get(doc_id=1): settings_table.update(st.session_state.settings, doc_ids=[1])
+                        else: settings_table.insert(st.session_state.settings)
+                        
+                        st.toast("✅ Checkpoint Loaded! You can now 'Resume Evolution'.", icon="🎉")
+                        st.rerun()
+                        
+                    else:
+                        st.warning("Could not parse data from the uploaded file.")
+                except Exception as e:
+                    st.error(f"Failed to process and load checkpoint: {e}")
+            else:
+                st.warning("Please upload a file first.")
+        # --- END NEW UPLOAD WIDGET AND LOGIC ---
+        
+        st.markdown("---")
+        
+        # --- The rest of the expander UI is still needed, re-adding the config export UI here ---
+        # (This is just to make sure you have the necessary UI elements after the new load block)
+        st.markdown("#### Configuration Export (Settings Only)")
         st.download_button(
-            label="Export Experiment Config",
+            label="Export Current Config (JSON)",
             data=json.dumps(st.session_state.settings, indent=2),
             file_name="genevo_config.json",
             mime="application/json",
             width='stretch',
             key="export_config_button"
         )
-
-        # Import button and logic
-        uploaded_file = st.file_uploader("Import Experiment Config", type="json", key="import_config_uploader")
-        if uploaded_file is not None:
-            new_settings = json.load(uploaded_file)
-            st.session_state.settings = new_settings
+        # Import button (for settings only)
+        uploaded_config_file = st.file_uploader("Import Experiment Config (Settings Only)", type="json", key="import_config_uploader_settings_only")
+        if uploaded_config_file is not None:
+            new_settings = json.load(uploaded_config_file)
+            st.session_state.settings.update(new_settings) # Use update to preserve other keys
             st.toast("✅ Config imported! Settings have been updated.", icon="⚙️")
             st.rerun()
 
@@ -7934,26 +8024,7 @@ def main():
     """, unsafe_allow_html=True)
 
     # --- Download all data ---
-    st.subheader("Download Experiment Data")
-    st.markdown("Download all experiment data, including settings, history, evolutionary metrics, and the final population, for offline analysis and reproducibility.")
 
-    # Prepare data for download
-    all_data = {
-        'settings': st.session_state.settings,
-        'history': st.session_state.history,
-        'evolutionary_metrics': st.session_state.evolutionary_metrics,
-        'final_population': [genotype_to_dict(p) for p in st.session_state.current_population] if st.session_state.current_population else []
-    }
-    all_data_json = json.dumps(all_data, indent=2)
-
-    # Create download button
-    st.download_button(
-        label="Download All Experiment Data (JSON)",
-        data=all_data_json,
-        file_name="genevo_experiment_data.json",
-        mime="application/json",
-        key="download_all_data_button"
-    )
 
     st.sidebar.markdown("---")
 
