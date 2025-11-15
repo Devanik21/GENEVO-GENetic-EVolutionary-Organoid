@@ -6055,9 +6055,10 @@ def main():
         }
 
         # Progress tracking
-        progress_container = st.empty()
-        metrics_container = st.empty()
-        status_text = st.empty()
+        #progress_container = st.empty()
+        #metrics_container = st.empty()
+        #status_text = st.empty()
+        #parasite_display = st.empty()
         
         # Evolution loop
         for gen in range(num_generations):
@@ -6090,7 +6091,7 @@ def main():
                     active_fitness_weights = st.session_state.cataclysm_weights
 
             # Red Queen Parasite Info
-            parasite_display = status_text.empty()
+            
 
             # Handle dynamic environment
             if dynamic_environment and gen > 0 and gen % env_change_frequency == 0:
@@ -6495,9 +6496,10 @@ def main():
             st.toast(f"Resuming with fixed random seed: {random_seed}", icon="🎲")
         
         # Progress tracking
-        progress_container = st.empty()
-        metrics_container = st.empty()
-        status_text = st.empty()
+        #progress_container = st.empty()
+        #metrics_container = st.empty()
+        #status_text = st.empty()
+        #parasite_display = st.empty()
         
         # Evolution loop
         for gen in range(start_gen, num_generations):
@@ -6530,7 +6532,7 @@ def main():
                     active_fitness_weights = st.session_state.cataclysm_weights
 
             # Red Queen Parasite Info
-            parasite_display = status_text.empty()
+            
 
             # Handle dynamic environment
             if enable_curriculum_learning:
