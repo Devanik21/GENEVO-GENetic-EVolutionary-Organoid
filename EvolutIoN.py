@@ -5970,10 +5970,20 @@ def main():
     st.sidebar.markdown("---")
     
     # Run evolution button
+    # (Around line 4697)
+    
+    # Run evolution button
     init_col, resume_col = st.sidebar.columns(2)
+    
+    # --- NEW: Check if a state is already loaded ---
+    has_existing_history = bool(st.session_state.get('history'))
+    if has_existing_history:
+        init_col.info("History loaded. Resume to continue.")
+        resume_col.success("Ready to Resume!")
 
     # --- INITIATE EVOLUTION ---
-    if init_col.button("⚡ Initiate Evolution", type="primary", width='stretch', key="initiate_evolution_button"):
+    # Will be DISABLED if history is loaded, preventing accidental resets
+    if init_col.button("⚡ Initiate Evolution", type="primary", width='stretch', key="initiate_evolution_button", disabled=has_existing_history):
         st.session_state.history = []
         st.session_state.evolutionary_metrics = [] # type: ignore
         st.session_state.gene_archive = [] # Initialize the infinite gene pool
@@ -6421,11 +6431,10 @@ def main():
         
 
     # --- RESUME EVOLUTION ---
-    if resume_col.button("🔄 Resume Evolution", width='stretch', key="resume_evolution_button"):
-        if not st.session_state.get('history') or not st.session_state.get('current_population'):
-            st.error("No previous experiment state found to resume. Please initiate a new evolution first.")
-            st.stop()
-
+    # --- RESUME EVOLUTION ---
+    # Will be ENABLED only if history is loaded
+    if resume_col.button("🔄 Resume Evolution", width='stretch', key="resume_evolution_button", disabled=not has_existing_history):
+        # We can remove the old check, this button is only clickable if history exists
         st.toast("Resuming previous evolution...", icon="🔄")
 
         # --- Restore State ---
@@ -6454,7 +6463,27 @@ def main():
         early_stop_counter = (start_gen - 1) - last_improvement_gen
 
         # Restore other state
-        current_task = task_type # Assume we continue with the currently selected task
+        # (Around line 4600)
+        
+        # --- NEW: Restore Task State Correctly ---
+        # Get settings from the *loaded* state, not the current UI
+        loaded_settings = st.session_state.settings
+        enable_curriculum_learning = loaded_settings.get('enable_curriculum_learning', False)
+        curriculum_sequence = loaded_settings.get('curriculum_sequence', [])
+        
+        # Check if we were in a curriculum
+        if enable_curriculum_learning and 'curriculum_stage' in st.session_state and st.session_state.curriculum_stage != -1:
+            stage = st.session_state.curriculum_stage
+            if stage < len(curriculum_sequence):
+                current_task = curriculum_sequence[stage]
+                st.toast(f"🎓 Resuming Curriculum! Task: {current_task}", icon="📈")
+            else:
+                # Curriculum was finished, fall back to default task
+                current_task = loaded_settings.get('task_type', 'Abstract Reasoning (ARC-AGI-2)')
+        else:
+            # Not in a curriculum, just use the task from settings
+            current_task = loaded_settings.get('task_type', 'Abstract Reasoning (ARC-AGI-2)')
+        # --- END OF TASK FIX ---
         if 'cataclysm_recovery_mode' not in st.session_state: st.session_state.cataclysm_recovery_mode = 0
         if 'cataclysm_weights' not in st.session_state: st.session_state.cataclysm_weights = None
         if 'parasite_profile' not in st.session_state: st.session_state.parasite_profile = {'target_type': 'attention', 'target_activation': 'gelu'}
