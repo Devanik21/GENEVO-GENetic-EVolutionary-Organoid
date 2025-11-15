@@ -7075,7 +7075,9 @@ def main():
                 # --- Comprehensive Interpretation ---
                 st.markdown("---")
                 st.markdown("#### **Comprehensive Interpretation**")
-                
+
+
+                initial_mean_fitness = history_df[history_df['generation']==0]['fitness'].mean()
                 dominant_module_type = Counter(m.module_type for m in best_individual_genotype.modules).most_common(1)[0][0]
                 critical_component, fitness_drop = (sorted_criticality[0] if sorted_criticality else ("N/A", 0))
                 centrality = (sorted_centrality[0][1] if sorted_centrality else 0)
