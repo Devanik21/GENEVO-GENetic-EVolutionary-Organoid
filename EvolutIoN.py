@@ -8035,12 +8035,14 @@ def main():
 
     st.markdown("---")
    
-   if 'show_master_synthesis' not in st.session_state:
-        st.session_state.show_master_synthesis = False
-    if 'show_final_synthesis' not in st.session_state:  # <-- ADD THIS LINE
-        st.session_state.show_final_synthesis = False # <-- ADD THIS LINE
+    if 'show_master_synthesis' not in st.session_state:
+       st.session_state.show_master_synthesis = False      
+    if 'show_final_synthesis' not in st.session_state:# <-- ADD THIS LINE
+       st.session_state.show_final_synthesis = False 
+        # <-- ADD THIS LINE
     if 'show_epilogue' not in st.session_state:
-        st.session_state.show_epilogue = False
+       st.session_state.show_epilogue = False
+        
     # --- End of State Initialization ---
 
     # --- LAZY LOADING FOR EPILOGUE ---
