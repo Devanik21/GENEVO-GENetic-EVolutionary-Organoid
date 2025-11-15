@@ -6054,11 +6054,11 @@ def main():
             'target_activation': initial_target_activation
         }
 
-        # Progress tracking
-        #progress_container = st.empty()
-        #metrics_container = st.empty()
-        #status_text = st.empty()
-        #parasite_display = st.empty()
+        Progress tracking
+        progress_container = st.empty()
+        metrics_container = st.empty()
+        status_text = st.empty()
+        parasite_display = st.empty()
         
         # Evolution loop
         for gen in range(num_generations):
@@ -6495,11 +6495,11 @@ def main():
             np.random.seed(random_seed)
             st.toast(f"Resuming with fixed random seed: {random_seed}", icon="🎲")
         
-        # Progress tracking
-        #progress_container = st.empty()
-        #metrics_container = st.empty()
-        #status_text = st.empty()
-        #parasite_display = st.empty()
+        Progress tracking
+        progress_container = st.empty()
+        metrics_container = st.empty()
+        status_text = st.empty()
+        parasite_display = st.empty()
         
         # Evolution loop
         for gen in range(start_gen, num_generations):
