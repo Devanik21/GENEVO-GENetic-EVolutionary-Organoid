@@ -3366,7 +3366,8 @@ def main():
                     'history': st.session_state.history,
                     'evolutionary_metrics': st.session_state.evolutionary_metrics,
                     # --- CRITICAL STATE VARIABLES ---
-                    'final_population_genotypes': [genotype_to_dict(p) for p in st.session_state.current_population] if st.session_state.current_population else [],
+                    # --- CRITICAL STATE VARIABLES ---
+                    'current_population': [genotype_to_dict(p) for p in st.session_state.current_population] if st.session_state.current_population else [],
                     'gene_archive': [genotype_to_dict(p) for p in st.session_state.get('gene_archive', [])],
                     'module_types': st.session_state.get('module_types', []),
                     'parasite_profile': st.session_state.get('parasite_profile', {'target_type': 'attention', 'target_activation': 'gelu'}),
@@ -3432,7 +3433,11 @@ def main():
                         st.session_state.evolutionary_metrics = data.get('evolutionary_metrics', [])
                         
                         # --- 3. Restore Populations (using project's function) ---
-                        pop_dicts = data.get('final_population_genotypes', [])
+                        # Robustly check for new key 'current_population' or old key 'final_population_genotypes'
+                        pop_dicts = data.get('current_population', [])
+                        if not pop_dicts: # If new key is missing, try the old key
+                            pop_dicts = data.get('final_population_genotypes', [])
+                        
                         st.session_state.current_population = [dict_to_genotype(d) for d in pop_dicts] if pop_dicts else None
                         
                         # --- 4. Restore Gene Archive (Fossil Record) ---
@@ -3476,10 +3481,41 @@ def main():
                         )
                         # --- END NEW DETAILED DISPLAY ---
 
-                        st.rerun()
+                        # --- NEW: SAVE LOADED STATE TO DB BEFORE RERUN ---
+                        # This makes the loaded state persistent
                         
-                    else:
+                        # 1. Save settings
+                        if settings_table.get(doc_id=1):
+                            settings_table.update(st.session_state.settings, doc_ids=[1])
+                        else:
+                            settings_table.insert(st.session_state.settings)
+                        
+                        # 2. Serialize all other loaded data
+                        serializable_population = [genotype_to_dict(p) for p in st.session_state.current_population] if st.session_state.current_population else []
+                        serializable_archive = [genotype_to_dict(p) for p in st.session_state.get('gene_archive', [])]
+                        
+                        results_to_save = {
+                            'history': st.session_state.history,
+                            'evolutionary_metrics': st.session_state.evolutionary_metrics,
+                            'current_population': serializable_population,
+                            'gene_archive': serializable_archive,
+                            'module_types': st.session_state.get('module_types', []),
+                            'parasite_profile': st.session_state.get('parasite_profile', {}),
+                            'curriculum_stage': st.session_state.get('curriculum_stage', -1)
+                        }
+                        
+                        # 3. Save results to the database
+                        if results_table.get(doc_id=1):
+                            results_table.update(results_to_save, doc_ids=[1])
+                        else:
+                            results_table.insert(results_to_save)
+                        # --- END NEW SAVE LOGIC ---
+
+                        st.rerun() # <-- This is the only st.rerun()
+                        
+                    else: # <-- This 'else' now correctly matches 'if data is not None:'
                         st.warning("Could not parse data from the uploaded file.")
+                
                 except Exception as e:
                     st.error(f"Failed to process and load checkpoint: {e}")
             else:
