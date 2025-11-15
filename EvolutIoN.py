@@ -6750,36 +6750,6 @@ def main():
         best_individual_genotype = population[0] if population else None
         metrics_df = pd.DataFrame(st.session_state.get('evolutionary_metrics', []))
 
-                    # --- ADD THESE DEFINITIONS HERE ---
-                    # These are needed by multiple lazy-loaded sections (Pareto, Final Synthesis)
-                    # so we define them once at the top.
-                    final_gen_genotypes = [ind for ind in population if ind.generation == history_df['generation'].max()] if population else []
-                    acc_specialist = None
-                    eff_generalist = None
-                    rob_sentinel = None
-                    balanced_performer = None
-                    pareto_individuals = []
-
-                    if final_gen_genotypes:
-                        acc_specialist = max(final_gen_genotypes, key=lambda g: g.accuracy)
-                        eff_generalist = max(final_gen_genotypes, key=lambda g: g.efficiency)
-                        rob_sentinel = max(final_gen_genotypes, key=lambda g: g.robustness)
-                        
-                        pareto_individuals = identify_pareto_frontier(final_gen_genotypes)
-                        
-                        if pareto_individuals:
-                            utopia_point = np.array([1.0, 1.0, 1.0])
-                            distances = []
-                            for ind in pareto_individuals:
-                                point = np.array([ind.accuracy, ind.efficiency, ind.robustness])
-                                dist = np.linalg.norm(utopia_point - point)
-                                distances.append((dist, ind))
-                            
-                            if distances:
-                                balanced_performer = min(distances, key=lambda x: x[0])[1]
-                    # --- END OF ADDED BLOCK ---
-       
-
         # --- Setup for deep analysis sections (moved up) ---
         s = st.session_state.settings
         task_type = s.get('task_type', 'Abstract Reasoning (ARC-AGI-2)')
@@ -7842,11 +7812,11 @@ def main():
                 elif complexity_change < -20:
                     takeaways.append(f"**Parsimonious Selection:** The evolutionary pressure strongly favored simplicity, leading to a **{abs(complexity_change):.1f}%** decrease in mean architectural complexity, indicating a successful search for efficient, minimalist solutions.")
 
-            if acc_specialist and eff_generalist: # <-- Use the global variables
-               if acc_specialist.efficiency < eff_generalist.efficiency * 0.8 and eff_generalist.accuracy < acc_specialist.accuracy * 0.8:
-                  takeaways.append(f"**Clear Performance Trade-offs:** The final population illustrates a classic Pareto frontier. The top accuracy specialist (Acc: {acc_specialist.accuracy:.3f}) was significantly less efficient than the top efficiency generalist (Eff: {eff_generalist.efficiency:.3f}), which in turn had lower accuracy (Acc: {eff_generalist.accuracy:.3f}).")
-               else:
-                  takeaways.append("**Evidence of Pareto Optimality:** The final population represents a set of solutions with varying strengths across multiple objectives. No single architecture dominated all others, which is characteristic of a successful multi-objective search.")
+            if 'final_gen_genotypes' in locals() and final_gen_genotypes and 'acc_specialist' in locals() and acc_specialist and 'eff_generalist' in locals() and eff_generalist:
+                if acc_specialist.efficiency < eff_generalist.efficiency * 0.8 and eff_generalist.accuracy < acc_specialist.accuracy * 0.8:
+                    takeaways.append(f"**Clear Performance Trade-offs:** The final population illustrates a classic Pareto frontier. The top accuracy specialist (Acc: {acc_specialist.accuracy:.3f}) was significantly less efficient than the top efficiency generalist (Eff: {eff_generalist.efficiency:.3f}), which in turn had lower accuracy (Acc: {eff_generalist.accuracy:.3f}).")
+                else:
+                    takeaways.append("**Evidence of Pareto Optimality:** The final population represents a set of solutions with varying strengths across multiple objectives. No single architecture dominated all others, which is characteristic of a successful multi-objective search.")
 
             if not metrics_df.empty and len(metrics_df) > 1:
                 initial_diversity = metrics_df.iloc[0]['diversity']
