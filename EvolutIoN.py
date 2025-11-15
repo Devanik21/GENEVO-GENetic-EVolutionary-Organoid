@@ -6952,7 +6952,7 @@ def main():
                     parents = [p for p in population if p.lineage_id in parent_ids]
 
                 # --- Create Tabs for Deep Dive ---
-                tab_vitals, tab_causal, tab_potential, tab_ancestry, tab_export = st.tabs([
+                tab_vitals, tab_causal, tab_potential, tab_ancestry, tab_export, tab_encyclopedia = st.tabs([
                     "🌐 Vitals & Architecture", 
                     "🔬 Causal & Structural Analysis", 
                     "🧬 Evolutionary & Developmental Potential",
