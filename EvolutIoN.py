@@ -48,6 +48,33 @@ import json
 import zipfile # <-- ADD THIS
 import io      # <-- ADD THIS
 
+
+   # --- State Initialization for Lazy Loading ---
+if 'show_fitness_landscape' not in st.session_state:
+        st.session_state.show_fitness_landscape = False
+    if 'show_phase_space' not in st.session_state:
+        st.session_state.show_phase_space = False
+    if 'show_exec_summary' not in st.session_state:
+        st.session_state.show_exec_summary = False
+    if 'show_apex_analysis' not in st.session_state:
+        st.session_state.show_apex_analysis = False
+    if 'show_pareto_analysis' not in st.session_state:
+        st.session_state.show_pareto_analysis = False
+    if 'show_pop_dynamics' not in st.session_state:
+        st.session_state.show_pop_dynamics = False
+    if 'show_main_dashboard' not in st.session_state:
+        st.session_state.show_main_dashboard = False
+    if 'show_form_comparison' not in st.session_state:
+        st.session_state.show_form_comparison = False
+    if 'show_temporal_dynamics' not in st.session_state:
+        st.session_state.show_temporal_dynamics = False
+    if 'show_pop_genetics' not in st.session_state:
+        st.session_state.show_pop_genetics = False
+    if 'show_master_synthesis' not in st.session_state:
+        st.session_state.show_master_synthesis = False
+    if 'show_epilogue' not in st.session_state:
+        st.session_state.show_epilogue = False
+
 # ==================== GLOBAL CONSTANTS ====================
 
 # Define the universe of possible activation functions
@@ -2176,31 +2203,7 @@ def main():
         page_icon="🧬",
         initial_sidebar_state="expanded"
     )
-   # --- State Initialization for Lazy Loading ---
-    if 'show_fitness_landscape' not in st.session_state:
-        st.session_state.show_fitness_landscape = False
-    if 'show_phase_space' not in st.session_state:
-        st.session_state.show_phase_space = False
-    if 'show_exec_summary' not in st.session_state:
-        st.session_state.show_exec_summary = False
-    if 'show_apex_analysis' not in st.session_state:
-        st.session_state.show_apex_analysis = False
-    if 'show_pareto_analysis' not in st.session_state:
-        st.session_state.show_pareto_analysis = False
-    if 'show_pop_dynamics' not in st.session_state:
-        st.session_state.show_pop_dynamics = False
-    if 'show_main_dashboard' not in st.session_state:
-        st.session_state.show_main_dashboard = False
-    if 'show_form_comparison' not in st.session_state:
-        st.session_state.show_form_comparison = False
-    if 'show_temporal_dynamics' not in st.session_state:
-        st.session_state.show_temporal_dynamics = False
-    if 'show_pop_genetics' not in st.session_state:
-        st.session_state.show_pop_genetics = False
-    if 'show_master_synthesis' not in st.session_state:
-        st.session_state.show_master_synthesis = False
-    if 'show_epilogue' not in st.session_state:
-        st.session_state.show_epilogue = False
+
     # --- End of State Initialization ---
     
     # --- Password Protection ---
