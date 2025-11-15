@@ -7143,12 +7143,6 @@ def main():
 
         st.markdown("---")
 
-       st.rerun()
-       
-        
-       
-               
-
 
        
         st.markdown("---")
