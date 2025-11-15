@@ -7478,6 +7478,7 @@ def main():
                         with code_col2:
                             st.subheader("TensorFlow / Keras Code")
                             tensorflow_code = generate_tensorflow_code(individual)
+                            st.code(tensorflow_code, language='python')
         
         else:
             st.info("The evolution has not been run or loaded successfully. Population data is missing for the analysis section.")
