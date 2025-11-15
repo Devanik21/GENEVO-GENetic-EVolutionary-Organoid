@@ -6406,7 +6406,13 @@ def main():
         else:
             results_table.insert(results_to_save)
         
-        status_text.markdown("### ✅ Evolution Complete! Results saved.")
+        # --- NEW: Clear live status elements ---
+        progress_container.empty()
+        metrics_container.empty()
+        parasite_display.empty()
+        # --- End clear ---
+        
+        
 
     # --- RESUME EVOLUTION ---
     if resume_col.button("🔄 Resume Evolution", width='stretch', key="resume_evolution_button"):
@@ -6678,6 +6684,12 @@ def main():
         results_to_save = { 'history': st.session_state.history, 'evolutionary_metrics': st.session_state.evolutionary_metrics, 'current_population': serializable_population }
         if results_table.get(doc_id=1): results_table.update(results_to_save, doc_ids=[1])
         else: results_table.insert(results_to_save)
+        # --- NEW: Clear live status elements ---
+        progress_container.empty()
+        metrics_container.empty()
+        parasite_display.empty()
+        # --- End clear ---
+        
         status_text.markdown("### ✅ Evolution Complete! Results saved.")
     
     # Display results
