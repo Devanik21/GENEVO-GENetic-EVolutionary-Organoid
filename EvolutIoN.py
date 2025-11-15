@@ -7141,8 +7141,13 @@ def main():
         else:
             st.warning("Could not perform Pareto analysis on the final generation.")
 
-        st.markdown("---")how_pareto_analysis = True
-                st.rerun()
+        st.markdown("---")
+
+       st.rerun()
+       
+        
+       
+               
 
 
        
