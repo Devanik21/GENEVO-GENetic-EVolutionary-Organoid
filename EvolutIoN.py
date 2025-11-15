@@ -2261,6 +2261,7 @@ def main():
         saved_settings = settings_table.get(doc_id=1)
         st.session_state.settings = saved_settings if saved_settings else {}
         
+        # --- [Around line 4202] ---
         # Load results
         saved_results = results_table.get(doc_id=1)
         if saved_results:
@@ -2279,13 +2280,15 @@ def main():
             st.session_state.gene_archive = [dict_to_genotype(d) for d in archive_dicts]
             
             # Restore Evolving State Variables
-            st.session_state.module_types = saved_results.get('module_types', [])
+            # Use defaults as fallbacks for older save files
+            st.session_state.module_types = saved_results.get('module_types', ['mlp', 'attention', 'conv', 'recurrent', 'graph'])
             st.session_state.parasite_profile = saved_results.get('parasite_profile', {'target_type': 'attention', 'target_activation': 'gelu'})
             st.session_state.curriculum_stage = saved_results.get('curriculum_stage', -1)
             # --- END FIX ---
 
             st.toast("Loaded previous session data.", icon="💾")
         else:
+
             # Initialize if no saved data
             st.session_state.history = []
             st.session_state.evolutionary_metrics = []
@@ -6429,7 +6432,13 @@ def main():
         results_to_save = {
             'history': st.session_state.history,
             'evolutionary_metrics': st.session_state.evolutionary_metrics,
-            'current_population': serializable_population
+            'current_population': serializable_population,
+            # --- START FIX: Add missing state variables ---
+            'gene_archive': [genotype_to_dict(p) for p in st.session_state.get('gene_archive', [])],
+            'module_types': st.session_state.get('module_types', []),
+            'parasite_profile': st.session_state.get('parasite_profile', {}),
+            'curriculum_stage': st.session_state.get('curriculum_stage', -1)
+            # --- END FIX ---
         }
         if results_table.get(doc_id=1):
             results_table.update(results_to_save, doc_ids=[1])
@@ -6731,9 +6740,23 @@ def main():
         
         st.session_state.current_population = population
         serializable_population = [genotype_to_dict(p) for p in population]
-        results_to_save = { 'history': st.session_state.history, 'evolutionary_metrics': st.session_state.evolutionary_metrics, 'current_population': serializable_population }
-        if results_table.get(doc_id=1): results_table.update(results_to_save, doc_ids=[1])
-        else: results_table.insert(results_to_save)
+        
+        results_to_save = { 
+            'history': st.session_state.history, 
+            'evolutionary_metrics': st.session_state.evolutionary_metrics, 
+            'current_population': serializable_population,
+            # --- START FIX: Add missing state variables ---
+            'gene_archive': [genotype_to_dict(p) for p in st.session_state.get('gene_archive', [])],
+            'module_types': st.session_state.get('module_types', []),
+            'parasite_profile': st.session_state.get('parasite_profile', {}),
+            'curriculum_stage': st.session_state.get('curriculum_stage', -1)
+            # --- END FIX ---
+        }
+        if results_table.get(doc_id=1): 
+            results_table.update(results_to_save, doc_ids=[1])
+        else: 
+            results_table.insert(results_to_save)
+        
         # --- NEW: Clear live status elements ---
         progress_container.empty()
         metrics_container.empty()
@@ -6741,6 +6764,10 @@ def main():
         # --- End clear ---
         
         status_text.markdown("### ✅ Evolution Complete! Results saved.")
+        
+        # --- START FIX: Force a rerun to update the download button ---
+        st.rerun()
+        # --- END FIX ---
     
     # Display results
     if st.session_state.history:
