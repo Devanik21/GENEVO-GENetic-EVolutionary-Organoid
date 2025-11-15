@@ -4672,12 +4672,12 @@ def main():
         help="A name for this experiment run. Saved with the configuration and results.",
         key="experiment_name_input"
     )
-    num_generations = st.sidebar.slider(
+    num_generations = st.sidebar.number_input(
         "Generations",
-        min_value=10, max_value=1000, value=s.get('num_generations', 100),
+        min_value=10, max_value=10000, value=s.get('num_generations', 100), step=10,
         help="""
         **Simulates deep evolutionary time.** The number of cycles of selection and reproduction.
-        - **Low (10-50):** Short-term adaptation.
+        - **Low (10-100):** Short-term adaptation.
         - **High (200+):** Allows for major evolutionary transitions and complex features to emerge.
         **WARNING:** Immense timescales (>200) will take a very long time to compute. A 1000-generation run could take hours.
         """,
