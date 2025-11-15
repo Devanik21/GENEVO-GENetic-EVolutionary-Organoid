@@ -2896,7 +2896,9 @@ def main():
         
 
     if st.sidebar.button("🗑️ Clear Saved State & Reset", width='stretch', key="clear_state_button"):
-        db.truncate() # Clear all tables
+        settings_table.truncate() # Clear the settings table
+        results_table.truncate()  # Clear the results table
+        st.session_state.clear()
         st.session_state.clear()
         st.toast("Cleared all saved data. App has been reset.", icon="🗑️")
         time.sleep(1) # Give time for toast to show
