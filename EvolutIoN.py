@@ -6054,7 +6054,7 @@ def main():
             'target_activation': initial_target_activation
         }
 
-        Progress tracking
+        #Progress tracking
         progress_container = st.empty()
         metrics_container = st.empty()
         status_text = st.empty()
@@ -6495,7 +6495,7 @@ def main():
             np.random.seed(random_seed)
             st.toast(f"Resuming with fixed random seed: {random_seed}", icon="🎲")
         
-        Progress tracking
+        #Progress tracking
         progress_container = st.empty()
         metrics_container = st.empty()
         status_text = st.empty()
