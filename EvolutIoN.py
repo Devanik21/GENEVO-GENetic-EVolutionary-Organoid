@@ -6468,7 +6468,8 @@ def main():
         start_gen = history_df['generation'].max() + 1
         
         if start_gen >= num_generations:
-            st.warning("The previous evolution has already completed all generations. Please increase the number of generations to resume.")
+            last_completed_gen = start_gen - 1
+            st.warning(f"The previous evolution has already completed all generations (up to Gen {last_completed_gen}). Please increase the number of generations to resume.")
             st.stop()
 
         # Restore counters and rates for adaptive schedules
