@@ -7235,11 +7235,19 @@ def main():
         st.markdown("This section provides a multi-faceted analysis of the top-performing genotypes from the final population, deconstructing the architectural, causal, and evolutionary properties that contributed to their success.")
         
         population = st.session_state.current_population
-        population.sort(key=lambda x: x.fitness, reverse=True)
-        
-        # Show top 3
-        for i, individual in enumerate(population[:analysis_top_n]):
-            expander_title = f"**Rank {i+1}:** Form `{individual.form_id}` | Lineage `{individual.lineage_id}` | Fitness: `{individual.fitness:.4f}`"
+            
+            if population:  # <-- Guard (12 spaces)
+                population.sort(key=lambda x: x.fitness, reverse=True) # <-- Sort (16 spaces)
+                
+                # Show top 3
+                for i, individual in enumerate(population[:analysis_top_n]): # <-- Loop (16 spaces)
+                    expander_title = f"**Rank {i+1}:** Form `{individual.form_id}` | Lineage `{individual.lineage_id}` | Fitness: `{individual.fitness:.4f}`"
+                    with st.expander(expander_title, expanded=(i==0)): # <-- with block (20 spaces)
+                        # ... analysis continues here ...
+                        pass
+            else: # <-- Else block (12 spaces)
+                st.info("The evolution has not been run or loaded successfully. Population data is missing for the analysis section.") # <-- Info (16 spaces)
+               
             with st.expander(expander_title, expanded=(i==0)):
                 
                 # Define tabs for the deep dive
