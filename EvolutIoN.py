@@ -576,7 +576,9 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
         # --- END OF EXPANDED LISTS ---
         new_type_name = f"{random.choice(prefixes)}{random.choice(suffixes)}_{random.randint(0, 999)}" # Increased unique ID
         
-        if 'module_types' not in st.session_state:
+        if 'module_types' not in st.session_state or not st.session_state.module_types:
+            # --- START OF EXPANDED MODULE LIST ---
+            # This is the "primordial soup" of known, advanced components.
             # --- START OF EXPANDED MODULE LIST ---
             # This is the "primordial soup" of known, advanced components.
             # Evolution can use these *and* invent its own.
@@ -696,7 +698,10 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
         avg_size = int(np.mean([m.size for m in mutated.modules])) if mutated.modules else 128
         
         # 1. Ensure the global list exists (in case the innovation code hasn't run yet)
-        if 'module_types' not in st.session_state:
+        # 1. Ensure the global list exists (in case the innovation code hasn't run yet)
+        if 'module_types' not in st.session_state or not st.session_state.module_types:
+            # This is the same default list from your innovation code,
+            # acting as a fallback.
             # This is the same default list from your innovation code,
             # acting as a fallback.
             st.session_state.module_types = [
@@ -3445,8 +3450,9 @@ def main():
                         st.session_state.gene_archive = [dict_to_genotype(d) for d in archive_dicts]
                         
                         # --- 5. Restore Evolving State Variables (The "Tiniest Things") ---
-                        st.session_state.module_types = data.get('module_types', POSSIBLE_ACTIVATIONS) # Restores invented module types
-                        st.session_state.parasite_profile = data.get('parasite_profile', st.session_state.get('parasite_profile', {'target_type': 'attention', 'target_activation': 'gelu'})) # Restores Red Queen target
+                        # --- 5. Restore Evolving State Variables (The "Tiniest Things") ---
+                        st.session_state.module_types = data.get('module_types', []) # Restores invented module types
+                        st.session_state.parasite_profile = data.get('parasite_profile', st.session_state.get('parasite_profile', {'target_type': 'attention', 'target_activation': 'gelu'})) # Restores Red Queen target # Restores Red Queen target
                         st.session_state.curriculum_stage = data.get('curriculum_stage', -1) # Restores curriculum stage
 
                        
