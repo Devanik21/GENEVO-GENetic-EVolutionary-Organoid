@@ -3444,6 +3444,10 @@ def main():
                         st.session_state.parasite_profile = data.get('parasite_profile', st.session_state.get('parasite_profile', {'target_type': 'attention', 'target_activation': 'gelu'})) # Restores Red Queen target
                         st.session_state.curriculum_stage = data.get('curriculum_stage', -1) # Restores curriculum stage
 
+                       
+                        if not st.session_state.current_population or not st.session_state.history:
+                        st.error("LOAD WARNING: The loaded checkpoint is incomplete. It's missing 'final_population_genotypes' or 'history' data. Analysis will fail. This file may be from an older script version.")
+
                         # Force settings to update in the session state before rerun
                         if settings_table.get(doc_id=1): settings_table.update(st.session_state.settings, doc_ids=[1])
                         else: settings_table.insert(st.session_state.settings)
