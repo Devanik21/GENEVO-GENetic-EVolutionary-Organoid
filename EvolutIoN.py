@@ -1962,7 +1962,7 @@ def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     
     return fig
 
-def visualize_genotype_2d(genotype: Genotype) -> go.Figure:
+def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'kamada_kawai') -> go.Figure:
     """Creates a clear 2D visualization of a genotype for analysis."""
     
     G = nx.DiGraph()
@@ -1990,9 +1990,21 @@ def visualize_genotype_2d(genotype: Genotype) -> go.Figure:
             
     # Use a layout that spreads nodes out
     try:
-        pos = nx.kamada_kawai_layout(G)
+        if layout_algo == 'kamada_kawai':
+            pos = nx.kamada_kawai_layout(G)
+        elif layout_algo == 'spring':
+            pos = nx.spring_layout(G, seed=layout_seed, k=0.8)
+        elif layout_algo == 'circular':
+            pos = nx.circular_layout(G)
+        elif layout_algo == 'spectral':
+            pos = nx.spectral_layout(G)
+        elif layout_algo == 'spiral':
+            pos = nx.spiral_layout(G)
+        else: # Fallback
+            pos = nx.kamada_kawai_layout(G)
     except Exception:
-        pos = nx.spring_layout(G, seed=42, k=0.8)
+        # Fallback to spring layout if the chosen one fails
+        pos = nx.spring_layout(G, seed=layout_seed, k=0.8)
 
     # Create Plotly edge traces
     edge_x, edge_y = [], []
@@ -6945,7 +6957,8 @@ def main():
                     "🔬 Causal & Structural Analysis", 
                     "🧬 Evolutionary & Developmental Potential",
                     "🌳 Genealogy & Ancestry",
-                    "💻 Code Export"
+                    "💻 Code Export",
+                    "📚 2D View Encyclopedia"
                 ])
 
                 # --- TAB 1: Vitals & Architecture ---
@@ -7559,6 +7572,60 @@ def main():
                             st.subheader("TensorFlow / Keras Code")
                             tensorflow_code = generate_tensorflow_code(individual)
                             st.code(tensorflow_code, language='python')
+                           
+                     # --- TAB 6: 2D View Encyclopedia ---
+                    with tab_encyclopedia:
+                        st.markdown("### 📚 Encyclopedia of 2D Architectural Views")
+                        st.markdown("This section generates multiple 2D visualizations of the *same* architecture using different graph layout algorithms. This can reveal hidden structures, clusters, or pathways that aren't visible from a single perspective.")
+                        
+                        num_views = st.number_input(
+                            "Number of Diverse 2D Views to Render",
+                            min_value=0, max_value=12, value=0, step=1,
+                            key=f"num_views_input_{i}_{individual.lineage_id}",
+                            help="Select how many different layout algorithms to use for visualization. Max is 12. Set to 0 to hide."
+                        )
+
+                        if num_views > 0:
+                            # Define a list of layout algorithms and seeds
+                            # We'll use a mix of algorithms and different random seeds for spring layout
+                            layouts = [
+                                ('kamada_kawai', 42),
+                                ('spring', 42),
+                                ('circular', 42),
+                                ('spectral', 42),
+                                ('spring', 1),
+                                ('spiral', 42),
+                                ('spring', 2048),
+                                ('kamada_kawai', 2), # kamada_kawai is deterministic, but a different seed for its spring_layout fallback is good
+                                ('spring', 7),
+                                ('spectral', 3),
+                                ('circular', 10),
+                                ('spring', 99)
+                            ]
+                            
+                            # Ensure we only use as many as requested
+                            layouts_to_render = layouts[:num_views]
+                            
+                            # Create columns for a cleaner layout
+                            # Use max 2 columns
+                            num_cols = min(num_views, 2)
+                            if num_cols > 0:
+                                cols = st.columns(num_cols)
+                                for j in range(num_views):
+                                    layout_algo, layout_seed = layouts[j]
+                                    with cols[j % num_cols]:
+                                        st.markdown(f"##### View {j+1}: `{layout_algo}_layout(seed={layout_seed})`")
+                                        fig = visualize_genotype_2d(individual, layout_seed=layout_seed, layout_algo=layout_algo)
+                                        # Add a unique title to the figure
+                                        fig.update_layout(title=f"<b>View {j+1}: {layout_algo.capitalize()} Layout</b> | Rank {i+1} | Fitness: {individual.fitness:.4f}")
+                                        st.plotly_chart(
+                                            fig,
+                                            width='stretch',
+                                            key=f"elite_2d_encyclopedia_{i}_{j}_{individual.lineage_id}"
+                                        )
+                        
+
+       
         
         else:
             st.info("The evolution has not been run or loaded successfully. Population data is missing for the analysis section.")
