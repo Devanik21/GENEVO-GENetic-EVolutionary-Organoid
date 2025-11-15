@@ -2271,6 +2271,19 @@ def main():
             pop_dicts = saved_results.get('current_population', [])
             st.session_state.current_population = [dict_to_genotype(p) for p in pop_dicts] if pop_dicts else None
             
+            # --- START FIX: Restore all critical state variables ---
+            # These were being saved by the zip loader but not reloaded here.
+            
+            # Restore Gene Archive
+            archive_dicts = saved_results.get('gene_archive', [])
+            st.session_state.gene_archive = [dict_to_genotype(d) for d in archive_dicts]
+            
+            # Restore Evolving State Variables
+            st.session_state.module_types = saved_results.get('module_types', [])
+            st.session_state.parasite_profile = saved_results.get('parasite_profile', {'target_type': 'attention', 'target_activation': 'gelu'})
+            st.session_state.curriculum_stage = saved_results.get('curriculum_stage', -1)
+            # --- END FIX ---
+
             st.toast("Loaded previous session data.", icon="💾")
         else:
             # Initialize if no saved data
