@@ -59,7 +59,7 @@ if 'show_exec_summary' not in st.session_state:
 if 'show_apex_analysis' not in st.session_state:
     st.session_state.show_apex_analysis = False
 if 'show_pareto_analysis' not in st.session_state:
-    st.session_state.show_pareto_analysis = True
+    st.session_state.show_pareto_analysis = False
 if 'show_pop_dynamics' not in st.session_state:
     st.session_state.show_pop_dynamics = False
 if 'show_main_dashboard' not in st.session_state:
