@@ -7391,12 +7391,15 @@ def main():
                 with st.expander(expander_title, expanded=(i==0)):
                     
                     # Define tabs for the deep dive
-                    tab_vitals, tab_causal, tab_evo, tab_ancestry, tab_code = st.tabs([
+                    # Define tabs for the deep dive
+                    # Define tabs for the deep dive
+                    tab_vitals, tab_causal, tab_evo, tab_ancestry, tab_code, tab_encyclopedia = st.tabs([
                         "🌐 Vitals & Architecture", 
                         "🔬 Causal & Structural Analysis", 
                         "🧬 Evolutionary & Developmental Potential",
                         "🌳 Genealogy & Ancestry",
-                        "💻 Code Export"
+                        "💻 Code Export",
+                        "📚 2D View Encyclopedia"
                     ])
                     # --- TAB 1: Vitals & Architecture ---
                     with tab_vitals:
