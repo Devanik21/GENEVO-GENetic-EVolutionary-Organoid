@@ -512,99 +512,140 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
 
 # ==================== ADVANCED EVOLUTION ====================
 
-def apply_forced_growth(genotype: Genotype, generation: int) -> Genotype:
+def apply_metabolic_mitosis(genotype: Genotype, generation: int) -> Genotype:
     """
-    Aggressively forces architecture scaling and wires new nodes into the active pathway.
+    Simulates biological growth via 'Mitosis' (Duplication & Divergence).
+    Instead of forcing a size, this stimulates growth based on a 
+    simulated 'Metabolic Surplus' typical of the Cambrian Explosion.
     """
-    # --- 1. Define The Target Size Schedule ---
-    if generation < 10:
-        target_size = 10
-    elif generation < 20:
-        target_size = 25
-    elif generation < 40:
-        target_size = 50
-    elif generation < 60:
-        target_size = 100
-    else:
-        # Massive growth for late game
-        target_size = 150 + (generation - 60) * 5 
-
-    current_size = len(genotype.modules)
-
-   # --- Complex Naming Dictionary ---
+    
+    # --- 1. Biological Naming Conventions ---
     prefixes = [
         'Dorsal', 'Ventral', 'Prefrontal', 'Thalamic', 'Hippocampal',
-        'Cerebral', 'Spiking', 'Quantum', 'Causal', 'Bayesian', 'Algebraic'
+        'Cerebral', 'Spiking', 'Quantum', 'Causal', 'Bayesian', 'Algebraic',
+        'Cortical', 'Limbic', 'Sensory', 'Motor', 'Temporal'
     ]
     suffixes = [
         'Gate', 'Relay', 'Filter', 'Loop', 'Kernel', 'Matrix', 'Core',
-        'Buffer', 'Transformer', 'Unit', 'Module', 'Gangleon'
+        'Buffer', 'Transformer', 'Unit', 'Module', 'Ganglion', 'Cluster'
     ]
-    # ---------------------------------
+
+    # --- 2. Calculate Metabolic State ---
+    # In early universe (Gen < 50), energy is abundant (Cambrian Explosion).
+    # Growth cost is low, encouraging massive expansion.
+    # In late universe (Gen > 50), efficiency becomes important.
     
-    # --- 2. Force Growth if below target ---
-    if current_size < target_size:
-        nodes_to_add = target_size - current_size
+    current_size = len(genotype.modules)
+    
+    # "Primordial Soup" factor: Early generations have huge energy abundance
+    if generation < 20:
+        growth_probability = 0.95  # Almost constant division
+        division_rate = 3          # Triple division
+    elif generation < 50:
+        growth_probability = 0.7
+        division_rate = 2          # Double division
+    elif generation < 80:
+        growth_probability = 0.4
+        division_rate = 1
+    else:
+        growth_probability = 0.1   # Mature stability
+
+    # --- 3. Mitosis Event (The Natural Growth Mechanism) ---
+    if random.random() < growth_probability:
         
-        # Get available types (fallback to basic list if needed)
+        # Get available types
         available_types = st.session_state.get('module_types', ['mlp', 'attention', 'conv', 'recurrent', 'graph'])
         
-        # Identify valid anchor points for connections
-        existing_ids = [m.id for m in genotype.modules]
+        # We don't add random nodes; we CLONE successful ones (Mitosis)
+        # This ensures the new nodes are likely to be connected usefully.
         
-        for i in range(nodes_to_add):
-            new_id = (
-            f"{random.choice(prefixes)}_{random.choice(suffixes)}_"
-            f"{generation:02d}_{random.randint(100, 999)}"
-        )
+        # Find non-input/output modules to clone (stem cells)
+        candidates = [m for m in genotype.modules if m.module_type not in ['input', 'output']]
+        if not candidates: return genotype # Safety check
+        
+        # Determine how many divisions occur this generation
+        num_divisions = random.randint(1, max(2, int(current_size * 0.15))) # Grows proportional to size (Exponential)
+        
+        # Cap growth to prevent instant memory crash in one frame
+        num_divisions = min(num_divisions, 20) 
+        
+        for _ in range(num_divisions):
+            # Select a "Mother Cell" to clone
+            mother_node = random.choice(candidates)
             
-            # Create the new module
-            new_module = ModuleGene(
-                id=new_id,
-                module_type=random.choice(available_types),
-                size=int(np.random.uniform(32, 128)),
-                activation=random.choice(['gelu', 'swish', 'relu', 'tanh']),
-                normalization='layer',
-                dropout_rate=0.1,
-                learning_rate_mult=1.0,
-                plasticity=0.7,
-                color='#00FFFF', # Cyan color to mark forced growth
-                position=(random.uniform(-10, 10), random.uniform(-10, 10), random.uniform(-10, 10))
+            # Generate Daughter Cell ID
+            daughter_id = (
+                f"{random.choice(prefixes)}_{random.choice(suffixes)}_"
+                f"{generation:02d}_{random.randint(100, 999)}"
             )
-            genotype.modules.append(new_module)
             
-            # --- CRITICAL FIX: WIRE IT INTO THE FLOW (Input AND Output) ---
+            # --- A. DUPLICATION: Create Daughter Cell ---
+            # Daughter inherits properties but with slight mutation (Divergence)
+            daughter_node = ModuleGene(
+                id=daughter_id,
+                module_type=mother_node.module_type, # Inherit type
+                size=int(mother_node.size * np.random.uniform(0.9, 1.1)), # Similar size
+                activation=mother_node.activation, # Inherit activation
+                normalization=mother_node.normalization,
+                dropout_rate=mother_node.dropout_rate,
+                learning_rate_mult=mother_node.learning_rate_mult,
+                plasticity=mother_node.plasticity,
+                color=mother_node.color, # Inherit color (visual kinship)
+                # Position it near the mother with jitter
+                position=(
+                    mother_node.position[0] + random.uniform(-2, 2),
+                    mother_node.position[1] + random.uniform(-2, 2),
+                    mother_node.position[2] + random.uniform(-2, 2)
+                )
+            )
+            genotype.modules.append(daughter_node)
             
-            # 1. Connect FROM a random existing node (Input)
-            input_source = random.choice(existing_ids)
-            genotype.connections.append(ConnectionGene(
-                source=input_source,
-                target=new_id,
-                weight=float(np.random.uniform(0.5, 1.0)), # Strong weight to ensure usage
-                connection_type='excitatory',
-                delay=0.01,
-                plasticity_rule='hebbian'
-            ))
+            # --- B. WIRING: Inherit Connectivity ---
+            # The daughter cell "synapses" onto the same targets as the mother.
+            # This guarantees the new node is immediately functional!
             
-            # 2. Connect TO a random existing node (Output)
-            # This ensures the node is not a dead end!
-            output_target = random.choice(existing_ids)
-            # Prevent self-loops for this simple logic
-            if output_target != input_source: 
+            # 1. Copy Incoming Connections (Inputs)
+            incoming = [c for c in genotype.connections if c.target == mother_node.id]
+            for conn in incoming:
+                if random.random() < 0.8: # 80% chance to inherit input
+                    genotype.connections.append(ConnectionGene(
+                        source=conn.source,
+                        target=daughter_id, # Connect to daughter
+                        weight=conn.weight * np.random.uniform(0.9, 1.1), # Slight weight divergence
+                        connection_type=conn.connection_type,
+                        delay=conn.delay,
+                        plasticity_rule=conn.plasticity_rule
+                    ))
+            
+            # 2. Copy Outgoing Connections (Outputs)
+            outgoing = [c for c in genotype.connections if c.source == mother_node.id]
+            for conn in outgoing:
+                if random.random() < 0.8: # 80% chance to inherit output
+                    genotype.connections.append(ConnectionGene(
+                        source=daughter_id, # Connect from daughter
+                        target=conn.target,
+                        weight=conn.weight * np.random.uniform(0.9, 1.1),
+                        connection_type=conn.connection_type,
+                        delay=conn.delay,
+                        plasticity_rule=conn.plasticity_rule
+                    ))
+            
+            # 3. Lateral Connection (Mother-Daughter link)
+            # Sometimes cells stay connected to their parent (creating clusters)
+            if random.random() < 0.3:
                 genotype.connections.append(ConnectionGene(
-                    source=new_id,
-                    target=output_target,
-                    weight=float(np.random.uniform(0.5, 1.0)), # Strong weight
-                    connection_type='excitatory',
+                    source=mother_node.id,
+                    target=daughter_id,
+                    weight=0.5,
+                    connection_type='modulatory', # Helper connection
                     delay=0.01,
                     plasticity_rule='hebbian'
                 ))
-                
-        # Recalculate complexity so the system knows it has grown
+
+        # Update complexity
         genotype.complexity = genotype.compute_complexity()
         
     return genotype
-
 
 
 def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: float = 0.05) -> Genotype:
@@ -6543,7 +6584,9 @@ def main():
                             child = apply_endosymbiosis(child, survivors)
                            # --- FORCE GROWTH SCHEDULE ---
                         # This ensures the child meets your specific size requirements for this generation
-                        child = apply_forced_growth(child, gen + 1)
+                        # --- METABOLIC MITOSIS ---
+                        # Natural growth via duplication and divergence in energy-rich environments
+                        child = apply_metabolic_mitosis(child, gen + 1)
                         # -----------------------------
                         
                         # Viability Selection: Ensure the child is a functional network
