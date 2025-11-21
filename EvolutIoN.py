@@ -1962,12 +1962,43 @@ def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     
     return fig
 
+   def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
+    """
+    Generates coordinates for a quadratic Bezier curve between two points.
+    curvature: controls how much the line bends.
+    """
+    # Calculate midpoint
+    mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+    
+    # Calculate normal vector for the control point offset
+    # This creates the "bend" perpendicular to the straight line
+    dx, dy = x1 - x0, y1 - y0
+    dist = np.sqrt(dx**2 + dy**2)
+    
+    if dist == 0: return [x0], [y0] # Self-loop handling could be improved, but safe fallback
+    
+    # Offset the control point
+    # We use the node indices or positions to determine bend direction to avoid overlap
+    cx = mx - dy * curvature
+    cy = my + dx * curvature
+    
+    # Generate Bezier points
+    t = np.linspace(0, 1, points)
+    # Quadratic Bezier formula: B(t) = (1-t)^2 P0 + 2(1-t)t P1 + t^2 P2
+    bx = (1-t)**2 * x0 + 2*(1-t)*t * cx + t**2 * x1
+    by = (1-t)**2 * y0 + 2*(1-t)*t * cy + t**2 * y1
+    
+    return bx, by
+
+
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'kamada_kawai') -> go.Figure:
-    """Creates a clear 2D visualization of a genotype for analysis."""
+    """
+    Creates a high-fidelity, organic 2D visualization with curved edges and glowing nodes.
+    """
     
     G = nx.DiGraph()
     
-    # Add nodes with attributes
+    # Add nodes with rich attributes
     for module in genotype.modules:
         G.add_node(
             module.id,
@@ -1977,69 +2008,141 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
             hover_text=(
                 f"<b>{module.id}</b><br>"
                 f"Type: {module.module_type}<br>"
-                f"Size: {module.size}<br>"
+                f"Size: {module.size} neurons<br>"
                 f"Activation: {module.activation}<br>"
                 f"Plasticity: {module.plasticity:.3f}"
             )
         )
         
-    # Add edges with attributes
+    # Add edges
     for conn in genotype.connections:
         if conn.source in G.nodes and conn.target in G.nodes:
-            G.add_edge(conn.source, conn.target)
+            G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
             
-    # Use a layout that spreads nodes out
+    # Compute Layout
     try:
         if layout_algo == 'kamada_kawai':
             pos = nx.kamada_kawai_layout(G)
         elif layout_algo == 'spring':
-            pos = nx.spring_layout(G, seed=layout_seed, k=0.8)
+            # k controls node spacing (anti-gravity)
+            pos = nx.spring_layout(G, seed=layout_seed, k=1.5/np.sqrt(len(G.nodes()) + 1), iterations=100)
         elif layout_algo == 'circular':
             pos = nx.circular_layout(G)
         elif layout_algo == 'spectral':
             pos = nx.spectral_layout(G)
         elif layout_algo == 'spiral':
             pos = nx.spiral_layout(G)
-        else: # Fallback
+        else: 
             pos = nx.kamada_kawai_layout(G)
     except Exception:
-        # Fallback to spring layout if the chosen one fails
         pos = nx.spring_layout(G, seed=layout_seed, k=0.8)
 
-    # Create Plotly edge traces
-    edge_x, edge_y = [], []
-    for edge in G.edges():
-        x0, y0 = pos[edge[0]]
-        x1, y1 = pos[edge[1]]
-        edge_x.extend([x0, x1, None])
-        edge_y.extend([y0, y1, None])
+    fig = go.Figure()
 
-    edge_trace = go.Scatter(x=edge_x, y=edge_y, line=dict(width=1, color='#888'), hoverinfo='none', mode='lines')
+    # --- 1. Draw Curved Edges ---
+    # We draw each edge as an individual trace to allow for specific coloring and transparency
+    for i, (u, v, data) in enumerate(G.edges(data=True)):
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        
+        # Determine curve direction based on node index to reduce overlap
+        # Alternating curvature creates a "neural bundle" look
+        curvature = 0.15 if i % 2 == 0 else -0.15
+        
+        # Get curved path
+        bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature)
+        
+        # Color based on weight/type
+        weight = data.get('weight', 0.5)
+        conn_type = data.get('type', 'excitatory')
+        
+        if conn_type == 'inhibitory':
+            edge_color = f'rgba(255, 80, 80, {min(0.8, weight + 0.2)})' # Redish
+        elif conn_type == 'modulatory':
+            edge_color = f'rgba(80, 150, 255, {min(0.8, weight + 0.2)})' # Blueish
+        else:
+            edge_color = f'rgba(180, 180, 180, {min(0.6, weight)})' # Grey/White scale
+            
+        fig.add_trace(go.Scatter(
+            x=bx, y=by,
+            mode='lines',
+            line=dict(width=1 + weight * 2, color=edge_color), # Thicker lines for stronger weights
+            hoverinfo='none',
+            showlegend=False,
+            opacity=0.8
+        ))
 
-    # Create Plotly node traces
-    node_x, node_y, node_text, node_color, node_size = [], [], [], [], []
+    # --- 2. Draw Nodes (Glow Effect) ---
+    # Layer 1: The "Glow" (larger, semi-transparent)
+    node_x = []
+    node_y = []
+    node_colors = []
+    node_sizes = []
+    
     for node in G.nodes():
         x, y = pos[node]
         node_x.append(x)
         node_y.append(y)
-        node_text.append(G.nodes[node]['hover_text'])
-        node_color.append(G.nodes[node]['color'])
-        node_size.append(15 + np.sqrt(G.nodes[node]['size']))
+        node_colors.append(G.nodes[node]['color'])
+        # Scale size by log of neurons for better visuals
+        sz = 25 + np.log(G.nodes[node]['size']) * 5
+        node_sizes.append(sz)
 
-    node_trace = go.Scatter(x=node_x, y=node_y, mode='markers+text', text=[node for node in G.nodes()], textposition="top center", hoverinfo='text', hovertext=node_text,
-        marker=dict(showscale=False, color=node_color, size=node_size, line=dict(width=2, color='black')))
+    fig.add_trace(go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers',
+        marker=dict(
+            color=node_colors,
+            size=[s * 1.2 for s in node_sizes], # Slightly larger
+            opacity=0.3, # Transparent
+            line=dict(width=0)
+        ),
+        hoverinfo='none',
+        showlegend=False
+    ))
+
+    # --- 3. Draw Nodes (Core) ---
+    # Layer 2: The solid core
+    node_texts = [G.nodes[n]['hover_text'] for n in G.nodes()]
     
-    # Use a different title for master architecture
-    if genotype.lineage_id == "SYNTHESIZED_MASTER":
-        title_text = f"<b>2D View: Synthesized Master Architecture</b> | Avg. Fitness: {genotype.fitness:.4f}"
-    else:
-        title_text = f"<b>2D View: Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f}"
+    fig.add_trace(go.Scatter(
+        x=node_x, y=node_y,
+        mode='markers+text',
+        text=[n for n in G.nodes()],
+        textposition="middle center",
+        textfont=dict(family="Arial", size=10, color="black"), # Label inside node
+        hovertext=node_texts,
+        hoverinfo='text',
+        marker=dict(
+            color=node_colors,
+            size=node_sizes,
+            line=dict(width=2, color='white'),
+            opacity=1.0
+        ),
+        name='Modules'
+    ))
 
-    fig = go.Figure(data=[edge_trace, node_trace],
-             layout=go.Layout(title=title_text, title_x=0.5, showlegend=False, hovermode='closest',
-                             margin=dict(b=20, l=5, r=5, t=50), xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False), height=600, plot_bgcolor='white'))
+    # Layout Styling
+    if genotype.lineage_id == "SYNTHESIZED_MASTER":
+        title_text = f"<b>Master Architecture Blueprint</b> | Avg. Fitness: {genotype.fitness:.4f}"
+    else:
+        title_text = f"<b>Neural Topography: Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f}"
+
+    fig.update_layout(
+        title=dict(text=title_text, x=0.5, font=dict(size=16)),
+        showlegend=False,
+        hovermode='closest',
+        margin=dict(b=20, l=20, r=20, t=60),
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        height=650,
+        plot_bgcolor='rgba(10,10,15,1)', # Very dark blue/black background
+        paper_bgcolor='rgba(0,0,0,0)'
+    )
+    
     return fig
+
+
 
 def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype], evolutionary_metrics_df: pd.DataFrame) -> go.Figure:
     """Extremely advanced, comprehensive evolution analytics dashboard"""
