@@ -2077,24 +2077,26 @@ def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
 
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'kamada_kawai') -> go.Figure:
     """
-    Creates a high-fidelity, organic 2D visualization with curved edges and glowing nodes.
+    Adaptive 2D visualization that scales node size and hides labels 
+    when the network becomes highly complex.
     """
     
     G = nx.DiGraph()
     
-    # Add nodes with rich attributes
+    # Add nodes
     for module in genotype.modules:
         G.add_node(
             module.id,
             size=module.size,
             color=module.color,
             module_type=module.module_type,
+            # Rich hover text always remains available!
             hover_text=(
                 f"<b>{module.id}</b><br>"
                 f"Type: {module.module_type}<br>"
-                f"Size: {module.size} neurons<br>"
-                f"Activation: {module.activation}<br>"
-                f"Plasticity: {module.plasticity:.3f}"
+                f"Size: {module.size}<br>"
+                f"Act: {module.activation}<br>"
+                f"Plasticity: {module.plasticity:.2f}"
             )
         )
         
@@ -2103,129 +2105,121 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         if conn.source in G.nodes and conn.target in G.nodes:
             G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
             
-    # Compute Layout
-    try:
-        if layout_algo == 'kamada_kawai':
-            pos = nx.kamada_kawai_layout(G)
-        elif layout_algo == 'spring':
-            # k controls node spacing (anti-gravity)
-            pos = nx.spring_layout(G, seed=layout_seed, k=1.5/np.sqrt(len(G.nodes()) + 1), iterations=100)
-        elif layout_algo == 'circular':
-            pos = nx.circular_layout(G)
-        elif layout_algo == 'spectral':
-            pos = nx.spectral_layout(G)
-        elif layout_algo == 'spiral':
-            pos = nx.spiral_layout(G)
-        else: 
-            pos = nx.kamada_kawai_layout(G)
-    except Exception:
-        pos = nx.spring_layout(G, seed=layout_seed, k=0.8)
+    # --- ADAPTIVE SCALING LOGIC ---
+    node_count = len(G.nodes())
+    
+    # If huge, use spring layout with more spacing and iterations
+    if node_count > 50:
+        # Stronger repulsion (k) and more iterations to untangle the mess
+        pos = nx.spring_layout(G, seed=layout_seed, k=3.0/np.sqrt(node_count), iterations=200)
+    else:
+        try:
+            if layout_algo == 'kamada_kawai': pos = nx.kamada_kawai_layout(G)
+            elif layout_algo == 'circular': pos = nx.circular_layout(G)
+            else: pos = nx.spring_layout(G, seed=layout_seed, k=0.8)
+        except:
+            pos = nx.spring_layout(G, seed=layout_seed, k=0.8)
 
     fig = go.Figure()
 
     # --- 1. Draw Curved Edges ---
-    # We draw each edge as an individual trace to allow for specific coloring and transparency
+    # Thinner lines for dense graphs to avoid "spaghetti" look
+    base_width = 0.5 if node_count > 100 else 1.5
+    opacity = 0.4 if node_count > 100 else 0.8
+
     for i, (u, v, data) in enumerate(G.edges(data=True)):
         x0, y0 = pos[u]
         x1, y1 = pos[v]
         
-        # Determine curve direction based on node index to reduce overlap
-        # Alternating curvature creates a "neural bundle" look
-        curvature = 0.15 if i % 2 == 0 else -0.15
+        # Less curvature for dense graphs to keep it cleaner
+        curve_intensity = 0.05 if node_count > 50 else 0.15
+        curvature = curve_intensity if i % 2 == 0 else -curve_intensity
         
-        # Get curved path
         bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature)
         
-        # Color based on weight/type
         weight = data.get('weight', 0.5)
         conn_type = data.get('type', 'excitatory')
         
-        if conn_type == 'inhibitory':
-            edge_color = f'rgba(255, 80, 80, {min(0.8, weight + 0.2)})' # Redish
-        elif conn_type == 'modulatory':
-            edge_color = f'rgba(80, 150, 255, {min(0.8, weight + 0.2)})' # Blueish
-        else:
-            edge_color = f'rgba(180, 180, 180, {min(0.6, weight)})' # Grey/White scale
+        if conn_type == 'inhibitory': edge_color = f'rgba(255, 80, 80, {opacity})'
+        elif conn_type == 'modulatory': edge_color = f'rgba(80, 150, 255, {opacity})'
+        else: edge_color = f'rgba(180, 180, 180, {min(0.5, weight)})'
             
         fig.add_trace(go.Scatter(
             x=bx, y=by,
             mode='lines',
-            line=dict(width=1 + weight * 2, color=edge_color), # Thicker lines for stronger weights
+            line=dict(width=base_width + weight, color=edge_color),
             hoverinfo='none',
-            showlegend=False,
-            opacity=0.8
+            showlegend=False
         ))
 
-    # --- 2. Draw Nodes (Glow Effect) ---
-    # Layer 1: The "Glow" (larger, semi-transparent)
-    node_x = []
-    node_y = []
+    # --- 2. Draw Nodes (Adaptive) ---
+    node_x, node_y = [], []
     node_colors = []
     node_sizes = []
+    node_labels = [] # Text to display on chart
+    hover_texts = [] # Text to display on hover
     
+    # Dynamic sizing: The more nodes, the smaller they get
+    # Base size calculation
+    if node_count < 20: base_size_mult = 1.0
+    elif node_count < 100: base_size_mult = 0.6
+    else: base_size_mult = 0.3
+
     for node in G.nodes():
         x, y = pos[node]
         node_x.append(x)
         node_y.append(y)
         node_colors.append(G.nodes[node]['color'])
-        # Scale size by log of neurons for better visuals
-        sz = 25 + np.log(G.nodes[node]['size']) * 5
-        node_sizes.append(sz)
+        hover_texts.append(G.nodes[node]['hover_text'])
+        
+        # Size calculation
+        raw_size = np.log(G.nodes[node]['size']) * 8
+        node_sizes.append(max(6, raw_size * base_size_mult)) # Minimum size of 6
+        
+        # --- SMART LABELING ---
+        # Only show text for "Important" nodes if the graph is dense
+        if node_count > 40:
+            if "forced" in node: 
+                node_labels.append("") # Hide label for forced nodes
+            else:
+                node_labels.append(node) # Show label for original nodes (Input/Output/etc)
+        else:
+            node_labels.append(node) # Show all labels if graph is small
 
+    # Layer 1: The Core Node
     fig.add_trace(go.Scatter(
         x=node_x, y=node_y,
-        mode='markers',
-        marker=dict(
-            color=node_colors,
-            size=[s * 1.2 for s in node_sizes], # Slightly larger
-            opacity=0.3, # Transparent
-            line=dict(width=0)
-        ),
-        hoverinfo='none',
-        showlegend=False
-    ))
-
-    # --- 3. Draw Nodes (Core) ---
-    # Layer 2: The solid core
-    node_texts = [G.nodes[n]['hover_text'] for n in G.nodes()]
-    
-    fig.add_trace(go.Scatter(
-        x=node_x, y=node_y,
-        mode='markers+text',
-        text=[n for n in G.nodes()],
-        textposition="middle center",
-        textfont=dict(family="Arial", size=10, color="black"), # Label inside node
-        hovertext=node_texts,
+        mode='markers+text', # Text is conditional based on the list above
+        text=node_labels,
+        textposition="bottom center",
+        textfont=dict(family="Arial", size=10 if node_count < 50 else 8, color="#EEE"),
+        hovertext=hover_texts,
         hoverinfo='text',
         marker=dict(
             color=node_colors,
             size=node_sizes,
-            line=dict(width=2, color='white'),
+            line=dict(width=1 if node_count > 100 else 2, color='white'),
             opacity=1.0
         ),
         name='Modules'
     ))
 
     # Layout Styling
-    if genotype.lineage_id == "SYNTHESIZED_MASTER":
-        title_text = f"<b>Master Architecture Blueprint</b> | Avg. Fitness: {genotype.fitness:.4f}"
-    else:
-        title_text = f"<b>Neural Topography: Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f}"
+    title_text = f"<b>Neural Topography: Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f} | Nodes: {node_count}"
 
     fig.update_layout(
-        title=dict(text=title_text, x=0.5, font=dict(size=16)),
+        title=dict(text=title_text, x=0.5, font=dict(size=14, color='#AAA')),
         showlegend=False,
         hovermode='closest',
-        margin=dict(b=20, l=20, r=20, t=60),
+        margin=dict(b=10, l=10, r=10, t=40),
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         height=650,
-        plot_bgcolor='rgba(10,10,15,1)', # Very dark blue/black background
+        plot_bgcolor='rgba(5,5,8,1)', # Deep space black
         paper_bgcolor='rgba(0,0,0,0)'
     )
     
     return fig
-
 
 
 def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype], evolutionary_metrics_df: pd.DataFrame) -> go.Figure:
