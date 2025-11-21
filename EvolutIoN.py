@@ -530,6 +530,17 @@ def apply_forced_growth(genotype: Genotype, generation: int) -> Genotype:
         target_size = 150 + (generation - 60) * 5 
 
     current_size = len(genotype.modules)
+
+   # --- Complex Naming Dictionary ---
+    prefixes = [
+        'Dorsal', 'Ventral', 'Prefrontal', 'Thalamic', 'Hippocampal',
+        'Cerebral', 'Spiking', 'Quantum', 'Causal', 'Bayesian', 'Algebraic'
+    ]
+    suffixes = [
+        'Gate', 'Relay', 'Filter', 'Loop', 'Kernel', 'Matrix', 'Core',
+        'Buffer', 'Transformer', 'Unit', 'Module', 'Gangleon'
+    ]
+    # ---------------------------------
     
     # --- 2. Force Growth if below target ---
     if current_size < target_size:
@@ -542,7 +553,10 @@ def apply_forced_growth(genotype: Genotype, generation: int) -> Genotype:
         existing_ids = [m.id for m in genotype.modules]
         
         for i in range(nodes_to_add):
-            new_id = f"forced_{generation}_{i}_{random.randint(100,999)}"
+            new_id = (
+            f"{random.choice(prefixes)}_{random.choice(suffixes)}_"
+            f"{generation:02d}_{random.randint(100, 999)}"
+        )
             
             # Create the new module
             new_module = ModuleGene(
