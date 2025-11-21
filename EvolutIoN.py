@@ -7563,262 +7563,172 @@ def main():
                 st.rerun()
 
         # Best evolved architectures
+        # --- ELITE ARCHITECTURES DEEP DIVE (LAZY LOADED) ---
         st.markdown("---")
         st.header("🏛️ Elite Evolved Architectures: A Deep Dive")
-        st.markdown("This section provides a multi-faceted analysis of the top-performing genotypes from the final population, deconstructing the architectural, causal, and evolutionary properties that contributed to their success.")
+        st.markdown("This section provides a multi-faceted analysis of the top-performing genotypes. **Note:** Due to the complexity of the evolved brains, analysis is lazy-loaded to prevent crashes.")
         
         population = st.session_state.current_population
         
         if population:
             population.sort(key=lambda x: x.fitness, reverse=True)
             
-            # Show top 3
+            # Loop through the top N architectures
             for i, individual in enumerate(population[:analysis_top_n]):
+                
+                # 1. Define a unique key for this specific rank
+                elite_key = f"show_elite_{i}"
+                if elite_key not in st.session_state:
+                    st.session_state[elite_key] = False
+
                 expander_title = f"**Rank {i+1}:** Form `{individual.form_id}` | Lineage `{individual.lineage_id}` | Fitness: `{individual.fitness:.4f}`"
-                with st.expander(expander_title, expanded=(i==0)):
+                
+                # 2. Create the expander, but keep it closed unless active
+                with st.expander(expander_title, expanded=st.session_state[elite_key]):
                     
-                    # Define tabs for the deep dive
-                    # Define tabs for the deep dive
-                    # Define tabs for the deep dive
-                    tab_vitals, tab_causal, tab_evo, tab_ancestry, tab_code, tab_encyclopedia = st.tabs([
-                        "🌐 Vitals & Architecture", 
-                        "🔬 Causal & Structural Analysis", 
-                        "🧬 Evolutionary & Developmental Potential",
-                        "🌳 Genealogy & Ancestry",
-                        "💻 Code Export",
-                        "📚 2D View Encyclopedia"
-                    ])
-                    # --- TAB 1: Vitals & Architecture ---
-                    with tab_vitals:
-                        vitals_col1, vitals_col2 = st.columns([1, 1])
-                        with vitals_col1:
-                            st.markdown("#### Quantitative Profile")
-                            st.metric("Fitness", f"{individual.fitness:.4f}")
-                            st.metric("Task Accuracy (Sim.)", f"{individual.accuracy:.3f}")
-                            st.metric("Efficiency Score", f"{individual.efficiency:.3f}")
-                            st.metric("Robustness Score", f"{individual.robustness:.3f}")
-                            st.metric("Architectural Complexity", f"{individual.complexity:.3f}")
-                            st.metric("Age", f"{individual.age} generations")
+                    # 3. The Guard Clause: If state is False, show NOTHING but the Load button
+                    if not st.session_state[elite_key]:
+                        st.info(f"Analysis for **Rank {i+1}** is hidden to save memory.")
+                        if st.button(f"🧠 Load Rank {i+1} Deep Dive", key=f"load_elite_{i}_btn"):
+                            st.session_state[elite_key] = True
+                            st.rerun()
+                    
+                    # 4. The Heavy Logic: Only runs if state is True
+                    else:
+                        # --- HEAVY COMPUTATION STARTS HERE ---
+                        
+                        # Define tabs
+                        tab_vitals, tab_causal, tab_evo, tab_ancestry, tab_code, tab_encyclopedia = st.tabs([
+                            "🌐 Vitals & Architecture", 
+                            "🔬 Causal & Structural Analysis", 
+                            "🧬 Evolutionary Potential",
+                            "🌳 Genealogy",
+                            "💻 Code Export",
+                            "📚 2D View Encyclopedia"
+                        ])
 
-                        with vitals_col2:
-                            st.markdown("#### Architectural Blueprint")
-                            st.write(f"**Total Parameters:** `{sum(m.size for m in individual.modules):,}`")
-                            st.write(f"**Modules:** `{len(individual.modules)}` | **Connections:** `{len(individual.connections)}`")
-                            st.write(f"**Parent(s):** `{', '.join(individual.parent_ids)}`")
-                            
-                            st.markdown("###### Module Composition:")
-                            module_counts = Counter(m.module_type for m in individual.modules)
-                            for mtype, count in module_counts.items():
-                                st.write(f"- `{count}` x **{mtype.capitalize()}**")
-                            
-                            st.markdown("###### Meta-Parameters:")
-                            st.json({k: f"{v:.4f}" for k, v in individual.meta_parameters.items()})
+                        # --- TAB 1: Vitals & Architecture ---
+                        with tab_vitals:
+                            vitals_col1, vitals_col2 = st.columns([1, 1])
+                            with vitals_col1:
+                                st.markdown("#### Quantitative Profile")
+                                st.metric("Fitness", f"{individual.fitness:.4f}")
+                                st.metric("Task Accuracy", f"{individual.accuracy:.3f}")
+                                st.metric("Efficiency", f"{individual.efficiency:.3f}")
+                                st.metric("Complexity", f"{individual.complexity:.3f}")
+                                st.metric("Nodes", f"{len(individual.modules)}")
 
-                    st.markdown("---")
-                    st.markdown("#### Visualizations")
-                    vis_col1, vis_col2 = st.columns(2)
-                    with vis_col1:
-                        st.markdown("###### 3D Interactive View")
-                        st.plotly_chart(
-                            visualize_genotype_3d(individual),
-                            width='stretch',
-                            key=f"elite_3d_{i}_{individual.lineage_id}"
-                        )
-                    with vis_col2:
-                        st.markdown("###### 2D Static View")
-                        st.plotly_chart(
-                            visualize_genotype_2d(individual),
-                            width='stretch',
-                            key=f"elite_2d_{i}_{individual.lineage_id}"
-                        )
+                            with vitals_col2:
+                                st.markdown("#### Architectural Blueprint")
+                                st.markdown("###### Meta-Parameters:")
+                                st.json({k: f"{v:.4f}" for k, v in individual.meta_parameters.items()})
 
-                    # --- TAB 2: Causal & Structural Analysis ---
-                    with tab_causal:
-                        st.markdown("This tab dissects the functional importance of the architecture's components.")
-                        causal_col1, causal_col2 = st.columns(2)
-
-                        with causal_col1:
-                            st.subheader("Lesion Sensitivity Analysis")
-                            st.markdown("We computationally 'remove' each component and measure the drop in fitness. A larger drop indicates a more **critical** component.")
-                            
-                            with st.spinner(f"Performing lesion analysis for Rank {i+1}..."):
-                                criticality_scores = analyze_lesion_sensitivity(
-                                    individual, individual.fitness, task_type, fitness_weights, eval_params
+                            st.markdown("---")
+                            st.markdown("#### Visualizations")
+                            vis_col1, vis_col2 = st.columns(2)
+                            with vis_col1:
+                                st.markdown("###### 3D Interactive View")
+                                st.plotly_chart(
+                                    visualize_genotype_3d(individual),
+                                    width='stretch',
+                                    key=f"elite_3d_{i}_{individual.lineage_id}"
                                 )
-                            
-                            sorted_criticality = sorted(criticality_scores.items(), key=lambda item: item[1], reverse=True)
-                            
-                            st.markdown("###### Most Critical Components:")
-                            for j, (component, score) in enumerate(sorted_criticality[:5]):
-                                st.metric(
-                                    label=f"#{j+1} {component}",
-                                    value=f"{score:.4f} Fitness Drop",
-                                    help="The reduction in overall fitness when this component is removed."
+                            with vis_col2:
+                                st.markdown("###### 2D Static View")
+                                st.plotly_chart(
+                                    visualize_genotype_2d(individual),
+                                    width='stretch',
+                                    key=f"elite_2d_{i}_{individual.lineage_id}"
                                 )
 
-                        with causal_col2:
-                            st.subheader("Information Flow Backbone")
-                            st.markdown("This analysis identifies the **causal backbone**—the key modules that act as bridges for information flow, identified via `betweenness centrality`.")
-                            
-                            with st.spinner(f"Analyzing information flow for Rank {i+1}..."):
-                                centrality_scores = analyze_information_flow(individual)
-                            
-                            sorted_centrality = sorted(centrality_scores.items(), key=lambda item: item[1], reverse=True)
-                            st.markdown("###### Causal Backbone Nodes:")
-                            for j, (module_id, score) in enumerate(sorted_centrality[:5]):
-                                st.metric(label=f"#{j+1} Module: {module_id}", value=f"{score:.3f} Centrality", help="A normalized score of how critical this node is for information routing.")
+                        # --- TAB 2: Causal & Structural Analysis (Expensive) ---
+                        with tab_causal:
+                            if st.button(f"Run Causal Analysis for Rank {i+1}", key=f"run_causal_{i}"):
+                                with st.spinner(f"Performing lesion analysis for Rank {i+1}... this may take a moment..."):
+                                    criticality_scores = analyze_lesion_sensitivity(
+                                        individual, individual.fitness, task_type, fitness_weights, eval_params
+                                    )
+                                    centrality_scores = analyze_information_flow(individual)
+                                    load_data = analyze_genetic_load(criticality_scores)
+                                
+                                # Display results only after calculation
+                                causal_col1, causal_col2 = st.columns(2)
+                                with causal_col1:
+                                    st.subheader("Lesion Sensitivity")
+                                    sorted_criticality = sorted(criticality_scores.items(), key=lambda item: item[1], reverse=True)
+                                    for j, (component, score) in enumerate(sorted_criticality[:5]):
+                                        st.metric(label=f"#{j+1} {component}", value=f"{score:.4f} Drop")
+
+                                with causal_col2:
+                                    st.subheader("Info Flow Backbone")
+                                    sorted_centrality = sorted(centrality_scores.items(), key=lambda item: item[1], reverse=True)
+                                    for j, (module_id, score) in enumerate(sorted_centrality[:5]):
+                                        st.metric(label=f"#{j+1} {module_id}", value=f"{score:.3f} Centrality")
+                            else:
+                                st.info("Click button above to run heavy Causal Analysis.")
+
+                        # --- TAB 3: Evolutionary Potential (Expensive) ---
+                        with tab_evo:
+                            if st.button(f"Run Evolutionary Analysis for Rank {i+1}", key=f"run_evo_{i}"):
+                                with st.spinner(f"Analyzing mutational landscape for Rank {i+1}..."):
+                                    evo_robust_data = analyze_evolvability_robustness(
+                                        individual, task_type, fitness_weights, eval_params
+                                    )
+                                    dev_traj_df = analyze_developmental_trajectory(individual)
+                                
+                                evo_col1, evo_col2 = st.columns(2)
+                                with evo_col1:
+                                    st.metric("Robustness", f"{evo_robust_data['robustness']:.4f}")
+                                    st.metric("Evolvability", f"{evo_robust_data['evolvability']:.4f}")
+                                    fig = px.histogram(pd.DataFrame(evo_robust_data['distribution'], columns=['Change']), x="Change", nbins=20)
+                                    st.plotly_chart(fig, width='stretch', key=f"evo_hist_{i}")
+
+                                with evo_col2:
+                                    fig = px.line(dev_traj_df, x="step", y=["total_params"], title="Developmental Trajectory")
+                                    st.plotly_chart(fig, width='stretch', key=f"dev_line_{i}")
+                            else:
+                                st.info("Click button above to run heavy Evolutionary Analysis.")
+
+                        # --- TAB 4: Genealogy ---
+                        with tab_ancestry:
+                            st.subheader(f"Ancestors: `{', '.join(individual.parent_ids)}`")
+                            parents = [p for p in population if p.lineage_id in individual.parent_ids]
+                            if parents:
+                                for k, parent in enumerate(parents):
+                                    st.markdown(f"**Parent:** `{parent.lineage_id}` | Fitness: `{parent.fitness:.4f}`")
+                                    st.plotly_chart(visualize_genotype_2d(parent), width='stretch', key=f"parent_2d_{i}_{k}")
+                            else:
+                                st.warning("Direct parents not found in current survivors.")
+
+                        # --- TAB 5: Code Export ---
+                        with tab_code:
+                            code_col1, code_col2 = st.columns(2)
+                            with code_col1:
+                                st.subheader("PyTorch")
+                                st.code(generate_pytorch_code(individual), language='python')
+                            with code_col2:
+                                st.subheader("TensorFlow")
+                                st.code(generate_tensorflow_code(individual), language='python')
+
+                        # --- TAB 6: 2D Encyclopedia ---
+                        with tab_encyclopedia:
+                            st.markdown("Generate multiple views to untangle complex networks.")
+                            num_views = st.number_input("Views to Render", 0, 12, 0, key=f"num_views_{i}")
+                            if num_views > 0:
+                                layouts = [('kamada_kawai', 42), ('spring', 42), ('circular', 42), ('spectral', 42)]
+                                cols = st.columns(min(num_views, 2))
+                                for j in range(num_views):
+                                    algo, seed = layouts[j % 4]
+                                    with cols[j % 2]:
+                                        st.plotly_chart(visualize_genotype_2d(individual, seed, algo), key=f"encyclo_{i}_{j}")
 
                         st.markdown("---")
-                        st.subheader("Genetic Load & Neutrality")
-                        st.markdown("This analysis identifies **neutral components** ('junk DNA') with little effect when removed, and calculates the **genetic load**—the fitness cost of slightly harmful, non-lethal components.")
-                        with st.spinner(f"Calculating genetic load for Rank {i+1}..."):
-                            load_data = analyze_genetic_load(criticality_scores)
-
-                        load_col1, load_col2 = st.columns(2)
-                        load_col1.metric("Neutral Component Count", f"{load_data['neutral_component_count']}", help="Number of modules/connections with near-zero impact when lesioned.")
-                        load_col2.metric("Genetic Load", f"{load_data['genetic_load']:.4f}", help="Total fitness reduction from slightly deleterious, non-critical components.")
-
-                    # --- TAB 3: Evolutionary & Developmental Potential ---
-                    with tab_evo:
-                        st.markdown("This tab probes the genotype's potential for future adaptation and its programmed developmental trajectory.")
-                        evo_col1, evo_col2 = st.columns(2)
-
-                        with evo_col1:
-                            st.subheader("Evolvability vs. Robustness")
-                            st.markdown("We generate 50 mutants to measure the trade-off between **robustness** (resisting negative mutations) and **evolvability** (producing beneficial mutations).")
-                            
-                            with st.spinner(f"Analyzing mutational landscape for Rank {i+1}..."):
-                                evo_robust_data = analyze_evolvability_robustness(
-                                    individual, task_type, fitness_weights, eval_params
-                                )
-                            
-                            st.metric("Robustness Score", f"{evo_robust_data['robustness']:.4f}", help="Average fitness loss from deleterious mutations. Higher = more robust.")
-                            st.metric("Evolvability Score", f"{evo_robust_data['evolvability']:.4f}", help="Maximum fitness gain from a single mutation.")
-
-                            dist_df = pd.DataFrame(evo_robust_data['distribution'], columns=['Fitness Change'])
-                            fig = px.histogram(dist_df, x="Fitness Change", nbins=20, title="Distribution of Mutational Effects")
-                            fig.add_vline(x=0, line_width=2, line_dash="dash", line_color="grey")
-                            fig.update_layout(height=250, margin=dict(l=20, r=20, t=40, b=20), showlegend=False)
-                            st.plotly_chart(fig, width='stretch', key=f"mutational_effects_hist_{i}_{individual.lineage_id}")
-
-                        with evo_col2:
-                            st.subheader("Developmental Trajectory")
-                            st.markdown("This simulates the genotype's 'lifetime,' showing how its developmental program (pruning, proliferation) alters its structure over time.")
-                            
-                            with st.spinner(f"Simulating development for Rank {i+1}..."):
-                                dev_traj_df = analyze_developmental_trajectory(individual)
-                            
-                            fig = px.line(dev_traj_df, x="step", y=["total_params", "num_connections"], title="Simulated Developmental Trajectory")
-                            fig.update_layout(height=300, margin=dict(l=20, r=20, t=40, b=20), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1), showlegend=False)
-                            st.plotly_chart(fig, width='stretch', key=f"dev_trajectory_line_{i}_{individual.lineage_id}")
-
-                    # --- TAB 4: Genealogy & Ancestry ---
-                    with tab_ancestry:
-                        st.markdown("This tab traces the lineage of the genotype, comparing it to its direct ancestors to understand the evolutionary step that led to its success.")
-                        parent_ids = individual.parent_ids
-                        st.subheader(f"Direct Ancestors: `{', '.join(parent_ids)}`")
-
-                        parents = [p for p in population if p.lineage_id in parent_ids]
-
-                        if not parents:
-                            st.info("Parents of this genotype are not in the final population (they were not selected in a previous generation).")
-                        else:
-                            parent_cols = st.columns(len(parents))
-                            for k, parent in enumerate(parents):
-                                with parent_cols[k]:
-                                    st.markdown(f"##### Parent: `{parent.lineage_id}`")
-                                    st.markdown(f"**Form:** `{parent.form_id}` | **Fitness:** `{parent.fitness:.4f}`")
-                                    
-                                    # Genomic distance
-                                    distance = genomic_distance(individual, parent)
-                                    st.metric("Genomic Distance to Child", f"{distance:.3f}")
-
-                                    # Compare key stats
-                                    st.markdown("###### Evolutionary Step:")
-                                    param_delta = sum(m.size for m in individual.modules) - sum(m.size for m in parent.modules)
-                                    st.metric("Parameter Change", f"{param_delta:+,}", delta_color="off")
-                                    
-                                    complexity_delta = individual.complexity - parent.complexity
-                                    st.metric("Complexity Change", f"{complexity_delta:+.3f}", delta_color="off")
-
-                                    # Visualize parent
-                                    st.plotly_chart(
-                                        visualize_genotype_2d(parent),
-                                        width='stretch',
-                                        key=f"parent_2d_{i}_{k}_{parent.lineage_id}_for_{individual.lineage_id}"
-                                    )
-
-                    # --- TAB 5: Code Export ---
-                    with tab_code:
-                        st.markdown("The genotype can be translated into functional code for deep learning frameworks, providing a direct path from discovery to application.")
-                        
-                        code_col1, code_col2 = st.columns(2)
-                        with code_col1:
-                            st.subheader("PyTorch Code")
-                            pytorch_code = generate_pytorch_code(individual)
-                            st.code(pytorch_code, language='python')
-                        
-                        with code_col2:
-                            st.subheader("TensorFlow / Keras Code")
-                            tensorflow_code = generate_tensorflow_code(individual)
-                            st.code(tensorflow_code, language='python')
-                           
-                     # --- TAB 6: 2D View Encyclopedia ---
-                    with tab_encyclopedia:
-                        st.markdown("### 📚 Encyclopedia of 2D Architectural Views")
-                        st.markdown("This section generates multiple 2D visualizations of the *same* architecture using different graph layout algorithms. This can reveal hidden structures, clusters, or pathways that aren't visible from a single perspective.")
-                        
-                        num_views = st.number_input(
-                            "Number of Diverse 2D Views to Render",
-                            min_value=0, max_value=12, value=0, step=1,
-                            key=f"num_views_input_{i}_{individual.lineage_id}",
-                            help="Select how many different layout algorithms to use for visualization. Max is 12. Set to 0 to hide."
-                        )
-
-                        if num_views > 0:
-                            # Define a list of layout algorithms and seeds
-                            # We'll use a mix of algorithms and different random seeds for spring layout
-                            layouts = [
-                                ('kamada_kawai', 42),
-                                ('spring', 42),
-                                ('circular', 42),
-                                ('spectral', 42),
-                                ('spring', 1),
-                                ('spiral', 42),
-                                ('spring', 2048),
-                                ('kamada_kawai', 2), # kamada_kawai is deterministic, but a different seed for its spring_layout fallback is good
-                                ('spring', 7),
-                                ('spectral', 3),
-                                ('circular', 10),
-                                ('spring', 99)
-                            ]
-                            
-                            # Ensure we only use as many as requested
-                            layouts_to_render = layouts[:num_views]
-                            
-                            # Create columns for a cleaner layout
-                            # Use max 2 columns
-                            num_cols = min(num_views, 2)
-                            if num_cols > 0:
-                                cols = st.columns(num_cols)
-                                for j in range(num_views):
-                                    layout_algo, layout_seed = layouts[j]
-                                    with cols[j % num_cols]:
-                                        st.markdown(f"##### View {j+1}: `{layout_algo}_layout(seed={layout_seed})`")
-                                        fig = visualize_genotype_2d(individual, layout_seed=layout_seed, layout_algo=layout_algo)
-                                        # Add a unique title to the figure
-                                        fig.update_layout(title=f"<b>View {j+1}: {layout_algo.capitalize()} Layout</b> | Rank {i+1} | Fitness: {individual.fitness:.4f}")
-                                        st.plotly_chart(
-                                            fig,
-                                            width='stretch',
-                                            key=f"elite_2d_encyclopedia_{i}_{j}_{individual.lineage_id}"
-                                        )
-                        
-
-       
-        
+                        # 5. The Unload Button: Crucial for freeing up browser memory
+                        if st.button(f"❌ Unload Rank {i+1} Analysis", key=f"hide_elite_{i}_btn", type="primary"):
+                            st.session_state[elite_key] = False
+                            st.rerun()
         else:
-            st.info("The evolution has not been run or loaded successfully. Population data is missing for the analysis section.")
+            st.info("No population data available.")
         
         # Form comparison
         # Form comparison
