@@ -339,157 +339,39 @@ def is_viable(genotype: Genotype) -> bool:
 # ==================== ADVANCED INITIALIZATION ====================
 
 def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genotype:
-    """Initialize genotype with scientifically grounded architectures"""
+    """
+    The 'Seed' Initialization. Starts with a minimal viable circuit.
+    Mimics the earliest nervous systems (e.g., Hydra or C. Elegans).
+    """
+    # 1. Define the "Seed" Structure (Minimal Viable Product)
+    # Regardless of form_id, we start with a simple Input -> Processing -> Output loop.
+    # The "Form" is now a latent potential that emerges later.
     
-    complexity_scales = {
-        'minimal': (32, 128, 0.3),
-        'medium': (64, 256, 0.5),
-        'high': (128, 512, 0.8),
-        'extreme': (256, 1024, 0.9),   # New Level 1
-        'colossal': (512, 2048, 1.0)
-    }
+    base_size = 32 # Small starting neuron count per module
     
-    base_size, max_size, connection_density = complexity_scales[complexity_level]
-    
-    forms = {
-        1: {  # Convolutional Cascade (Visual Processing)
-            'name': 'Hierarchical Convolutional',
-            'modules': [
-                ModuleGene('V1', 'conv', base_size, 'relu', 'batch', 0.1, 1.0, 0.3, '#FF6B6B', (0, 0, 0)),
-                ModuleGene('V2', 'conv', base_size*2, 'relu', 'batch', 0.15, 1.0, 0.4, '#FD79A8', (1, 0, 0)),
-                ModuleGene('V4', 'conv', base_size*3, 'gelu', 'layer', 0.2, 0.8, 0.5, '#FDCB6E', (2, 0, 0)),
-                ModuleGene('IT', 'attention', base_size*4, 'gelu', 'layer', 0.25, 0.6, 0.6, '#00B894', (3, 0, 0)),
-                ModuleGene('PFC', 'mlp', max_size, 'swish', 'layer', 0.3, 0.5, 0.7, '#96CEB4', (4, 0, 0)),
-            ],
-            'topology': 'hierarchical',
-            'inductive_bias': 'spatial_locality'
-        },
-        2: {  # Attention Network (Transformer-like)
-            'name': 'Multi-Head Attention System',
-            'modules': [
-                ModuleGene('embed', 'mlp', base_size*2, 'gelu', 'layer', 0.1, 1.0, 0.4, '#FF6B6B', (0, 0, 0)),
-                ModuleGene('attn_1', 'attention', base_size*4, 'gelu', 'layer', 0.1, 1.0, 0.6, '#FECA57', (1, 1, 0)),
-                ModuleGene('attn_2', 'attention', base_size*4, 'gelu', 'layer', 0.15, 0.9, 0.6, '#48DBFB', (2, 1, 0)),
-                ModuleGene('attn_3', 'attention', base_size*4, 'gelu', 'layer', 0.2, 0.8, 0.6, '#A29BFE', (3, 1, 0)),
-                ModuleGene('output', 'mlp', max_size, 'swish', 'layer', 0.3, 0.7, 0.5, '#96CEB4', (4, 0, 0)),
-            ],
-            'topology': 'residual_attention',
-            'inductive_bias': 'long_range_dependencies'
-        },
-        3: {  # Recurrent Memory Network
-            'name': 'Dynamical Recurrent System',
-            'modules': [
-                ModuleGene('input_gate', 'mlp', base_size, 'sigmoid', 'layer', 0.1, 1.0, 0.4, '#FF6B6B', (0, 0, 0)),
-                ModuleGene('lstm_1', 'recurrent', base_size*3, 'tanh', 'layer', 0.2, 1.0, 0.8, '#A29BFE', (1, 0, 1)),
-                ModuleGene('lstm_2', 'recurrent', base_size*3, 'tanh', 'layer', 0.25, 0.9, 0.8, '#6C5CE7', (2, 0, 1)),
-                ModuleGene('memory', 'attention', base_size*2, 'gelu', 'layer', 0.2, 0.8, 0.9, '#55EFC4', (3, 0, 0.5)),
-                ModuleGene('output_gate', 'mlp', max_size, 'swish', 'layer', 0.3, 0.7, 0.5, '#96CEB4', (4, 0, 0)),
-            ],
-            'topology': 'recurrent_memory',
-            'inductive_bias': 'temporal_integration'
-        },
-        4: {  # Parallel Hybrid (Multi-pathway)
-            'name': 'Dual-Stream Processing',
-            'modules': [
-                ModuleGene('input', 'conv', base_size, 'relu', 'batch', 0.1, 1.0, 0.3, '#FF6B6B', (0, 0, 0)),
-                ModuleGene('dorsal_1', 'conv', base_size*2, 'relu', 'batch', 0.15, 1.0, 0.5, '#FD79A8', (1, 1, 0)),
-                ModuleGene('dorsal_2', 'attention', base_size*2, 'gelu', 'layer', 0.2, 0.9, 0.6, '#FDCB6E', (2, 1, 0)),
-                ModuleGene('ventral_1', 'conv', base_size*2, 'relu', 'batch', 0.15, 1.0, 0.5, '#48DBFB', (1, -1, 0)),
-                ModuleGene('ventral_2', 'attention', base_size*2, 'gelu', 'layer', 0.2, 0.9, 0.6, '#A29BFE', (2, -1, 0)),
-                ModuleGene('integrate', 'mlp', base_size*4, 'swish', 'layer', 0.25, 0.8, 0.7, '#00B894', (3, 0, 0)),
-                ModuleGene('output', 'mlp', max_size, 'swish', 'layer', 0.3, 0.7, 0.5, '#96CEB4', (4, 0, 0)),
-            ],
-            'topology': 'dual_pathway',
-            'inductive_bias': 'specialized_processing'
-        },
-        5: {  # Graph Neural Architecture
-            'name': 'Graph Relational Network',
-            'modules': [
-                ModuleGene('embed', 'mlp', base_size, 'gelu', 'layer', 0.1, 1.0, 0.4, '#FF6B6B', (0, 0, 0)),
-                ModuleGene('graph_1', 'graph', base_size*2, 'gelu', 'layer', 0.15, 1.0, 0.7, '#A29BFE', (1, 0.5, 0.5)),
-                ModuleGene('graph_2', 'graph', base_size*3, 'gelu', 'layer', 0.2, 0.9, 0.7, '#74B9FF', (2, -0.5, 0.5)),
-                ModuleGene('graph_3', 'graph', base_size*3, 'gelu', 'layer', 0.2, 0.9, 0.7, '#00CEC9', (2, 0.5, -0.5)),
-                ModuleGene('aggregate', 'attention', base_size*4, 'gelu', 'layer', 0.25, 0.8, 0.6, '#55EFC4', (3, 0, 0)),
-                ModuleGene('output', 'mlp', max_size, 'swish', 'layer', 0.3, 0.7, 0.5, '#96CEB4', (4, 0, 0)),
-            ],
-            'topology': 'fully_connected_graph',
-            'inductive_bias': 'relational_reasoning'
-        }
-    }
-    
-    # Use modulo to wrap around the defined forms if form_id is out of bounds.
-    # This allows for a functionally "infinite" number of forms by reusing the 
-    # base templates, which will then diverge through evolution.
-    lookup_id = ((form_id - 1) % len(forms)) + 1
-    form = forms[lookup_id]
-    modules = form['modules']
-    
-    # Create connections based on topology
-    connections = []
-    
-    if form['topology'] == 'hierarchical':
-        for i in range(len(modules) - 1):
-            connections.append(ConnectionGene(
-                modules[i].id, modules[i+1].id,
-                float(np.random.uniform(0.7, 1.0)), 'excitatory', 0.01, 'hebbian'
-            ))
-            
-    elif form['topology'] == 'residual_attention':
-        for i in range(len(modules) - 1):
-            connections.append(ConnectionGene(
-                modules[i].id, modules[i+1].id,
-                float(np.random.uniform(0.8, 1.0)), 'excitatory', 0.005, 'stdp'
-            ))
-        # Add residual connections
-        for i in range(1, len(modules) - 2):
-            if 'attn' in modules[i].id:
-                connections.append(ConnectionGene(
-                    modules[i].id, modules[i+2].id,
-                    float(np.random.uniform(0.3, 0.5)), 'excitatory', 0.02, 'static'
-                ))
-                
-    elif form['topology'] == 'recurrent_memory':
-        for i in range(len(modules) - 1):
-            connections.append(ConnectionGene(
-                modules[i].id, modules[i+1].id,
-                float(np.random.uniform(0.7, 0.9)), 'excitatory', 0.01, 'hebbian'
-            ))
-        # Recurrent connections
-        for module in modules:
-            if 'lstm' in module.id:
-                connections.append(ConnectionGene(
-                    module.id, module.id,
-                    float(np.random.uniform(0.4, 0.6)), 'modulatory', 0.001, 'stdp'
-                ))
-                
-    elif form['topology'] == 'dual_pathway':
-        # Input to both pathways
-        connections.append(ConnectionGene('input', 'dorsal_1', 0.8, 'excitatory', 0.01, 'hebbian'))
-        connections.append(ConnectionGene('input', 'ventral_1', 0.8, 'excitatory', 0.01, 'hebbian'))
-        # Within pathways
-        connections.append(ConnectionGene('dorsal_1', 'dorsal_2', 0.9, 'excitatory', 0.005, 'stdp'))
-        connections.append(ConnectionGene('ventral_1', 'ventral_2', 0.9, 'excitatory', 0.005, 'stdp'))
-        # Convergence
-        connections.append(ConnectionGene('dorsal_2', 'integrate', 0.7, 'excitatory', 0.02, 'hebbian'))
-        connections.append(ConnectionGene('ventral_2', 'integrate', 0.7, 'excitatory', 0.02, 'hebbian'))
-        connections.append(ConnectionGene('integrate', 'output', 0.9, 'excitatory', 0.01, 'stdp'))
-        
-    elif form['topology'] == 'fully_connected_graph':
-        for i, m1 in enumerate(modules):
-            for j, m2 in enumerate(modules):
-                if i != j and np.random.random() > 0.4:
-                    weight = float(np.random.uniform(0.3, 0.8) if i < j else np.random.uniform(0.2, 0.5))
-                    conn_type = 'excitatory' if i < j else 'modulatory'
-                    connections.append(ConnectionGene(
-                        m1.id, m2.id, weight, conn_type,
-                        float(np.random.uniform(0.001, 0.02)), 'hebbian'
-                    ))
-    
-    # Create developmental rules
+    # Form-specific 'flavors' for the seed, but all start tiny.
+    if form_id == 1: name, core_type = "Visual Seed", "conv"
+    elif form_id == 2: name, core_type = "Attention Seed", "attention"
+    elif form_id == 3: name, core_type = "Memory Seed", "recurrent"
+    elif form_id == 4: name, core_type = "Hybrid Seed", "mlp"
+    else: name, core_type = "Graph Seed", "graph"
+
+    modules = [
+        ModuleGene('Sensory_Input', 'conv' if 'conv' in core_type else 'mlp', base_size, 'relu', 'layer', 0.0, 1.0, 0.5, '#FF6B6B', (-2, 0, 0)),
+        ModuleGene('Processing_Core', core_type, base_size, 'gelu', 'layer', 0.1, 1.0, 0.8, '#48DBFB', (0, 0, 0)),
+        ModuleGene('Motor_Output', 'mlp', base_size, 'swish', 'layer', 0.0, 1.0, 0.5, '#96CEB4', (2, 0, 0)),
+    ]
+
+    connections = [
+        ConnectionGene('Sensory_Input', 'Processing_Core', 1.0, 'excitatory', 0.01, 'hebbian'),
+        ConnectionGene('Processing_Core', 'Motor_Output', 1.0, 'excitatory', 0.01, 'hebbian'),
+        # A recurrent self-loop allows for memory/state immediately
+        ConnectionGene('Processing_Core', 'Processing_Core', 0.5, 'modulatory', 0.01, 'stdp') 
+    ]
+
+    # Developmental rules that encourage early growth
     dev_rules = [
-        DevelopmentalGene('proliferation', 'fitness_plateau', {'growth_rate': 1.1, 'max_size': max_size * 2, 'stagnation_threshold': 3}),
-        DevelopmentalGene('pruning', 'maturity', {'threshold': 0.1, 'maturity_age': 5}),
-        DevelopmentalGene('differentiation', 'environmental_signal', {'specialization_strength': 0.7})
+        DevelopmentalGene('proliferation', 'always', {'growth_rate': 1.5, 'max_size': 2048}),
     ]
     
     genotype = Genotype(
@@ -498,153 +380,122 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
         developmental_rules=dev_rules,
         form_id=form_id
     )
-
-    # If hyperparameter evolution is enabled, add the evolvable params to the genotype
-    settings = st.session_state.get('settings', {})
-    if settings.get('enable_hyperparameter_evolution'):
-        evolvable_params = settings.get('evolvable_params', [])
-        for param in evolvable_params:
-            genotype.meta_parameters[param] = settings.get(param)
-
-    genotype.complexity = genotype.compute_complexity()
     
+    genotype.complexity = genotype.compute_complexity()
     return genotype
 
 # ==================== ADVANCED EVOLUTION ====================
 
 def apply_metabolic_mitosis(genotype: Genotype, generation: int) -> Genotype:
     """
-    Simulates biological growth via 'Mitosis' (Duplication & Divergence).
-    Instead of forcing a size, this stimulates growth based on a 
-    simulated 'Metabolic Surplus' typical of the Cambrian Explosion.
+    The 'Cambrian Explosion' Engine.
+    Simulates biological duplication (Mitosis) driven by metabolic surplus.
     """
-    
-    # --- 1. Biological Naming Conventions ---
-    prefixes = [
-        'Dorsal', 'Ventral', 'Prefrontal', 'Thalamic', 'Hippocampal',
-        'Cerebral', 'Spiking', 'Quantum', 'Causal', 'Bayesian', 'Algebraic',
-        'Cortical', 'Limbic', 'Sensory', 'Motor', 'Temporal'
-    ]
-    suffixes = [
-        'Gate', 'Relay', 'Filter', 'Loop', 'Kernel', 'Matrix', 'Core',
-        'Buffer', 'Transformer', 'Unit', 'Module', 'Ganglion', 'Cluster'
-    ]
-
-    # --- 2. Calculate Metabolic State ---
-    # In early universe (Gen < 50), energy is abundant (Cambrian Explosion).
-    # Growth cost is low, encouraging massive expansion.
-    # In late universe (Gen > 50), efficiency becomes important.
-    
     current_size = len(genotype.modules)
     
-    # "Primordial Soup" factor: Early generations have huge energy abundance
+    # --- 1. The "Evolutionary Clock" (Growth Phases) ---
+    # Phase 1: Embryogenesis (Gen 0-20) - Aggressive Doubling
+    # Phase 2: Differentiation (Gen 20-60) - Steady Expansion
+    # Phase 3: Maturation (Gen 60+) - Fine-tuning
+    
     if generation < 20:
-        growth_probability = 0.95  # Almost constant division
-        division_rate = 3          # Triple division
-    elif generation < 50:
-        growth_probability = 0.7
-        division_rate = 2          # Double division
-    elif generation < 80:
-        growth_probability = 0.4
-        division_rate = 1
+        growth_prob = 1.0       # Always grow
+        duplication_rate = 0.4  # Try to clone 40% of the brain every gen
+    elif generation < 60:
+        growth_prob = 0.8
+        duplication_rate = 0.15 # Clone 15% of the brain
+    elif generation < 100:
+        growth_prob = 0.4
+        duplication_rate = 0.05 # Clone 5%
     else:
-        growth_probability = 0.1   # Mature stability
+        growth_prob = 0.1
+        duplication_rate = 0.01
 
-    # --- 3. Mitosis Event (The Natural Growth Mechanism) ---
-    if random.random() < growth_probability:
+    # Biological Naming
+    prefixes = ['Dorsal', 'Ventral', 'Prefrontal', 'Thalamic', 'Hippocampal', 'Cerebral', 'Spiking', 'Quantum', 'Causal', 'Cortical', 'Limbic', 'Sensory', 'Motor']
+    suffixes = ['Gate', 'Relay', 'Filter', 'Loop', 'Kernel', 'Matrix', 'Core', 'Buffer', 'Transformer', 'Unit', 'Cluster']
+
+    # --- 2. Mitosis Execution ---
+    if random.random() < growth_prob:
+        # Candidate cells for division (stem cells)
+        # We exclude input/output to prevent creating disconnected sensory organs
+        candidates = [m for m in genotype.modules if 'Input' not in m.id and 'Output' not in m.id]
         
-        # Get available types
-        available_types = st.session_state.get('module_types', ['mlp', 'attention', 'conv', 'recurrent', 'graph'])
+        # If we only have Input/Output (Gen 0), allow cloning them to start the chain
+        if not candidates: candidates = genotype.modules
         
-        # We don't add random nodes; we CLONE successful ones (Mitosis)
-        # This ensures the new nodes are likely to be connected usefully.
-        
-        # Find non-input/output modules to clone (stem cells)
-        candidates = [m for m in genotype.modules if m.module_type not in ['input', 'output']]
-        if not candidates: return genotype # Safety check
-        
-        # Determine how many divisions occur this generation
-        num_divisions = random.randint(1, max(2, int(current_size * 0.15))) # Grows proportional to size (Exponential)
-        
-        # Cap growth to prevent instant memory crash in one frame
-        num_divisions = min(num_divisions, 20) 
-        
+        # Calculate number of divisions
+        num_divisions = max(1, int(len(candidates) * duplication_rate))
+        # Safety Cap to prevent browser freeze
+        num_divisions = min(num_divisions, 25)
+
         for _ in range(num_divisions):
-            # Select a "Mother Cell" to clone
-            mother_node = random.choice(candidates)
+            mother = random.choice(candidates)
             
-            # Generate Daughter Cell ID
-            daughter_id = (
-                f"{random.choice(prefixes)}_{random.choice(suffixes)}_"
-                f"{generation:02d}_{random.randint(100, 999)}"
-            )
+            # NAME GENERATION: Create a sophisticated ID
+            new_id = f"{random.choice(prefixes)}_{random.choice(suffixes)}_{generation}_{random.randint(100,999)}"
             
-            # --- A. DUPLICATION: Create Daughter Cell ---
-            # Daughter inherits properties but with slight mutation (Divergence)
-            daughter_node = ModuleGene(
-                id=daughter_id,
-                module_type=mother_node.module_type, # Inherit type
-                size=int(mother_node.size * np.random.uniform(0.9, 1.1)), # Similar size
-                activation=mother_node.activation, # Inherit activation
-                normalization=mother_node.normalization,
-                dropout_rate=mother_node.dropout_rate,
-                learning_rate_mult=mother_node.learning_rate_mult,
-                plasticity=mother_node.plasticity,
-                color=mother_node.color, # Inherit color (visual kinship)
-                # Position it near the mother with jitter
+            # A. CLONING (Mitosis)
+            daughter = ModuleGene(
+                id=new_id,
+                module_type=mother.module_type, # Inherit function
+                size=int(mother.size * random.uniform(0.9, 1.1)), # Slight variation
+                activation=mother.activation,
+                normalization=mother.normalization,
+                dropout_rate=mother.dropout_rate,
+                learning_rate_mult=mother.learning_rate_mult,
+                plasticity=mother.plasticity,
+                color=mother.color, # Inherit lineage color
+                # Position: Sprout slightly away from mother
                 position=(
-                    mother_node.position[0] + random.uniform(-2, 2),
-                    mother_node.position[1] + random.uniform(-2, 2),
-                    mother_node.position[2] + random.uniform(-2, 2)
+                    mother.position[0] + random.uniform(-1.5, 1.5),
+                    mother.position[1] + random.uniform(-1.5, 1.5),
+                    mother.position[2] + random.uniform(-1.5, 1.5)
                 )
             )
-            genotype.modules.append(daughter_node)
+            genotype.modules.append(daughter)
             
-            # --- B. WIRING: Inherit Connectivity ---
-            # The daughter cell "synapses" onto the same targets as the mother.
-            # This guarantees the new node is immediately functional!
-            
-            # 1. Copy Incoming Connections (Inputs)
-            incoming = [c for c in genotype.connections if c.target == mother_node.id]
-            for conn in incoming:
-                if random.random() < 0.8: # 80% chance to inherit input
-                    genotype.connections.append(ConnectionGene(
-                        source=conn.source,
-                        target=daughter_id, # Connect to daughter
-                        weight=conn.weight * np.random.uniform(0.9, 1.1), # Slight weight divergence
-                        connection_type=conn.connection_type,
-                        delay=conn.delay,
-                        plasticity_rule=conn.plasticity_rule
-                    ))
-            
-            # 2. Copy Outgoing Connections (Outputs)
-            outgoing = [c for c in genotype.connections if c.source == mother_node.id]
-            for conn in outgoing:
-                if random.random() < 0.8: # 80% chance to inherit output
-                    genotype.connections.append(ConnectionGene(
-                        source=daughter_id, # Connect from daughter
-                        target=conn.target,
-                        weight=conn.weight * np.random.uniform(0.9, 1.1),
-                        connection_type=conn.connection_type,
-                        delay=conn.delay,
-                        plasticity_rule=conn.plasticity_rule
-                    ))
-            
-            # 3. Lateral Connection (Mother-Daughter link)
-            # Sometimes cells stay connected to their parent (creating clusters)
-            if random.random() < 0.3:
+            # B. WIRING (Synaptogenesis)
+            # 1. Inherit Inputs (Dendritic branching)
+            # The daughter receives the same inputs as the mother
+            inputs = [c for c in genotype.connections if c.target == mother.id]
+            for conn in inputs:
                 genotype.connections.append(ConnectionGene(
-                    source=mother_node.id,
-                    target=daughter_id,
-                    weight=0.5,
-                    connection_type='modulatory', # Helper connection
-                    delay=0.01,
-                    plasticity_rule='hebbian'
+                    source=conn.source,
+                    target=daughter.id,
+                    weight=conn.weight * random.uniform(0.8, 1.2), # Divergent weight
+                    connection_type=conn.connection_type,
+                    delay=conn.delay,
+                    plasticity_rule=conn.plasticity_rule
                 ))
+            
+            # 2. Inherit Outputs (Axonal branching)
+            # The daughter talks to the same targets as the mother
+            outputs = [c for c in genotype.connections if c.source == mother.id]
+            for conn in outputs:
+                genotype.connections.append(ConnectionGene(
+                    source=daughter.id,
+                    target=conn.target,
+                    weight=conn.weight * random.uniform(0.8, 1.2),
+                    connection_type=conn.connection_type,
+                    delay=conn.delay,
+                    plasticity_rule=conn.plasticity_rule
+                ))
+            
+            # 3. Lateral Inhibition/Excitation (Mother-Daughter link)
+            # This creates "Cortical Columns" where related cells talk to each other
+            genotype.connections.append(ConnectionGene(
+                source=mother.id,
+                target=daughter.id,
+                weight=0.5,
+                connection_type='modulatory',
+                delay=0.01,
+                plasticity_rule='stdp'
+            ))
 
         # Update complexity
         genotype.complexity = genotype.compute_complexity()
-        
+
     return genotype
 
 
@@ -6586,6 +6437,9 @@ def main():
                         # This ensures the child meets your specific size requirements for this generation
                         # --- METABOLIC MITOSIS ---
                         # Natural growth via duplication and divergence in energy-rich environments
+                        # --- THE CAMBRIAN TRIGGER ---
+                        # Apply biological growth. 
+                        # This mimics the natural expansion of brain volume over epochs.
                         child = apply_metabolic_mitosis(child, gen + 1)
                         # -----------------------------
                         
