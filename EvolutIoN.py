@@ -512,6 +512,76 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
 
 # ==================== ADVANCED EVOLUTION ====================
 
+def apply_forced_growth(genotype: Genotype, generation: int) -> Genotype:
+    """
+    Forces the architecture to meet a minimum size based on the generation.
+    Schedule: Gen 10->10 nodes, Gen 20->20 nodes, Gen 30->50 nodes.
+    """
+    # 1. Define your Growth Schedule
+    min_target_size = 5 # Base size
+    
+    if generation >= 30:
+        min_target_size = 50 + (generation - 30) * 2 # Grows rapidly after gen 30
+    elif generation >= 20:
+        # Scale from 20 to 50 between gen 20 and 30
+        progress = (generation - 20) / 10
+        min_target_size = int(20 + (30 * progress))
+    elif generation >= 10:
+        # Scale from 10 to 20 between gen 10 and 20
+        progress = (generation - 10) / 10
+        min_target_size = int(10 + (10 * progress))
+    else:
+        # Scale from 5 to 10 in early generations
+        min_target_size = int(5 + (generation / 2))
+
+    current_size = len(genotype.modules)
+    
+    # 2. If the architecture is too small, force it to grow
+    if current_size < min_target_size:
+        nodes_to_add = min_target_size - current_size
+        
+        # Get available module types (fallback if session state not ready)
+        available_types = st.session_state.get('module_types', ['mlp', 'attention', 'conv', 'recurrent', 'graph'])
+        
+        for _ in range(nodes_to_add):
+            new_id = f"forced_{generation}_{len(genotype.modules)}"
+            
+            # Pick a random source to connect from
+            source = random.choice(genotype.modules)
+            
+            # Create the new module
+            new_module = ModuleGene(
+                id=new_id,
+                module_type=random.choice(available_types),
+                size=int(np.random.uniform(64, 256)), # Random size
+                activation=random.choice(['gelu', 'swish', 'relu']),
+                normalization='layer',
+                dropout_rate=0.1,
+                learning_rate_mult=1.0,
+                plasticity=0.5,
+                color='#FFD700', # Gold color to mark forced growth nodes
+                position=(len(genotype.modules), random.uniform(-5, 5), random.uniform(-5, 5))
+            )
+            
+            genotype.modules.append(new_module)
+            
+            # Wire it up immediately so it's not dead weight
+            genotype.connections.append(ConnectionGene(
+                source=source.id,
+                target=new_id,
+                weight=float(np.random.uniform(0.3, 0.8)),
+                connection_type='excitatory',
+                delay=0.01,
+                plasticity_rule='hebbian'
+            ))
+            
+        # Update complexity score
+        genotype.complexity = genotype.compute_complexity()
+        
+    return genotype
+
+
+
 def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: float = 0.05) -> Genotype:
     """Biologically-inspired mutation with innovation"""
 
@@ -6452,6 +6522,10 @@ def main():
 
                         if enable_endosymbiosis and random.random() < endosymbiosis_rate and survivors:
                             child = apply_endosymbiosis(child, survivors)
+                           # --- FORCE GROWTH SCHEDULE ---
+                        # This ensures the child meets your specific size requirements for this generation
+                        child = apply_forced_growth(child, gen + 1)
+                        # -----------------------------
                         
                         # Viability Selection: Ensure the child is a functional network
                         if is_viable(child):
