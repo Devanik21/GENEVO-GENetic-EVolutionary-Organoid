@@ -514,68 +514,79 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
 
 def apply_forced_growth(genotype: Genotype, generation: int) -> Genotype:
     """
-    Forces the architecture to meet a minimum size based on the generation.
-    Schedule: Gen 10->10 nodes, Gen 20->20 nodes, Gen 30->50 nodes.
+    Aggressively forces architecture scaling and wires new nodes into the active pathway.
     """
-    # 1. Define your Growth Schedule
-    min_target_size = 5 # Base size
-    
-    if generation >= 30:
-        min_target_size = 50 + (generation - 30) * 2 # Grows rapidly after gen 30
-    elif generation >= 20:
-        # Scale from 20 to 50 between gen 20 and 30
-        progress = (generation - 20) / 10
-        min_target_size = int(20 + (30 * progress))
-    elif generation >= 10:
-        # Scale from 10 to 20 between gen 10 and 20
-        progress = (generation - 10) / 10
-        min_target_size = int(10 + (10 * progress))
+    # --- 1. Define The Target Size Schedule ---
+    if generation < 10:
+        target_size = 10
+    elif generation < 20:
+        target_size = 25
+    elif generation < 40:
+        target_size = 50
+    elif generation < 60:
+        target_size = 100
     else:
-        # Scale from 5 to 10 in early generations
-        min_target_size = int(5 + (generation / 2))
+        # Massive growth for late game
+        target_size = 150 + (generation - 60) * 5 
 
     current_size = len(genotype.modules)
     
-    # 2. If the architecture is too small, force it to grow
-    if current_size < min_target_size:
-        nodes_to_add = min_target_size - current_size
+    # --- 2. Force Growth if below target ---
+    if current_size < target_size:
+        nodes_to_add = target_size - current_size
         
-        # Get available module types (fallback if session state not ready)
+        # Get available types (fallback to basic list if needed)
         available_types = st.session_state.get('module_types', ['mlp', 'attention', 'conv', 'recurrent', 'graph'])
         
-        for _ in range(nodes_to_add):
-            new_id = f"forced_{generation}_{len(genotype.modules)}"
-            
-            # Pick a random source to connect from
-            source = random.choice(genotype.modules)
+        # Identify valid anchor points for connections
+        existing_ids = [m.id for m in genotype.modules]
+        
+        for i in range(nodes_to_add):
+            new_id = f"forced_{generation}_{i}_{random.randint(100,999)}"
             
             # Create the new module
             new_module = ModuleGene(
                 id=new_id,
                 module_type=random.choice(available_types),
-                size=int(np.random.uniform(64, 256)), # Random size
-                activation=random.choice(['gelu', 'swish', 'relu']),
+                size=int(np.random.uniform(32, 128)),
+                activation=random.choice(['gelu', 'swish', 'relu', 'tanh']),
                 normalization='layer',
                 dropout_rate=0.1,
                 learning_rate_mult=1.0,
-                plasticity=0.5,
-                color='#FFD700', # Gold color to mark forced growth nodes
-                position=(len(genotype.modules), random.uniform(-5, 5), random.uniform(-5, 5))
+                plasticity=0.7,
+                color='#00FFFF', # Cyan color to mark forced growth
+                position=(random.uniform(-10, 10), random.uniform(-10, 10), random.uniform(-10, 10))
             )
-            
             genotype.modules.append(new_module)
             
-            # Wire it up immediately so it's not dead weight
+            # --- CRITICAL FIX: WIRE IT INTO THE FLOW (Input AND Output) ---
+            
+            # 1. Connect FROM a random existing node (Input)
+            input_source = random.choice(existing_ids)
             genotype.connections.append(ConnectionGene(
-                source=source.id,
+                source=input_source,
                 target=new_id,
-                weight=float(np.random.uniform(0.3, 0.8)),
+                weight=float(np.random.uniform(0.5, 1.0)), # Strong weight to ensure usage
                 connection_type='excitatory',
                 delay=0.01,
                 plasticity_rule='hebbian'
             ))
             
-        # Update complexity score
+            # 2. Connect TO a random existing node (Output)
+            # This ensures the node is not a dead end!
+            output_target = random.choice(existing_ids)
+            # Prevent self-loops for this simple logic
+            if output_target != input_source: 
+                genotype.connections.append(ConnectionGene(
+                    source=new_id,
+                    target=output_target,
+                    weight=float(np.random.uniform(0.5, 1.0)), # Strong weight
+                    connection_type='excitatory',
+                    delay=0.01,
+                    plasticity_rule='hebbian'
+                ))
+                
+        # Recalculate complexity so the system knows it has grown
         genotype.complexity = genotype.compute_complexity()
         
     return genotype
