@@ -1962,7 +1962,10 @@ def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     
     return fig
 
-   def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
+
+
+
+def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
     """
     Generates coordinates for a quadratic Bezier curve between two points.
     curvature: controls how much the line bends.
