@@ -386,102 +386,74 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
 
 # ==================== ADVANCED EVOLUTION ====================
 
+
 def apply_metabolic_mitosis(genotype: Genotype, generation: int) -> Genotype:
     """
-    The 'Punctuated Equilibrium' Growth Engine.
-    Instead of forcing size, this simulates biological growth spurts (blooms)
-    followed by periods of stabilization.
+    The 'Hyper-Mitosis' Engine.
+    Aggressive, exponential expansion that forces the network to scale.
     """
-    # --- 1. The Biological Rhythm (The Pulse) ---
-    # We want an exponential curve. 
-    # Every 8 generations, the environment is 'rich', triggering massive cell division.
-    growth_cycle_period = 8 
+    current_size = len(genotype.modules)
     
-    # Is this a "Bloom" generation?
-    is_growth_spurt = (generation > 0) and (generation % growth_cycle_period == 0)
+    # 1. Aggressive Growth Schedule
+    # We grow CONSTANTLY until we hit a critical mass (e.g., 200 nodes)
+    # Then we switch to pulsed growth.
     
-    # Early game (Gen 0-30): High constant growth to get off the ground.
-    if generation < 25:
-        growth_prob = 0.8
-        duplication_factor = 0.30 # Clone 30% of the brain per generation! (Rapid early expansion)
-    # Mid game (Gen 25-80): Rhythmic Pulsed Growth
-    elif generation < 80:
-        growth_prob = 1.0 if is_growth_spurt else 0.05
-        duplication_factor = 0.50 if is_growth_spurt else 0.01 # During a spurt, size increases by 50%
-    # Late game (Gen 80+): Stabilization / Fine-tuning
+    if current_size < 100:
+        growth_prob = 1.0       # Always grow if small
+        duplication_rate = 0.5  # Clone 50% of the brain every single generation
+    elif generation % 5 == 0:   # Every 5th gen is a growth spurt
+        growth_prob = 1.0
+        duplication_rate = 0.2  # Clone 20% of the brain
     else:
-        growth_prob = 0.2 if is_growth_spurt else 0.0
-        duplication_factor = 0.1
-        
-    # Safety cap to prevent browser crash (Limit to ~1500 nodes)
-    if len(genotype.modules) > 1500:
-        growth_prob = 0.0
+        growth_prob = 0.1
+        duplication_rate = 0.05
 
-    # --- 2. Mitosis Execution ---
+    # Hard Cap to save your browser (Stops at 500 nodes)
+    if current_size > 500:
+        return genotype
+
+    # 2. The Mitosis Action
     if random.random() < growth_prob:
-        # Candidates are functional cores, not raw input/output
         candidates = [m for m in genotype.modules if 'Input' not in m.id and 'Output' not in m.id]
-        if not candidates: candidates = genotype.modules # Fallback for very early gens
+        if not candidates: candidates = genotype.modules 
 
-        # Determine how many cells divide
-        num_divisions = max(1, int(len(candidates) * duplication_factor))
+        # Calculate divisions
+        num_divisions = max(1, int(len(candidates) * duplication_rate))
         
-        # Naming conventions for new brain regions
-        prefixes = ['Cortex', 'Lobe', 'Ganglia', 'Nucleus', 'Cluster', 'Node', 'Layer']
+        prefixes = ['Neural_Cluster', 'Deep_Lobe', 'Processing_Hub', 'Synaptic_Web']
         
         for _ in range(num_divisions):
             mother = random.choice(candidates)
+            new_id = f"{random.choice(prefixes)}_{generation}_{random.randint(100,999)}"
             
-            # Create unique ID
-            new_id = f"{random.choice(prefixes)}_{generation}_{random.randint(1000,9999)}"
-            
-            # A. CLONING (Cell Division)
-            # The daughter cell inherits the mother's type and properties
+            # Clone with mutation
             daughter = ModuleGene(
                 id=new_id,
                 module_type=mother.module_type,
-                size=int(mother.size * random.uniform(0.9, 1.1)), # Slight variation
+                size=int(mother.size * random.uniform(0.8, 1.2)), 
                 activation=mother.activation,
                 normalization=mother.normalization,
                 dropout_rate=mother.dropout_rate,
                 learning_rate_mult=mother.learning_rate_mult,
                 plasticity=mother.plasticity,
-                color=mother.color, 
-                # Physical displacement (3D)
+                color=mother.color,
+                # Spread them out physically so the 3D plot looks expanding
                 position=(
-                    mother.position[0] + random.uniform(-2, 2),
-                    mother.position[1] + random.uniform(-2, 2),
-                    mother.position[2] + random.uniform(-2, 2)
+                    mother.position[0] + random.uniform(-3, 3),
+                    mother.position[1] + random.uniform(-3, 3),
+                    mother.position[2] + random.uniform(-3, 3)
                 )
             )
             genotype.modules.append(daughter)
             
-            # B. WIRING (Synaptogenesis)
-            # 1. Inherit Inputs (Dendritic branching)
-            inputs = [c for c in genotype.connections if c.target == mother.id]
-            for conn in inputs:
-                genotype.connections.append(ConnectionGene(
-                    source=conn.source, target=daughter.id,
-                    weight=conn.weight * random.uniform(0.8, 1.2),
-                    connection_type=conn.connection_type, delay=conn.delay, plasticity_rule=conn.plasticity_rule
-                ))
+            # Wire her into the network (Heavily connected)
+            # Connect to Mother (Local)
+            genotype.connections.append(ConnectionGene(mother.id, daughter.id, 0.5, 'excitatory', 0.01, 'hebbian'))
             
-            # 2. Inherit Outputs (Axonal branching)
-            outputs = [c for c in genotype.connections if c.source == mother.id]
-            for conn in outputs:
-                genotype.connections.append(ConnectionGene(
-                    source=daughter.id, target=conn.target,
-                    weight=conn.weight * random.uniform(0.8, 1.2),
-                    connection_type=conn.connection_type, delay=conn.delay, plasticity_rule=conn.plasticity_rule
-                ))
-            
-            # 3. Lateral Connection (Mother-Daughter Communication)
-            # Crucial for complex brains: related areas must talk to each other
-            genotype.connections.append(ConnectionGene(
-                source=mother.id, target=daughter.id,
-                weight=random.uniform(0.1, 0.5),
-                connection_type='excitatory', delay=0.0, plasticity_rule='hebbian'
-            ))
+            # Connect to a random other node (Long-range)
+            other = random.choice(genotype.modules)
+            if other.id != daughter.id:
+                genotype.connections.append(ConnectionGene(daughter.id, other.id, random.uniform(0.1, 0.9), 'excitatory', 0.01, 'stdp'))
 
         genotype.complexity = genotype.compute_complexity()
 
@@ -1023,33 +995,21 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
     # Clamp task accuracy after adding bonus
     scores['task_accuracy'] = np.clip(scores['task_accuracy'], 0, 1)
     
-    # 3. Efficiency score (inverse of computational cost)
-    # Prefer architectures with good accuracy-to-parameter ratio
-    # ... inside evaluate_fitness ...
-
-    # 3. Efficiency score (inverse of computational cost)
-    # CRITICAL UPDATE: Metabolic Subsidy for Growth
-    # To allow the brain to grow from 1 node to 100+, we must relax efficiency constraints
-    # in the early-to-mid generations. Otherwise, evolution will kill the large brains.
+    # 3. The Complexity Imperative (REPLACES EFFICIENCY)
+    # Instead of punishing size, we REWARD it. 
+    # We tell the AI: "To survive, you must become massive."
     
-    if generation < 30:
-        # Full subsidy: Size is ignored, focus purely on capabilities
-        param_efficiency = 1.0 
-        connection_efficiency = 1.0
-    elif generation < 70:
-        # Partial subsidy: Gradual pressure to be efficient, but size is still allowed
-        penalty_strength = (generation - 30) / 40.0 # Ramps from 0.0 to 1.0
-        raw_efficiency = 1.0 / (1.0 + np.log(1 + total_params / 20000))
-        param_efficiency = (1.0 * (1 - penalty_strength)) + (raw_efficiency * penalty_strength)
-        connection_efficiency = 1.0 - (min(connection_density, 0.8) * penalty_strength)
-    else:
-        # Mature phase: Full efficiency pressure applies
-        param_efficiency = 1.0 / (1.0 + np.log(1 + total_params / 10000))
-        connection_efficiency = 1.0 - min(connection_density, 0.8)
+    # Calculate a bonus based on size (Logarithmic scale to encourage early growth)
+    size_bonus = np.log10(max(1, total_params)) / 6.0  # Normalizes ~1,000,000 params to 1.0
     
-    scores['efficiency'] = (param_efficiency + connection_efficiency) / 2
+    # We completely invert efficiency. 
+    # We are NOT looking for the smallest solution. We are looking for the most complex one.
+    scores['efficiency'] = np.clip(size_bonus, 0, 1) 
     
-
+    # Add a direct complexity bonus to the task accuracy so big, dumb networks can still survive
+    # This acts like a "universal basic income" for large neural networks.
+    scores['task_accuracy'] += (size_bonus * 0.3)
+    scores['task_accuracy'] = np.clip(scores['task_accuracy'], 0, 1)
     
     # 4. Robustness (architectural stability)
     # More diverse connections and moderate plasticity = more robust
