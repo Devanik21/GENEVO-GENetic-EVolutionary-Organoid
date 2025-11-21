@@ -340,45 +340,45 @@ def is_viable(genotype: Genotype) -> bool:
 
 def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genotype:
     """
-    The 'Seed' Initialization. Starts with a minimal viable circuit.
-    Mimics the earliest nervous systems (e.g., Hydra or C. Elegans).
+    The 'Zygote' Initialization. 
+    Starts with the absolute minimum viable circuit: Input -> 1 Tiny Core -> Output.
+    This ensures the journey from simple to complex is fully observable.
     """
-    # 1. Define the "Seed" Structure (Minimal Viable Product)
-    # Regardless of form_id, we start with a simple Input -> Processing -> Output loop.
-    # The "Form" is now a latent potential that emerges later.
+    # We start with a tiny size (16 neurons) to represent a single logical 'node' or cluster.
+    base_size = 16 
     
-    base_size = 32 # Small starting neuron count per module
-    
-    # Form-specific 'flavors' for the seed, but all start tiny.
-    if form_id == 1: name, core_type = "Visual Seed", "conv"
-    elif form_id == 2: name, core_type = "Attention Seed", "attention"
-    elif form_id == 3: name, core_type = "Memory Seed", "recurrent"
-    elif form_id == 4: name, core_type = "Hybrid Seed", "mlp"
-    else: name, core_type = "Graph Seed", "graph"
+    # Form-specific flavors determine the *type* of the seed, but not its size.
+    if form_id == 1: core_type = "conv"
+    elif form_id == 2: core_type = "attention"
+    elif form_id == 3: core_type = "recurrent"
+    elif form_id == 4: core_type = "mlp"
+    else: core_type = "graph"
 
     modules = [
-        ModuleGene('Sensory_Input', 'conv' if 'conv' in core_type else 'mlp', base_size, 'relu', 'layer', 0.0, 1.0, 0.5, '#FF6B6B', (-2, 0, 0)),
-        ModuleGene('Processing_Core', core_type, base_size, 'gelu', 'layer', 0.1, 1.0, 0.8, '#48DBFB', (0, 0, 0)),
-        ModuleGene('Motor_Output', 'mlp', base_size, 'swish', 'layer', 0.0, 1.0, 0.5, '#96CEB4', (2, 0, 0)),
+        # The Sensory Input (The Eye/Ear)
+        ModuleGene('Sensory_Input', 'mlp', base_size, 'relu', 'layer', 0.0, 1.0, 0.1, '#FF6B6B', (-2, 0, 0)),
+        # The Single Processing Node (The "Seed" Brain)
+        ModuleGene('Processing_Core_0', core_type, base_size, 'gelu', 'layer', 0.0, 1.0, 0.5, '#48DBFB', (0, 0, 0)),
+        # The Motor Output (The Action)
+        ModuleGene('Motor_Output', 'mlp', base_size, 'swish', 'layer', 0.0, 1.0, 0.1, '#96CEB4', (2, 0, 0)),
     ]
 
     connections = [
-        ConnectionGene('Sensory_Input', 'Processing_Core', 1.0, 'excitatory', 0.01, 'hebbian'),
-        ConnectionGene('Processing_Core', 'Motor_Output', 1.0, 'excitatory', 0.01, 'hebbian'),
-        # A recurrent self-loop allows for memory/state immediately
-        ConnectionGene('Processing_Core', 'Processing_Core', 0.5, 'modulatory', 0.01, 'stdp') 
+        ConnectionGene('Sensory_Input', 'Processing_Core_0', 1.0, 'excitatory', 0.01, 'hebbian'),
+        ConnectionGene('Processing_Core_0', 'Motor_Output', 1.0, 'excitatory', 0.01, 'hebbian'),
+        # A self-loop to allow early memory retention
+        ConnectionGene('Processing_Core_0', 'Processing_Core_0', 0.5, 'modulatory', 0.01, 'stdp') 
     ]
 
-    # Developmental rules that encourage early growth
-    dev_rules = [
-        DevelopmentalGene('proliferation', 'always', {'growth_rate': 1.5, 'max_size': 2048}),
-    ]
+    # No complex rules yet. The growth comes from the Mitosis engine.
+    dev_rules = []
     
     genotype = Genotype(
         modules=modules,
         connections=connections,
         developmental_rules=dev_rules,
-        form_id=form_id
+        form_id=form_id,
+        generation=0
     )
     
     genotype.complexity = genotype.compute_complexity()
@@ -388,112 +388,101 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
 
 def apply_metabolic_mitosis(genotype: Genotype, generation: int) -> Genotype:
     """
-    The 'Cambrian Explosion' Engine.
-    Simulates biological duplication (Mitosis) driven by metabolic surplus.
+    The 'Punctuated Equilibrium' Growth Engine.
+    Instead of forcing size, this simulates biological growth spurts (blooms)
+    followed by periods of stabilization.
     """
-    current_size = len(genotype.modules)
+    # --- 1. The Biological Rhythm (The Pulse) ---
+    # We want an exponential curve. 
+    # Every 8 generations, the environment is 'rich', triggering massive cell division.
+    growth_cycle_period = 8 
     
-    # --- 1. The "Evolutionary Clock" (Growth Phases) ---
-    # Phase 1: Embryogenesis (Gen 0-20) - Aggressive Doubling
-    # Phase 2: Differentiation (Gen 20-60) - Steady Expansion
-    # Phase 3: Maturation (Gen 60+) - Fine-tuning
+    # Is this a "Bloom" generation?
+    is_growth_spurt = (generation > 0) and (generation % growth_cycle_period == 0)
     
-    if generation < 20:
-        growth_prob = 1.0       # Always grow
-        duplication_rate = 0.4  # Try to clone 40% of the brain every gen
-    elif generation < 60:
+    # Early game (Gen 0-30): High constant growth to get off the ground.
+    if generation < 25:
         growth_prob = 0.8
-        duplication_rate = 0.15 # Clone 15% of the brain
-    elif generation < 100:
-        growth_prob = 0.4
-        duplication_rate = 0.05 # Clone 5%
+        duplication_factor = 0.30 # Clone 30% of the brain per generation! (Rapid early expansion)
+    # Mid game (Gen 25-80): Rhythmic Pulsed Growth
+    elif generation < 80:
+        growth_prob = 1.0 if is_growth_spurt else 0.05
+        duplication_factor = 0.50 if is_growth_spurt else 0.01 # During a spurt, size increases by 50%
+    # Late game (Gen 80+): Stabilization / Fine-tuning
     else:
-        growth_prob = 0.1
-        duplication_rate = 0.01
-
-    # Biological Naming
-    prefixes = ['Dorsal', 'Ventral', 'Prefrontal', 'Thalamic', 'Hippocampal', 'Cerebral', 'Spiking', 'Quantum', 'Causal', 'Cortical', 'Limbic', 'Sensory', 'Motor']
-    suffixes = ['Gate', 'Relay', 'Filter', 'Loop', 'Kernel', 'Matrix', 'Core', 'Buffer', 'Transformer', 'Unit', 'Cluster']
+        growth_prob = 0.2 if is_growth_spurt else 0.0
+        duplication_factor = 0.1
+        
+    # Safety cap to prevent browser crash (Limit to ~1500 nodes)
+    if len(genotype.modules) > 1500:
+        growth_prob = 0.0
 
     # --- 2. Mitosis Execution ---
     if random.random() < growth_prob:
-        # Candidate cells for division (stem cells)
-        # We exclude input/output to prevent creating disconnected sensory organs
+        # Candidates are functional cores, not raw input/output
         candidates = [m for m in genotype.modules if 'Input' not in m.id and 'Output' not in m.id]
-        
-        # If we only have Input/Output (Gen 0), allow cloning them to start the chain
-        if not candidates: candidates = genotype.modules
-        
-        # Calculate number of divisions
-        num_divisions = max(1, int(len(candidates) * duplication_rate))
-        # Safety Cap to prevent browser freeze
-        num_divisions = min(num_divisions, 25)
+        if not candidates: candidates = genotype.modules # Fallback for very early gens
 
+        # Determine how many cells divide
+        num_divisions = max(1, int(len(candidates) * duplication_factor))
+        
+        # Naming conventions for new brain regions
+        prefixes = ['Cortex', 'Lobe', 'Ganglia', 'Nucleus', 'Cluster', 'Node', 'Layer']
+        
         for _ in range(num_divisions):
             mother = random.choice(candidates)
             
-            # NAME GENERATION: Create a sophisticated ID
-            new_id = f"{random.choice(prefixes)}_{random.choice(suffixes)}_{generation}_{random.randint(100,999)}"
+            # Create unique ID
+            new_id = f"{random.choice(prefixes)}_{generation}_{random.randint(1000,9999)}"
             
-            # A. CLONING (Mitosis)
+            # A. CLONING (Cell Division)
+            # The daughter cell inherits the mother's type and properties
             daughter = ModuleGene(
                 id=new_id,
-                module_type=mother.module_type, # Inherit function
+                module_type=mother.module_type,
                 size=int(mother.size * random.uniform(0.9, 1.1)), # Slight variation
                 activation=mother.activation,
                 normalization=mother.normalization,
                 dropout_rate=mother.dropout_rate,
                 learning_rate_mult=mother.learning_rate_mult,
                 plasticity=mother.plasticity,
-                color=mother.color, # Inherit lineage color
-                # Position: Sprout slightly away from mother
+                color=mother.color, 
+                # Physical displacement (3D)
                 position=(
-                    mother.position[0] + random.uniform(-1.5, 1.5),
-                    mother.position[1] + random.uniform(-1.5, 1.5),
-                    mother.position[2] + random.uniform(-1.5, 1.5)
+                    mother.position[0] + random.uniform(-2, 2),
+                    mother.position[1] + random.uniform(-2, 2),
+                    mother.position[2] + random.uniform(-2, 2)
                 )
             )
             genotype.modules.append(daughter)
             
             # B. WIRING (Synaptogenesis)
             # 1. Inherit Inputs (Dendritic branching)
-            # The daughter receives the same inputs as the mother
             inputs = [c for c in genotype.connections if c.target == mother.id]
             for conn in inputs:
                 genotype.connections.append(ConnectionGene(
-                    source=conn.source,
-                    target=daughter.id,
-                    weight=conn.weight * random.uniform(0.8, 1.2), # Divergent weight
-                    connection_type=conn.connection_type,
-                    delay=conn.delay,
-                    plasticity_rule=conn.plasticity_rule
+                    source=conn.source, target=daughter.id,
+                    weight=conn.weight * random.uniform(0.8, 1.2),
+                    connection_type=conn.connection_type, delay=conn.delay, plasticity_rule=conn.plasticity_rule
                 ))
             
             # 2. Inherit Outputs (Axonal branching)
-            # The daughter talks to the same targets as the mother
             outputs = [c for c in genotype.connections if c.source == mother.id]
             for conn in outputs:
                 genotype.connections.append(ConnectionGene(
-                    source=daughter.id,
-                    target=conn.target,
+                    source=daughter.id, target=conn.target,
                     weight=conn.weight * random.uniform(0.8, 1.2),
-                    connection_type=conn.connection_type,
-                    delay=conn.delay,
-                    plasticity_rule=conn.plasticity_rule
+                    connection_type=conn.connection_type, delay=conn.delay, plasticity_rule=conn.plasticity_rule
                 ))
             
-            # 3. Lateral Inhibition/Excitation (Mother-Daughter link)
-            # This creates "Cortical Columns" where related cells talk to each other
+            # 3. Lateral Connection (Mother-Daughter Communication)
+            # Crucial for complex brains: related areas must talk to each other
             genotype.connections.append(ConnectionGene(
-                source=mother.id,
-                target=daughter.id,
-                weight=0.5,
-                connection_type='modulatory',
-                delay=0.01,
-                plasticity_rule='stdp'
+                source=mother.id, target=daughter.id,
+                weight=random.uniform(0.1, 0.5),
+                connection_type='excitatory', delay=0.0, plasticity_rule='hebbian'
             ))
 
-        # Update complexity
         genotype.complexity = genotype.compute_complexity()
 
     return genotype
@@ -1036,10 +1025,31 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
     
     # 3. Efficiency score (inverse of computational cost)
     # Prefer architectures with good accuracy-to-parameter ratio
-    param_efficiency = 1.0 / (1.0 + np.log(1 + total_params / 10000))
-    connection_efficiency = 1.0 - min(connection_density, 0.8)
+    # ... inside evaluate_fitness ...
+
+    # 3. Efficiency score (inverse of computational cost)
+    # CRITICAL UPDATE: Metabolic Subsidy for Growth
+    # To allow the brain to grow from 1 node to 100+, we must relax efficiency constraints
+    # in the early-to-mid generations. Otherwise, evolution will kill the large brains.
+    
+    if generation < 30:
+        # Full subsidy: Size is ignored, focus purely on capabilities
+        param_efficiency = 1.0 
+        connection_efficiency = 1.0
+    elif generation < 70:
+        # Partial subsidy: Gradual pressure to be efficient, but size is still allowed
+        penalty_strength = (generation - 30) / 40.0 # Ramps from 0.0 to 1.0
+        raw_efficiency = 1.0 / (1.0 + np.log(1 + total_params / 20000))
+        param_efficiency = (1.0 * (1 - penalty_strength)) + (raw_efficiency * penalty_strength)
+        connection_efficiency = 1.0 - (min(connection_density, 0.8) * penalty_strength)
+    else:
+        # Mature phase: Full efficiency pressure applies
+        param_efficiency = 1.0 / (1.0 + np.log(1 + total_params / 10000))
+        connection_efficiency = 1.0 - min(connection_density, 0.8)
     
     scores['efficiency'] = (param_efficiency + connection_efficiency) / 2
+    
+
     
     # 4. Robustness (architectural stability)
     # More diverse connections and moderate plasticity = more robust
