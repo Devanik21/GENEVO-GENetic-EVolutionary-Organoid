@@ -426,34 +426,43 @@ def apply_metabolic_mitosis(genotype: Genotype, generation: int) -> Genotype:
             mother = random.choice(candidates)
             new_id = f"{random.choice(prefixes)}_{generation}_{random.randint(100,999)}"
             
-            # Clone with mutation
+            # 1. Clone the Mother (Daughter Cell)
             daughter = ModuleGene(
                 id=new_id,
                 module_type=mother.module_type,
-                size=int(mother.size * random.uniform(0.8, 1.2)), 
+                size=int(mother.size * random.uniform(0.9, 1.1)), # Slight variation
                 activation=mother.activation,
                 normalization=mother.normalization,
                 dropout_rate=mother.dropout_rate,
                 learning_rate_mult=mother.learning_rate_mult,
                 plasticity=mother.plasticity,
                 color=mother.color,
-                # Spread them out physically so the 3D plot looks expanding
                 position=(
-                    mother.position[0] + random.uniform(-3, 3),
-                    mother.position[1] + random.uniform(-3, 3),
-                    mother.position[2] + random.uniform(-3, 3)
+                    mother.position[0] + random.uniform(-2, 2),
+                    mother.position[1] + random.uniform(-2, 2),
+                    mother.position[2] + random.uniform(-2, 2)
                 )
             )
             genotype.modules.append(daughter)
             
-            # Wire her into the network (Heavily connected)
-            # Connect to Mother (Local)
-            genotype.connections.append(ConnectionGene(mother.id, daughter.id, 0.5, 'excitatory', 0.01, 'hebbian'))
+            # 2. Intelligent Wiring (PRINCE NIK UPDATE)
+            # Instead of random connections, the daughter inherits the mother's friends.
+            # This ensures the new node is immediately useful to the flow of information.
             
-            # Connect to a random other node (Long-range)
-            other = random.choice(genotype.modules)
-            if other.id != daughter.id:
-                genotype.connections.append(ConnectionGene(daughter.id, other.id, random.uniform(0.1, 0.9), 'excitatory', 0.01, 'stdp'))
+            # A. Connect to Mother (Strong Local Link)
+            genotype.connections.append(ConnectionGene(mother.id, daughter.id, 0.8, 'excitatory', 0.01, 'hebbian'))
+            
+            # B. Inherit 1 Input and 1 Output from Mother (Functional Inheritance)
+            mother_inputs = [c for c in genotype.connections if c.target == mother.id]
+            mother_outputs = [c for c in genotype.connections if c.source == mother.id]
+            
+            if mother_inputs:
+                chosen_input = random.choice(mother_inputs)
+                genotype.connections.append(ConnectionGene(chosen_input.source, daughter.id, chosen_input.weight * 0.9, chosen_input.connection_type, 0.01, 'hebbian'))
+            
+            if mother_outputs:
+                chosen_output = random.choice(mother_outputs)
+                genotype.connections.append(ConnectionGene(daughter.id, chosen_output.target, chosen_output.weight * 0.9, chosen_output.connection_type, 0.01, 'stdp'))
 
         genotype.complexity = genotype.compute_complexity()
 
@@ -995,20 +1004,26 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
     # Clamp task accuracy after adding bonus
     scores['task_accuracy'] = np.clip(scores['task_accuracy'], 0, 1)
     
-    # 3. The Complexity Imperative (REPLACES EFFICIENCY)
-    # Instead of punishing size, we REWARD it. 
-    # We tell the AI: "To survive, you must become massive."
+    # 3. The Complexity Imperative (PRINCE NIK UPDATE)
+    # We explicitly punish simplicity to force the network to grow into a complex system.
     
-    # Calculate a bonus based on size (Logarithmic scale to encourage early growth)
-    size_bonus = np.log10(max(1, total_params)) / 6.0  # Normalizes ~1,000,000 params to 1.0
+    current_nodes = len(genotype.modules)
     
-    # We completely invert efficiency. 
-    # We are NOT looking for the smallest solution. We are looking for the most complex one.
+    # A. The "Complexity Scholarship"
+    # If the network is still a baby (< 30 nodes) after Generation 10, we punish it.
+    if generation > 10 and current_nodes < 30:
+        size_bonus = 0.0
+        total_fitness *= 0.1  # Massive 90% penalty for being small & lazy
+    else:
+        # Normal reward: Logarithmic growth keeps big networks safely in the elite
+        size_bonus = np.log10(max(1, total_params)) / 5.0 
+    
     scores['efficiency'] = np.clip(size_bonus, 0, 1) 
     
-    # Add a direct complexity bonus to the task accuracy so big, dumb networks can still survive
-    # This acts like a "universal basic income" for large neural networks.
-    scores['task_accuracy'] += (size_bonus * 0.3)
+    # B. The "Universal Basic Income" for Giants
+    # We inject the size bonus directly into accuracy. 
+    # This ensures a big, dumb network survives over a small, smart one.
+    scores['task_accuracy'] += (size_bonus * 0.6) 
     scores['task_accuracy'] = np.clip(scores['task_accuracy'], 0, 1)
     
     # 4. Robustness (architectural stability)
