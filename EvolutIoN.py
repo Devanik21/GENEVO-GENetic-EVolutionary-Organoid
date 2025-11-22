@@ -387,54 +387,6 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
 # ==================== ADVANCED EVOLUTION ====================
 
 
-def generate_novel_activation(depth=0, max_depth=4, termination_prob=0.3):
-    """
-    Generates a random mathematical activation function.
-    Args:
-        max_depth: Grows exponentially with generations to allow massive formulas.
-        termination_prob: Shrinks exponentially, forcing the tree to grow deeper.
-    """
-    # 1. The Primitives (Infinite Set of Operations)
-    unary_ops = [
-        'sin', 'cos', 'tan', 'tanh', 'sinh', 'cosh', 'sigmoid', 'swish', 'gelu', 'relu', 
-        'softplus', 'exp', 'log', 'abs', 'sqrt', 'square', 'cube', 'neg', 'reciprocal',
-        'erf', 'sinc', 'hard_sigmoid', 'selu', 'mish', 'log1p', 'expm1', 'round', 'ceil', 'floor'
-    ]
-    binary_ops = ['+', '-', '*', '/', 'max', 'min', 'pow', 'hypot', 'arctan2', 'remainder']
-    terminals = ['x', 'x', 'x', 'x', '1.0', '0.5', '0.1', '0.01', 'pi', 'e', 'tau'] # Bias towards input 'x'
-
-    # 2. Termination Condition
-    # We stop if we hit the max depth, OR if we roll the dice based on the probability.
-    # As generations pass, termination_prob gets smaller, making it harder to stop early.
-    if depth >= max_depth or (depth > 1 and random.random() < termination_prob):
-        return random.choice(terminals)
-    
-    # 3. Recursive Construction (Tree Growth)
-    if random.random() < 0.6: # Standard Operation
-        if random.random() < 0.5:
-            # Unary Operation: f(x)
-            op = random.choice(unary_ops)
-            expr = generate_novel_activation(depth + 1, max_depth, termination_prob)
-            
-            # Safe math formatting for Python strings
-            if op == 'square': return f"({expr})**2"
-            if op == 'cube': return f"({expr})**3"
-            if op == 'neg': return f"-({expr})"
-            if op == 'reciprocal': return f"1.0/({expr}+1e-6)"
-            return f"{op}({expr})"
-        else:
-            # Binary Operation: f(x, y)
-            op = random.choice(binary_ops)
-            left = generate_novel_activation(depth + 1, max_depth, termination_prob)
-            right = generate_novel_activation(depth + 1, max_depth, termination_prob)
-            return f"({left} {op} {right})"
-    else:
-        # Function Composition: f(g(x)) - The chain rule of evolution
-        inner = generate_novel_activation(depth + 1, max_depth, termination_prob)
-        outer_op = random.choice(unary_ops)
-        return f"{outer_op}({inner})"
-
-
 def apply_metabolic_mitosis(genotype: Genotype, generation: int) -> Genotype:
     """
     The 'Hyper-Mitosis' Engine.
@@ -649,47 +601,8 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
             module.learning_rate_mult = float(np.clip(module.learning_rate_mult, 0.1, 2.0))
         
         if random.random() < mutation_rate * 0.2:
-            # Activation function mutation - CONTINUOUS EXPONENTIAL GROWTH
-            # We allow the mathematics to grow wildly complex as evolution progresses.
-            
-            current_gen = max(1, genotype.generation)
-            
-            # 1. Exponential Depth Scaling
-            # Gen 0: Depth 4
-            # Gen 50: Depth ~28
-            # Gen 100: Depth ~200 (Massive mathematical structures)
-            growth_rate = 1.04  # 4% compounding growth in complexity per generation
-            dynamic_depth = int(4 * (growth_rate ** current_gen))
-            
-            # Cap at 300 to prevent Python recursion limit errors (usually 1000)
-            dynamic_depth = min(dynamic_depth, 300)
-
-            # 2. Decay Termination Probability
-            # As generations pass, the AI becomes less likely to pick a simple "x".
-            # It is forced to invent deeper nested formulas.
-            decay_rate = 0.95
-            dynamic_prob = max(0.01, 0.3 * (decay_rate ** current_gen))
-            
-            if random.random() < 0.8:
-                # 80% chance to invent a COMPLETELY NEW formula using the current complexity level
-                module.activation = generate_novel_activation(
-                    max_depth=dynamic_depth, 
-                    termination_prob=dynamic_prob
-                )
-            else:
-                # 20% chance to evolve the EXISTING math further (Evolutionary Drift)
-                # We take the existing math and append a new complex term to it.
-                current_math = module.activation
-                
-                # The appended part is simpler than the main tree, but still scales
-                drift_depth = max(2, int(dynamic_depth / 4)) 
-                new_part = generate_novel_activation(
-                    max_depth=drift_depth, 
-                    termination_prob=dynamic_prob
-                )
-                
-                operator = random.choice(['+', '-', '*', '/', '**']) 
-                module.activation = f"({current_math} {operator} {new_part})"
+            # Activation function mutation
+            module.activation = random.choice(POSSIBLE_ACTIVATIONS)
         
         # --- [YOUR NEW CODE: Module Type Mutation] ---
         # This is a powerful new mutation operator you added!
@@ -1948,9 +1861,7 @@ def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
                 z=[z0, z1, None],
                 mode='lines',
                 line=dict(
-                    # FIX: Use abs() to handle negative inhibitory weights
-                    # and max(0.1, ...) to ensure lines don't vanish
-                    width=max(0.1, abs(conn.weight) * 8),
+                    width=conn.weight * 8,
                     color=edge_colors.get(conn.connection_type, 'rgba(125, 125, 125, 0.5)')
                 ),
                 hovertext=f'{conn.source}→{conn.target}<br>Weight: {conn.weight:.3f}<br>Type: {conn.connection_type}<br>Plasticity: {conn.plasticity_rule}',
@@ -2107,16 +2018,12 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         
         if conn_type == 'inhibitory': edge_color = f'rgba(255, 80, 80, {opacity})'
         elif conn_type == 'modulatory': edge_color = f'rgba(80, 150, 255, {opacity})'
-        else: 
-            # FIX: Use abs() for alpha channel to prevent negative opacity crash
-            safe_alpha = max(0.0, min(0.5, abs(weight)))
-            edge_color = f'rgba(180, 180, 180, {safe_alpha})'
+        else: edge_color = f'rgba(180, 180, 180, {min(0.5, weight)})'
             
         fig.add_trace(go.Scatter(
             x=bx, y=by,
             mode='lines',
-            # FIX: Use abs() for width to prevent negative line width crash
-            line=dict(width=base_width + abs(weight), color=edge_color),
+            line=dict(width=base_width + weight, color=edge_color),
             hoverinfo='none',
             showlegend=False
         ))
@@ -2379,20 +2286,14 @@ def main():
     # --- End of State Initialization ---
     
     # --- Password Protection ---
-    # --- Password Protection (Fixed for KeyError) ---
     def check_password():
         """Returns `True` if the user had the correct password."""
 
         def password_entered():
             """Checks whether a password entered by the user is correct."""
-            # FIX: Use .get() to safely access the key. If it's missing, return empty string.
-            entered_password = st.session_state.get("password", "")
-            
-            if entered_password == st.secrets["password"]:
+            if st.session_state["password"] == st.secrets["password"]:
                 st.session_state["password_correct"] = True
-                # FIX: Only delete the key if it actually exists to prevent KeyErrors
-                if "password" in st.session_state:
-                    del st.session_state["password"]  # don't store password
+                del st.session_state["password"]  # don't store password
             else:
                 st.session_state["password_correct"] = False
 
@@ -2412,6 +2313,9 @@ def main():
         else:
             # Password correct.
             return True
+
+    if not check_password():
+        st.stop()  # Do not continue if check_password is not True.
 
     # --- Database Setup for Persistence ---
     # NOTE: You requested TinyDB, which requires an additional library.
