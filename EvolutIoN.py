@@ -5021,7 +5021,7 @@ def main():
     )
     analysis_top_n = st.sidebar.number_input(
         "Top Architectures to Analyze",
-        min_value=1, max_value=20, value=s.get('analysis_top_n', 3), step=1,
+        min_value=1, max_value=20, value=s.get('analysis_top_n', 1), step=1,
         help="Number of top-ranked architectures to display in the final analysis section.",
         key="analysis_top_n_input"
     )
