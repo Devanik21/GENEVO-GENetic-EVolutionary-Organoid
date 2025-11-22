@@ -1053,7 +1053,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
     # If the network is still a baby (< 30 nodes) after Generation 10, we punish it.
     if generation > 10 and current_nodes < 30:
         size_bonus = 0.0
-        total_fitness *= 0.1  # Massive 90% penalty for being small & lazy
+        scores['task_accuracy'] *= 0.1  # Massive 90% penalty for being small & lazy
     else:
         # Normal reward: Logarithmic growth keeps big networks safely in the elite
         size_bonus = np.log10(max(1, total_params)) / 5.0 
