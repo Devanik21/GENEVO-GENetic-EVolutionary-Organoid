@@ -127,6 +127,62 @@ POSSIBLE_ACTIVATIONS = [
     'bump_function', 'step_function', 'linear'
 ]
 
+# ==================== GLOBAL CONSTANTS (Continued) ====================
+
+# PRINCE NIK UPDATE: The Encyclopedia of Neural Components.
+# A comprehensive list of 100+ node types spanning history, biology, and SOTA AI.
+
+POSSIBLE_MODULE_TYPES = [
+    # --- 1. The Foundations (Classic Deep Learning) ---
+    'linear_dense', 'mlp_block', 'perceptron', 'radial_basis_function',
+    'conv_1d', 'conv_2d', 'conv_3d', 'conv_transpose_2d', 'depthwise_sep_conv',
+    'embedding_lookup', 'one_hot_encoder', 'flatten', 'reshape',
+    
+    # --- 2. Recurrent & Temporal (Memory Systems) ---
+    'rnn_simple', 'lstm_unit', 'gru_unit', 'peephole_lstm', 'bi_directional_rnn',
+    'echo_state_network', 'reservoir_computing_node', 'indrnn', 'ctrnn',
+    'neural_ode_solver', 'liquid_time_constant_unit', 'cfc_cell', # Closed-form Continuous
+    
+    # --- 3. Attention & Transformers (The Modern Era) ---
+    'self_attention', 'cross_attention', 'multi_head_attention', 'masked_attention',
+    'relative_positional_attention', 'linear_attention', 'sparse_attention',
+    'flash_attention', 'axial_attention', 'window_attention', 'performer_kernel',
+    'transformer_encoder_block', 'transformer_decoder_block', 'feed_forward_swiglu',
+    
+    # --- 4. Next-Gen Sequence Models (Post-Transformer) ---
+    'mamba_ssm_block', 's4_layer', 'h3_layer', 'hyena_operator', 'rwkv_time_mix',
+    'retnet_retention', 'linear_recurrent_unit', 'gated_linear_unit',
+    
+    # --- 5. Vision & Spatial Primitives ---
+    'resnet_residual_block', 'bottleneck_block', 'inception_module', 'squeeze_excite_block',
+    'mbconv_block', 'vision_transformer_patch_embed', 'spatial_pyramid_pooling',
+    'deformable_convolution', 'capsule_routing_unit', 'blur_pool', 'anti_alias_downsample',
+    
+    # --- 6. Normalization & Regularization (Stability) ---
+    'batch_norm', 'layer_norm', 'instance_norm', 'group_norm', 'rms_norm', 'spectral_norm',
+    'weight_standardization', 'dropout', 'drop_path', 'drop_connect', 'stochastic_depth',
+    
+    # --- 7. Graph & Relational (Structure) ---
+    'graph_conv_gcn', 'graph_attention_gat', 'graph_sage', 'graph_isomorphism_gin',
+    'message_passing_interface', 'edge_conv', 'dynamic_graph_cnn',
+    
+    # --- 8. Bio-Inspired & Spiking (Neuromorphic) ---
+    'leaky_integrate_fire', 'izhikevich_neuron', 'hodgkin_huxley_model',
+    'spiking_stdp_synapse', 'hebbian_plasticity_layer', 'lateral_inhibition_layer',
+    'dendritic_computation_node', 'neuromodulated_plasticity',
+    
+    # --- 9. Generative & Probabilistic ---
+    'vae_sampling_layer', 'reparameterization_trick', 'gaussian_noise_injection',
+    'diffusion_step_embedding', 'adaptive_instance_norm', 'pixel_shuffle',
+    
+    # --- 10. Advanced Control & Logic ---
+    'mixture_of_experts_router', 'sparse_moe_block', 'switch_transformer_layer',
+    'neural_turing_machine_head', 'differentiable_neural_computer_head',
+    'kalman_filter_update', 'pid_controller_node', 'fuzzy_logic_gate',
+    'fourier_feature_mapping', 'siren_layer' # Sinusoidal Representation
+]
+
+
 # ==================== THEORETICAL FOUNDATIONS ====================
 
 class EvolutionaryTheory:
@@ -688,47 +744,33 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
     
     # 3b. Add new module
     if random.random() < innovation_rate * 0.5:
-        # This is the *only* "Add new module" block now.
-        # It correctly uses the global list that your innovation code creates.
         
         new_id = f"evolved_{len(mutated.modules)}"
         avg_size = int(np.mean([m.size for m in mutated.modules])) if mutated.modules else 128
         
-        # 1. Ensure the global list exists (in case the innovation code hasn't run yet)
-        # 1. Ensure the global list exists (in case the innovation code hasn't run yet)
-        if 'module_types' not in st.session_state or not st.session_state.module_types:
-            # This is the same default list from your innovation code,
-            # acting as a fallback.
-            # This is the same default list from your innovation code,
-            # acting as a fallback.
-            st.session_state.module_types = [
-                'mlp', 'attention', 'conv', 'recurrent', 'graph',
-                'transformer_block', 'autoencoder', 'variational_autoencoder', 
-                'generative_adversarial_net', 'diffusion_model', 'capsule_network',
-                'liquid_network', 'mixture_of_experts', 'lstm_unit', 'gru_unit', 
-                'rnn_simple', 'hopfield_network', 'echo_state_network', 'neural_turing_machine',
-                'spiking_neuron_if', 'spiking_neuron_lif', 'synaptic_plasticity_stdp',
-                'cortical_column', 'inhibitory_interneuron', 'thalamic_relay',
-                'hebbian_learning_layer', 'attractor_network', 'fourier_transform', 
-                'wavelet_transform', 'kalman_filter', 'particle_filter', 'state_space_model', 
-                'pid_controller', 'adaptive_filter', 'finite_automaton', 'pushdown_automaton', 
-                'logic_gate_array', 'hash_unit', 'memory_matrix', 'semantic_parser'
-            ]
-
-        # 2. Pick a random module type from the *entire* known universe
-        available_types = st.session_state.module_types
-        new_module_type = random.choice(available_types)
+        # PRINCE NIK UPDATE: Use the Encyclopedia of Neural Components
+        # We combine the static master list with any new types the system invented
+        invented_types = st.session_state.get('module_types', [])
+        
+        # Create a "Universe" of types to pick from
+        universe_of_types = POSSIBLE_MODULE_TYPES + invented_types
+        
+        # Pick a random type from the Universe
+        new_module_type = random.choice(universe_of_types)
 
         new_module = ModuleGene(
-            new_id, new_module_type, # Use the type from the global list
-            int(np.clip(avg_size * np.random.uniform(0.5, 1.5), 16, 512)), random.choice(['gelu', 'swish']), 'layer',
+            new_id, 
+            new_module_type, # Using the expanded list
+            int(np.clip(avg_size * np.random.uniform(0.5, 1.5), 16, 512)), 
+            random.choice(POSSIBLE_ACTIVATIONS), # Using your expanded activations
+            'layer',
             0.2, 1.0, 0.5, '#DDA15E',
             (len(mutated.modules), 0, 0)
         )
         mutated.modules.append(new_module)
         
         # 3. Connect to network
-        if mutated.modules[:-1]: # Check if there are other modules to connect from
+        if mutated.modules[:-1]: 
             source = random.choice(mutated.modules[:-1])
             mutated.connections.append(ConnectionGene(
                 source.id, new_id, 0.3, 'excitatory', 0.01, 'hebbian'
