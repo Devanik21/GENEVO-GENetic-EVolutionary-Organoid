@@ -979,7 +979,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             compositional_score * 0.4 +
             plasticity_bonus * 0.3 +
             efficiency_penalty * 0.3 +
-            np.random.normal(0, 0.05)  # Stochasticity
+           # np.random.normal(0, 0.05)  # Stochasticity
         )
         
         # Evolved architectures improve over generations
@@ -993,7 +993,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             (conv_count / len(genotype.modules)) * 0.5 +
             hierarchical_bonus +
             connection_density * 0.2 +
-            np.random.normal(0, 0.05)
+            #np.random.normal(0, 0.05)
         )
         
     elif task_type == 'Language (MMLU-Pro)':
@@ -1003,7 +1003,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
         scores['task_accuracy'] = (
             (attn_count / len(genotype.modules)) * 0.6 +
             min(depth_bonus, 0.3) +
-            np.random.normal(0, 0.05)
+            #np.random.normal(0, 0.05)
         )
         
     elif task_type == 'Sequential Prediction':
@@ -1014,7 +1014,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             (rec_count / len(genotype.modules)) * 0.5 +
             memory_bonus +
             avg_plasticity * 0.15 +
-            np.random.normal(0, 0.05)
+            #np.random.normal(0, 0.05)
         )
         
     elif task_type == 'Multi-Task Learning':
@@ -1025,7 +1025,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             (module_diversity / 5) * 0.4 +
             hybrid_bonus +
             connection_density * 0.15 +
-            np.random.normal(0, 0.05)
+            #np.random.normal(0, 0.05)
         )
 
     # --- NEW MODALITIES ---
@@ -1035,7 +1035,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
         scores['task_accuracy'] = (
             (conv_rec_count / len(genotype.modules)) * 0.6 +
             avg_plasticity * 0.2 +
-            np.random.normal(0, 0.05)
+            #np.random.normal(0, 0.05)
         )
 
     elif task_type == 'Speech Recognition (LibriSpeech)':
@@ -1044,7 +1044,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
         scores['task_accuracy'] = (
             (rec_attn_count / len(genotype.modules)) * 0.7 +
             avg_plasticity * 0.1 +
-            np.random.normal(0, 0.05)
+            #np.random.normal(0, 0.05)
         )
 
     elif task_type == 'Robotics Control (MuJoCo)':
@@ -1054,7 +1054,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             (mlp_count / len(genotype.modules)) * 0.3 +
             avg_plasticity * 0.4 +
             (1.0 / (1.0 + len(genotype.modules))) * 0.3 + # Latency proxy
-            np.random.normal(0, 0.05)
+        #    np.random.normal(0, 0.05)
         )
 
     elif task_type == 'Visual Question Answering (VQA)':
@@ -1065,7 +1065,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             (vision_modules / len(genotype.modules)) * 0.4 +
             (lang_modules / len(genotype.modules)) * 0.4 +
             connection_density * 0.2 +
-            np.random.normal(0, 0.05)
+           # np.random.normal(0, 0.05)
         )
     
     elif task_type == 'Protein Folding (AlphaFold)':
@@ -1073,7 +1073,7 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
         graph_attn_count = sum(1 for m in genotype.modules if m.module_type in ['graph', 'attention'])
         scores['task_accuracy'] = (
             (graph_attn_count / len(genotype.modules)) * 0.8 +
-            np.random.normal(0, 0.05)
+           # np.random.normal(0, 0.05)
         )
     
     # Apply epigenetic bonus to the base score
