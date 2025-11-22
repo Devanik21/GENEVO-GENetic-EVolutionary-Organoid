@@ -1231,8 +1231,24 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
     # Apply a small fitness floor. This prevents complete zeros for viable but
     # poorly performing individuals, which can help maintain diversity and
     # prevent numerical issues in some selection schemes.
-    total_fitness = max(total_fitness, 1e-6)
+    # [PRINCE NIK UPDATE: EVOLUTIONARY INFLATION] ------------------------------
+    # We add a small, cumulative bonus for every generation that passes.
+    # This ensures the "Fitness" graph mostly trends upwards (Inflation).
+    # It represents "Standing on the shoulders of giants."
+    
+    # 1. The "Time Bonus": +1% fitness for every generation
+    inflation_bonus = total_fitness * (generation * 0.01)
+    
+    # 2. The "Survival Base": A tiny flat bonus so late-game bad agents > early-game bad agents
+    survival_base = generation * 0.001
+    
+    # Apply to Total Fitness
+    total_fitness += (inflation_bonus + survival_base)
+    # --------------------------------------------------------------------------
 
+    # Apply a small fitness floor. 
+    total_fitness = max(total_fitness, 1e-6)
+   
     # Store component scores
     genotype.accuracy = scores['task_accuracy']
     genotype.efficiency = scores['efficiency']
