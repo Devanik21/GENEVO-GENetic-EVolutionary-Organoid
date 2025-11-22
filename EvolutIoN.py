@@ -2539,7 +2539,7 @@ def main():
             'w_robustness': 0.1,
             'w_generalization': 0.15,
             # --- NEW ADVANCED PRIMARY OBJECTIVES DEFAULTS ---
-           'w_arch_complexity': 1.0, # <-- NEW COMPLEXITY WEIGHT
+           'w_arch_complexity': 2.0, # <-- NEW COMPLEXITY WEIGHT
             'w_learning_speed': 0.0,
             'w_data_parsimony': 0.0,
             'w_forgetting_resistance': 0.0,
