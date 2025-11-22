@@ -3226,7 +3226,7 @@ def main():
         'Sequential Prediction',
         'Multi-Task Learning'
     ]
-    default_task = s.get('task_type', 'Abstract Reasoning (ARC-AGI-2)')
+    default_task = s.get('task_type', 'Universal Intelligence (AGI-Omni)')
     task_type = st.sidebar.selectbox(
         "Initial Task",
         task_options,
