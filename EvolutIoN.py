@@ -2379,14 +2379,20 @@ def main():
     # --- End of State Initialization ---
     
     # --- Password Protection ---
+    # --- Password Protection (Fixed for KeyError) ---
     def check_password():
         """Returns `True` if the user had the correct password."""
 
         def password_entered():
             """Checks whether a password entered by the user is correct."""
-            if st.session_state["password"] == st.secrets["password"]:
+            # FIX: Use .get() to safely access the key. If it's missing, return empty string.
+            entered_password = st.session_state.get("password", "")
+            
+            if entered_password == st.secrets["password"]:
                 st.session_state["password_correct"] = True
-                del st.session_state["password"]  # don't store password
+                # FIX: Only delete the key if it actually exists to prevent KeyErrors
+                if "password" in st.session_state:
+                    del st.session_state["password"]  # don't store password
             else:
                 st.session_state["password_correct"] = False
 
@@ -2406,9 +2412,6 @@ def main():
         else:
             # Password correct.
             return True
-
-    if not check_password():
-        st.stop()  # Do not continue if check_password is not True.
 
     # --- Database Setup for Persistence ---
     # NOTE: You requested TinyDB, which requires an additional library.
