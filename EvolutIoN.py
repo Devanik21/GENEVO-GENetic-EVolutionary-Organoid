@@ -2066,47 +2066,43 @@ def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
 
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'kamada_kawai') -> go.Figure:
     """
-    Adaptive 2D visualization that scales node size and hides labels 
-    when the network becomes highly complex. 
-    PRINCE NIK UPDATE: Now with Dynamic Type-Coloring!
+    Adaptive 2D visualization with Generative Neon Coloring.
     """
-    
-    # --- HELPER: Dynamic Color Palette ---
+    import hashlib
+
+    # --- HELPER: Generative Neon Palette ---
     def get_color_for_type(m_type):
-        m_type = m_type.lower()
-        # Vision / Spatial (Blues)
-        if any(x in m_type for x in ['conv', 'pool', 'spatial', 'image', 'vision']): return '#00BFFF' # Deep Sky Blue
-        # Attention / Transformer (Purples)
-        if any(x in m_type for x in ['attention', 'transformer', 'head', 'embed']): return '#9932CC' # Dark Orchid
-        # Recurrent / Memory (Greens)
-        if any(x in m_type for x in ['lstm', 'gru', 'rnn', 'memory', 'reservoir']): return '#32CD32' # Lime Green
-        # Logic / Math / Exotic (Reds/Pinks)
-        if any(x in m_type for x in ['logic', 'math', 'gate', 'act', 'siren']): return '#FF1493' # Deep Pink
-        # Normalization (Cyans)
-        if any(x in m_type for x in ['norm', 'batch', 'layer']): return '#00CED1' # Dark Turquoise
-        # Graph / Relational (Oranges)
-        if any(x in m_type for x in ['graph', 'edge', 'message']): return '#FF8C00' # Dark Orange
-        # Core / MLP (Yellows)
-        if any(x in m_type for x in ['mlp', 'dense', 'linear', 'feed']): return '#FFD700' # Gold
-        # Default
-        return '#A9A9A9' # Dark Grey
+        # Special overrides for Input/Output
+        if 'input' in m_type.lower(): return '#FFFFFF'  # Pure White
+        if 'output' in m_type.lower(): return '#000000' # Pure Black
+        
+        # For everything else, generate a unique color from its name
+        # We hash the string to get a deterministic number
+        hash_object = hashlib.md5(m_type.encode())
+        hex_hash = hash_object.hexdigest()
+        
+        # Use the hash to pick RGB values
+        # We enforce high values to ensure bright, neon colors (Cyberpunk style)
+        r = int(hex_hash[0:2], 16) % 156 + 100  # Range 100-255
+        g = int(hex_hash[2:4], 16) % 156 + 100
+        b = int(hex_hash[4:6], 16) % 156 + 100
+        
+        return f'rgb({r},{g},{b})'
 
     G = nx.DiGraph()
     
-    # Add nodes with Dynamic Coloring
+    # Add nodes with Generative Coloring
     for module in genotype.modules:
-        # Determine color based on type (overriding the genetic color)
-        # Special handling for Input/Output to keep them distinct
-        if 'input' in module.id.lower(): final_color = '#FFFFFF' # White for Input
-        elif 'output' in module.id.lower(): final_color = '#000000' # Black for Output
-        else: final_color = get_color_for_type(module.module_type)
+        # Determine color based on the module TYPE, not ID
+        # This ensures all 'Synaptic_Web' nodes are the same color, etc.
+        final_color = get_color_for_type(module.module_type)
 
         G.add_node(
             module.id,
             size=module.size,
-            color=final_color, # <--- Use our new dynamic color
+            color=final_color, 
             module_type=module.module_type,
-            # Rich hover text always remains available!
+            # Rich hover text
             hover_text=(
                 f"<b>{module.id}</b><br>"
                 f"Type: <span style='color:{final_color}'><b>{module.module_type}</b></span><br>"
@@ -2116,66 +2112,63 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
             )
         )
         
-    # Add edges
+    # Add edges (Make them thinner and glowing for sophistication)
+    edge_traces = []
     for conn in genotype.connections:
         if conn.source in G.nodes and conn.target in G.nodes:
             G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
-            
-    # --- ADAPTIVE SCALING LOGIC ---
+
+    # --- LAYOUT LOGIC ---
     node_count = len(G.nodes())
-    
-    # If huge, use spring layout with more spacing and iterations
     if node_count > 50:
-        pos = nx.spring_layout(G, seed=layout_seed, k=3.0/np.sqrt(node_count), iterations=200)
+        pos = nx.spring_layout(G, seed=layout_seed, k=4.0/np.sqrt(node_count), iterations=300) # Spread them out more
     else:
         try:
             if layout_algo == 'kamada_kawai': pos = nx.kamada_kawai_layout(G)
             elif layout_algo == 'circular': pos = nx.circular_layout(G)
-            else: pos = nx.spring_layout(G, seed=layout_seed, k=0.8)
+            else: pos = nx.spring_layout(G, seed=layout_seed, k=0.9)
         except:
-            pos = nx.spring_layout(G, seed=layout_seed, k=0.8)
+            pos = nx.spring_layout(G, seed=layout_seed, k=0.9)
 
     fig = go.Figure()
 
-    # --- 1. Draw Curved Edges ---
-    # Thinner lines for dense graphs to avoid "spaghetti" look
-    base_width = 0.5 if node_count > 100 else 1.5
-    opacity = 0.4 if node_count > 100 else 0.8
-
+    # --- 1. Draw Elegant Edges ---
+    # Group edges by type to improve rendering speed and look
     for i, (u, v, data) in enumerate(G.edges(data=True)):
         x0, y0 = pos[u]
         x1, y1 = pos[v]
         
-        curve_intensity = 0.05 if node_count > 50 else 0.15
-        curvature = curve_intensity if i % 2 == 0 else -curve_intensity
-        
+        # Slight curve for sophistication
+        curvature = 0.1 if i % 2 == 0 else -0.1
         bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature)
         
-        weight = data.get('weight', 0.5)
         conn_type = data.get('type', 'excitatory')
+        weight = data.get('weight', 0.5)
         
-        if conn_type == 'inhibitory': edge_color = f'rgba(255, 80, 80, {opacity})'
-        elif conn_type == 'modulatory': edge_color = f'rgba(80, 150, 255, {opacity})'
-        else: edge_color = f'rgba(180, 180, 180, {min(0.5, weight)})'
+        # Thinner, more transparent lines for "Complex" look
+        width = max(0.3, weight * 1.5) 
+        
+        if conn_type == 'inhibitory': edge_color = f'rgba(255, 50, 50, 0.3)' # Faint Red
+        elif conn_type == 'modulatory': edge_color = f'rgba(50, 150, 255, 0.3)' # Faint Blue
+        else: edge_color = f'rgba(200, 200, 200, 0.15)' # Very Faint White
             
         fig.add_trace(go.Scatter(
             x=bx, y=by,
             mode='lines',
-            line=dict(width=base_width + weight, color=edge_color),
+            line=dict(width=width, color=edge_color),
             hoverinfo='none',
             showlegend=False
         ))
 
-    # --- 2. Draw Nodes (Adaptive) ---
+    # --- 2. Draw Glowing Nodes ---
     node_x, node_y = [], []
     node_colors = []
     node_sizes = []
     node_labels = [] 
-    hover_texts = [] 
+    hover_texts = []
     
-    if node_count < 20: base_size_mult = 1.0
-    elif node_count < 100: base_size_mult = 0.6
-    else: base_size_mult = 0.3
+    # Base size calculation
+    base_size_mult = 0.5 if node_count > 100 else 0.8
 
     for node in G.nodes():
         x, y = pos[node]
@@ -2184,56 +2177,50 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         node_colors.append(G.nodes[node]['color'])
         hover_texts.append(G.nodes[node]['hover_text'])
         
-        # Size calculation
-        raw_size = np.log(G.nodes[node]['size']) * 8
-        node_sizes.append(max(6, raw_size * base_size_mult)) 
+        # Logarithmic size scaling so massive nodes don't block view
+        raw_size = np.log(max(1, G.nodes[node]['size'])) * 6
+        node_sizes.append(max(4, raw_size * base_size_mult)) 
         
-        # --- SMART LABELING 2.0 ---
-        # Now we also show the Type Name if space permits!
-        m_type_short = G.nodes[node]['module_type'][:4] # First 4 letters
-        
-        if node_count > 40:
-            if "forced" in node: 
-                node_labels.append("") 
-            else:
-                node_labels.append(node) 
+        # Smart Labels: Only label huge hubs or Input/Output
+        if 'input' in node.lower() or 'output' in node.lower():
+            node_labels.append(node)
+        elif G.nodes[node]['size'] > 1000: # Only label massive nodes
+            node_labels.append(node[:10]) # Short label
         else:
-            # PRINCE NIK UPDATE: Show ID + Type
-            if 'Input' in node: node_labels.append("Input")
-            elif 'Output' in node: node_labels.append("Output")
-            else: node_labels.append(f"{node}<br>({m_type_short})")
+            node_labels.append("")
 
-    # Layer 1: The Core Node
+    # Layer: The Nodes
     fig.add_trace(go.Scatter(
         x=node_x, y=node_y,
         mode='markers+text', 
         text=node_labels,
-        textposition="bottom center",
-        textfont=dict(family="Arial", size=10 if node_count < 50 else 8, color="#EEE"),
+        textposition="top center",
+        textfont=dict(family="Roboto Mono", size=9, color="#AAA"),
         hovertext=hover_texts,
         hoverinfo='text',
         marker=dict(
             color=node_colors,
             size=node_sizes,
-            line=dict(width=1 if node_count > 100 else 2, color='white'),
-            opacity=1.0
+            line=dict(width=1, color='rgba(255,255,255,0.3)'), # Subtle glow rim
+            opacity=0.9
         ),
         name='Modules'
     ))
 
-    # Layout Styling
-    title_text = f"<b>Neural Topography: Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f} | Nodes: {node_count}"
-
+    # Dark Space Background
     fig.update_layout(
-        title=dict(text=title_text, x=0.5, font=dict(size=14, color='#AAA')),
+        title=dict(
+            text=f"<b>Neural Topography: Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f} | Nodes: {node_count}",
+            x=0.05, font=dict(size=14, color='#DDD')
+        ),
         showlegend=False,
         hovermode='closest',
-        margin=dict(b=10, l=10, r=10, t=40),
+        margin=dict(b=0, l=0, r=0, t=30),
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         height=650,
-        plot_bgcolor='rgba(5,5,8,1)', 
-        paper_bgcolor='rgba(0,0,0,0)'
+        plot_bgcolor='#050508', 
+        paper_bgcolor='#050508'
     )
     
     return fig
