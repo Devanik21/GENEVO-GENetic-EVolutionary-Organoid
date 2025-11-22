@@ -1816,13 +1816,19 @@ def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
                 y=[y0, y1, None],
                 z=[z0, z1, None],
                 mode='lines',
+                # --- UPDATED SECTION BELOW ---
                 line=dict(
-                    width=conn.weight * 8,
+                    # We use abs() because width must be positive.
+                    # We also enforce a minimum width of 0.1 so lines don't disappear.
+                    width=max(0.1, abs(conn.weight) * 8),
                     color=edge_colors.get(conn.connection_type, 'rgba(125, 125, 125, 0.5)')
                 ),
+                # -----------------------------
                 hovertext=f'{conn.source}→{conn.target}<br>Weight: {conn.weight:.3f}<br>Type: {conn.connection_type}<br>Plasticity: {conn.plasticity_rule}',
                 showlegend=False
             ))
+    
+    # ... (The rest of the function remains the same)
     
     # Create nodes
     node_x = [m.position[0] for m in genotype.modules]
@@ -1974,12 +1980,21 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         
         if conn_type == 'inhibitory': edge_color = f'rgba(255, 80, 80, {opacity})'
         elif conn_type == 'modulatory': edge_color = f'rgba(80, 150, 255, {opacity})'
-        else: edge_color = f'rgba(180, 180, 180, {min(0.5, weight)})'
+        else:
+           safe_alpha = max(0.0, min(0.5, abs(weight)))
+           edge_color = f'rgba(180, 180, 180, {safe_alpha})'
+           
+           
+
+
+    # Use abs() to ensure alpha is positive, then clamp between 0 and 0.5
+    
+    
             
         fig.add_trace(go.Scatter(
             x=bx, y=by,
             mode='lines',
-            line=dict(width=base_width + weight, color=edge_color),
+            line=dict(width=base_width + abs(weight), color=edge_color),
             hoverinfo='none',
             showlegend=False
         ))
