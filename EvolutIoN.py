@@ -2171,30 +2171,19 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         # --- SMART LABELING ---
         # Only show text for "Important" nodes if the graph is dense
         # --- SMART LABELING (UPDATED FOR PRINCE NIK) ---
-        # --- SMART LABELING (UPDATED v2 FOR PRINCE NIK) ---
-        # Now shows labels for:
-        # 1. Inputs & Outputs (The Interface)
-        # 2. Massive Nodes (The Giants)
-        # 3. Core Functional Units (The "Managers" - Hubs, Cores, Lobes)
+        # Only show text if the node is HUGE or is Input/Output
+        # This cleans up the "messy text" on 500+ node graphs
         
-        # Check for Interface
-        is_io = "Input" in node or "Output" in node
-        
-        # Check for Core Functions by name (This is the new part!)
-        # We show any node that is a "Core", "Hub", or "Lobe" regardless of size
-        is_core_func = any(keyword in node for keyword in ["Core", "Hub", "Lobe"])
-        
-        # Check for pure Size (in case a generic cluster gets huge)
-        is_massive = G.nodes[node]['size'] > 300 
+        is_special = "Input" in node or "Output" in node
+        is_hub = G.nodes[node]['size'] > 300  # Only label big nodes
         
         if node_count > 50:
-            # If it's Important OR a Core Function OR Massive -> Show Label
-            if is_io or is_core_func or is_massive: 
-                node_labels.append(node) 
+            if is_special or is_hub: 
+                node_labels.append(node) # Show label for VIP nodes
             else:
-                node_labels.append("")   # Hide generic "Neural_Clusters" and "Synaptic_Webs"
+                node_labels.append("")   # Hide label for the crowd
         else:
-            node_labels.append(node) # Show everything if the brain is small
+            node_labels.append(node) # Show all if graph is small
 
     # Layer 1: The Core Node
     fig.add_trace(go.Scatter(
