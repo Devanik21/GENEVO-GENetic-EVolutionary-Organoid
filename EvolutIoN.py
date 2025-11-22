@@ -1961,9 +1961,9 @@ def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     # Create edges with color-coded types
     edge_traces = []
     edge_colors = {
-        'excitatory': 'rgba(0, 255, 0, 0.6)',
-        'inhibitory': 'rgba(255, 0, 0, 0.6)',
-        'modulatory': 'rgba(0, 100, 255, 0.6)'
+        'excitatory': 'rgba(50, 255, 50, 0.8)',   # Brighter Green for dark mode
+        'inhibitory': 'rgba(255, 50, 50, 0.8)',   # Brighter Red for dark mode
+        'modulatory': 'rgba(50, 150, 255, 0.8)'   # Brighter Blue for dark mode
     }
     
     for conn in genotype.connections:
@@ -1978,7 +1978,7 @@ def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
                 mode='lines',
                 line=dict(
                     width=conn.weight * 8,
-                    color=edge_colors.get(conn.connection_type, 'rgba(125, 125, 125, 0.5)')
+                    color=edge_colors.get(conn.connection_type, 'rgba(200, 200, 200, 0.5)') # Lighter grey for fallback
                 ),
                 hovertext=f'{conn.source}→{conn.target}<br>Weight: {conn.weight:.3f}<br>Type: {conn.connection_type}<br>Plasticity: {conn.plasticity_rule}',
                 showlegend=False
@@ -2002,32 +2002,37 @@ def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     
     node_trace = go.Scatter3d(
         x=node_x, y=node_y, z=node_z,
-        mode='markers+text',
-        text=[m.id for m in genotype.modules],
+        mode='markers', # Removed text to keep it clean like 2D
         hovertext=node_text,
         hoverinfo='text',
-        textposition="top center",
         marker=dict(
             size=node_sizes,
             color=node_colors,
-            line=dict(width=2, color='white'),
-            opacity=0.9
+            line=dict(width=2, color='rgba(255,255,255,0.8)'), # White halo for contrast
+            opacity=1.0
         )
     )
     
     # Create figure
     fig = go.Figure(data=edge_traces + [node_trace])
     
+    # Updated Layout: Deep Space Black
     fig.update_layout(
-        title=f"<b>Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f}<br>"
-              f"<sub>Accuracy: {genotype.accuracy:.3f} | Efficiency: {genotype.efficiency:.3f} | "
-              f"Complexity: {genotype.complexity:.3f} | Params: {sum(m.size for m in genotype.modules):,}</sub>",
+        title=dict(
+            text=f"<b>Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f}<br>"
+                 f"<sub>Accuracy: {genotype.accuracy:.3f} | Efficiency: {genotype.efficiency:.3f} | "
+                 f"Complexity: {genotype.complexity:.3f} | Params: {sum(m.size for m in genotype.modules):,}</sub>",
+            font=dict(size=14, color="#EEE") # Light text
+        ),
         showlegend=False,
+        paper_bgcolor='rgba(5,5,8,1)', # Deep space black background
         scene=dict(
-            xaxis=dict(showgrid=True, showbackground=True, backgroundcolor='rgba(230, 230, 230, 0.5)'),
-            yaxis=dict(showgrid=True, showbackground=True, backgroundcolor='rgba(230, 230, 230, 0.5)'),
-            zaxis=dict(showgrid=True, showbackground=True, backgroundcolor='rgba(230, 230, 230, 0.5)'),
-            camera=dict(eye=dict(x=1.5, y=1.5, z=1.2))
+            # Hide all axes and grids for a floating "void" effect
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, showbackground=False, title='', backgroundcolor='rgba(0,0,0,0)'),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, showbackground=False, title='', backgroundcolor='rgba(0,0,0,0)'),
+            zaxis=dict(showgrid=False, zeroline=False, showticklabels=False, showbackground=False, title='', backgroundcolor='rgba(0,0,0,0)'),
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.2)),
+            aspectmode='cube'
         ),
         height=500,
         margin=dict(l=0, r=0, t=80, b=0)
