@@ -965,7 +965,42 @@ def evaluate_fitness(genotype: Genotype, task_type: str, generation: int, weight
             epigenetic_bonus = genotype.epigenetic_markers[aptitude_key]
     
     # 1b. Task-specific accuracy simulation
-    if task_type == 'Abstract Reasoning (ARC-AGI-2)':
+    # 1b. Task-specific accuracy simulation
+    if task_type == 'Universal Intelligence (AGI-Omni)':
+        # The Ultimate Test: Rewards architectures that possess capabilities across ALL domains.
+        
+        # 1. Vision Capability (Needs Convolutional or Capsule nodes)
+        vision_capacity = sum(1 for m in genotype.modules if m.module_type in ['conv', 'capsule_network', 'vision_transformer_patch_embed']) / len(genotype.modules)
+        vision_score = np.tanh(vision_capacity * 5) # Saturates at 20% density
+        
+        # 2. Language/Logic Capability (Needs Attention or recursive nodes)
+        lang_capacity = sum(1 for m in genotype.modules if m.module_type in ['attention', 'transformer_block', 'semantic_parser']) / len(genotype.modules)
+        lang_score = np.tanh(lang_capacity * 5)
+        
+        # 3. Memory/Temporal Capability (Needs Recurrent or State-Space nodes)
+        memory_capacity = sum(1 for m in genotype.modules if m.module_type in ['recurrent', 'lstm_unit', 'neural_turing_machine', 'memory_matrix']) / len(genotype.modules)
+        memory_score = np.tanh(memory_capacity * 5)
+        
+        # 4. Reasoning/Structure Capability (Needs Graph or Symbolic nodes)
+        reasoning_capacity = sum(1 for m in genotype.modules if m.module_type in ['graph', 'gnn', 'logic_gate_array', 'causal_inference_engine']) / len(genotype.modules)
+        reasoning_score = np.tanh(reasoning_capacity * 5)
+        
+        # 5. Integration Bonus (Needs high connectivity to bind these senses together)
+        integration_score = min(connection_density * 2, 1.0)
+        
+        # Total AGI Score is the average of all capacities (punishes being 0 in any single area)
+        scores['task_accuracy'] = (
+            (vision_score + lang_score + memory_score + reasoning_score + integration_score) / 5.0
+        )
+        
+        # Massive bonus for 'Synergy' - if it has ALL 4 types, it gets a multiplier
+        if vision_score > 0.1 and lang_score > 0.1 and memory_score > 0.1 and reasoning_score > 0.1:
+            scores['task_accuracy'] *= 1.5 # AGI Emergence Bonus
+            
+        # Cap at 1.0
+        scores['task_accuracy'] = np.clip(scores['task_accuracy'], 0, 1)
+
+    elif task_type == 'Abstract Reasoning (ARC-AGI-2)':
         # Reward compositional structures and high plasticity
         graph_attention_count = sum(1 for m in genotype.modules 
                                    if m.module_type in ['graph', 'attention'])
@@ -3169,6 +3204,7 @@ def main():
 
     st.sidebar.markdown("### Task Environment")
     task_options = [
+        'Universal Intelligence (AGI-Omni),
         'Abstract Reasoning (ARC-AGI-2)',
         # Vision Modalities
         'Vision (ImageNet)',
