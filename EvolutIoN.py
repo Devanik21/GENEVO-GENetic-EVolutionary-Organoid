@@ -85,8 +85,26 @@ if 'show_final_synthesis' not in st.session_state:  # <-- ADD THIS LINE
 # Define the universe of possible activation functions
 # This central list is used for mutation and parasite targeting.
 
-POSSIBLE_ACTIVATIONS = ['relu', 'gelu', 'silu', 'swish', 'tanh', 'sigmoid']
+# ==================== GLOBAL CONSTANTS ====================
 
+# 1. The "Atoms" of Mathematics
+# The system will mix these to create infinite new laws of physics for the brain.
+MATH_PRIMITIVES = [
+    'sin', 'cos', 'tan', 'tanh', 'sinh', 'cosh',  # Trigonometry
+    'exp', 'log', 'log10', 'sqrt', 'square',      # Growth/Decay
+    'abs', 'floor', 'ceil', 'round', 'sign',      # Discretization/Logic
+    'min', 'max', 'mean', 'sum', 'prod',          # Aggregation
+    'gamma', 'erf', 'sinc'                        # Exotic/Advanced
+]
+
+# 2. The Operators (The Glue)
+BINARY_OPS = ['+', '-', '*', '/', '%', '^', 'dot', 'cross']
+
+# 3. The Seeds (Starting Knowledge)
+# Evolution starts here but will quickly leave this behind.
+POSSIBLE_ACTIVATIONS = ['relu', 'gelu', 'silu', 'swish', 'tanh', 'sigmoid', 'identity']
+POSSIBLE_PLASTICITY = ['hebbian', 'anti-hebbian', 'oja', 'stdp', 'backprop']
+POSSIBLE_AGGREGATIONS = ['sum', 'mean', 'max', 'product', 'attention']
 # ==================== THEORETICAL FOUNDATIONS ====================
 
 class EvolutionaryTheory:
@@ -460,238 +478,176 @@ def apply_metabolic_mitosis(genotype: Genotype, generation: int) -> Genotype:
     return genotype
 
 
-def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: float = 0.05) -> Genotype:
-    """Biologically-inspired mutation with innovation"""
-
-    # --- [YOUR NEW CODE: This part is great!] ---
-    # --- Genetic Code Evolution: Invent new module types ---
-    # With a very small probability, the system can invent a new type of module.
-    # This new type is added to the pool of available modules for future mutations.
-    gene_type_innovation_rate = st.session_state.settings.get('gene_type_innovation_rate', 0.001) if 'settings' in st.session_state else 0.0
-    if random.random() < gene_type_innovation_rate:
-        prefixes = [
-            # Mathematics / Topology
-            'Algebraic', 'Bayesian', 'Differential', 'Euclidean', 'Fractal', 'Geometric', 
-            'Hamiltonian', 'Hessian', 'Homological', 'Integral', 'Jacobian', 'Lagrangian', 
-            'Linear', 'Markov', 'NonLinear', 'Probabilistic', 'Riemannian', 'Simplicial', 
-            'Stochastic', 'Topological',
-            
-            # Physics
-            'Boson', 'Causal', 'Entropic', 'Fermion', 'Field', 'Flux', 'Gauge', 'Harmonic', 
-            'Kinetic', 'Phase', 'Phonon', 'Photon', 'Quantum', 'Relativistic', 'Resonant', 
-            'Spinor', 'Statistical', 'Temporal', 'Thermodynamic',
-            
-            # Computer Science / Info Theory
-            'Algorithmic', 'Automata', 'Boolean', 'Computable', 'Finite', 'Graph', 
-            'Heuristic', 'Inductive', 'Lexical', 'Logic', 'Predictive', 'Recursive', # Replaced 'Meta' with 'Inductive'
-            'Semantic', 'Symbolic', 'Syntactic', 'Tensor', 'Vector',
-            
-            # Biology / Neuroscience
-            'Allosteric', 'Associative', 'Axonal', 'Cerebellar', 'Cortical', 'Dendritic', 
-            'Enzymatic', 'Epigenetic', 'Genetic', 'Hippocampal', 'Homeostatic', 'Metabolic', 
-            'Motor', 'Neural', 'Sensory', 'Somatic', 'Synaptic', 'Thalamic',
-            
-            # Engineering / Control
-            'Adaptive', 'Control', 'Feedback', 'Feedforward', 'Optimal', 'Kalman' # Replaced 'Hyper' with 'Optimal'
-        ]
-        
-        suffixes = [
-            # Mathematics / Topology
-            'Bundle', 'Chain', 'Complex', 'Functor', 'Gradient', 'Group', 'Homomorphism', 
-            'Isomorphism', 'Kernel', 'Manifold', 'Matrix', 'Metric', 'Ring', 'Sheaf', 
-            'Space', 'Topology', 'Transform', 'Lattice', 'Vertex', # Added 'Lattice', 'Vertex'
-            
-            # Physics
-            'Condensate', 'Detector', 'Emitter', 'Fluctuation', 'Modulator', 'Oscillator', 
-            'Potential', 'Resonator',
-            
-            # Computer Science / Info Theory
-            'Accumulator', 'Automaton', 'Classifier', 'Compiler', 'Decoder', 
-            'Discriminator', 'Encoder', 'Generator', 'Interpreter', 'Gate', # Removed 'Core', 'Engine'
-            'Layer', 'Multiplexer', 'Operator', 'Parser', 'Predictor', 
-            'Processor', 'Register', 'Regressor', 'Router', 'Validator',
-            'Solver', 'Representation', 'Cell', # Added 'Solver', 'Representation', 'Cell' (replacing Unit, Model, Node)
-            
-            # Biology / Neuroscience
-            'Assembly', 'Cascade', 'Channel', 'Circuit', 'Column', 'Cortex', 'Ganglion', 
-            'Lobe', 'Nucleus', 'Pathway', 'Population', 'Receptor', 'Regulator',
-            
-            # Engineering / Control
-            'Actuator', 'Controller', 'Differentiator', 'Estimator', 'Field', 'Filter', 
-            'Integrator', 'Sensor', 'Array', 'Structure' # Removed 'Network', 'System', Added 'Array', 'Structure'
-        ]
-        
-        # --- END OF EXPANDED LISTS ---
-        new_type_name = f"{random.choice(prefixes)}{random.choice(suffixes)}_{random.randint(0, 999)}" # Increased unique ID
-        
-        if 'module_types' not in st.session_state or not st.session_state.module_types:
-            # --- START OF EXPANDED MODULE LIST ---
-            # This is the "primordial soup" of known, advanced components.
-            # --- START OF EXPANDED MODULE LIST ---
-            # This is the "primordial soup" of known, advanced components.
-            # Evolution can use these *and* invent its own.
-            
-            # 1. Core Deep Learning
-            core_dl = ['mlp', 'attention', 'conv', 'recurrent', 'graph']
-            
-            # 2. Advanced Deep Learning Architectures
-            advanced_dl = [
-                'transformer_block', 'autoencoder', 'variational_autoencoder', 
-                'generative_adversarial_net', 'diffusion_model', 'capsule_network',
-                'liquid_network', 'mixture_of_experts'
-            ]
-            
-            # 3. Recurrent & Memory Units
-            recurrent_units = [
-                'lstm_unit', 'gru_unit', 'rnn_simple', 'hopfield_network', 
-                'echo_state_network', 'neural_turing_machine'
-            ]
-            
-            # 4. Neuroscience & Spiking Models
-            neuro_inspired = [
-                'spiking_neuron_if', 'spiking_neuron_lif', 'synaptic_plasticity_stdp',
-                'cortical_column', 'inhibitory_interneuron', 'thalamic_relay',
-                'hebbian_learning_layer', 'attractor_network'
-            ]
-            
-            # 5. Mathematical & Signal Processing
-            math_ops = [
-                'fourier_transform', 'wavelet_transform', 'kalman_filter', 
-                'particle_filter', 'state_space_model', 'pid_controller',
-                'adaptive_filter'
-            ]
-            
-            # 6. Computer Science & Logic
-            cs_logic = [
-                'finite_automaton', 'pushdown_automaton', 'logic_gate_array', 
-                'hash_unit', 'memory_matrix', 'semantic_parser'
-            ]
-            
-            st.session_state.module_types = (
-                core_dl + advanced_dl + recurrent_units + 
-                neuro_inspired + math_ops + cs_logic
-            )
-            # --- END OF EXPANDED MODULE LIST ---
-        
-        if new_type_name not in st.session_state.module_types:
-            st.session_state.module_types.append(new_type_name)
-            st.toast(f"💥 Genetic Innovation! New module type discovered: **{new_type_name}**", icon="💡")
+def invent_new_mathematics(complexity_level: int = 2) -> str:
+    """
+    The 'Symbolic Discovery' Engine.
+    It creates brand new mathematical formulas from scratch.
+    It can define how a neuron fires, or how a synapse learns.
+    """
+    # Variables available to the equation:
+    # x = input, w = weight, t = time, s = state, e = error
+    variables = ['x', 'w', 't', 's', 'e', '1.0', '-1.0', '0.5', 'pi']
     
-    # --- [This is the original start of the mutate logic] ---
+    equation = random.choice(variables)
+    
+    # Recursive construction of the formula
+    for _ in range(complexity_level):
+        mutation_type = random.choice(['wrap', 'combine', 'complexify'])
+        
+        if mutation_type == 'wrap':
+            # Wrap in a function: x -> sin(x)
+            func = random.choice(MATH_PRIMITIVES)
+            equation = f"{func}({equation})"
+            
+        elif mutation_type == 'combine':
+            # Combine with another term: x -> x * w
+            op = random.choice(BINARY_OPS)
+            operand = random.choice(variables)
+            equation = f"({equation} {op} {operand})"
+            
+        elif mutation_type == 'complexify':
+            # Embed a whole new primitive: x -> x + tanh(t)
+            op = random.choice(BINARY_OPS)
+            func = random.choice(MATH_PRIMITIVES)
+            var = random.choice(variables)
+            equation = f"({equation} {op} {func}({var}))"
+
+    # Generate a unique scientific name for this discovery
+    # Example: "BioFunc_sin_x_mul_w" or "HyperRule_8392"
+    name_hash = abs(hash(equation)) % 100000
+    
+    # Return a formatted string that represents this new invention
+    return f"AlienMath_{name_hash} :: {equation}"
+
+
+
+
+def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: float = 0.05) -> Genotype:
+    """
+    THE ULTIMATE MUTATOR.
+    Combines:
+    1. Symbolic Math Invention (Writing new equations).
+    2. Conceptual Invention (Creating new Module Types/Names).
+    3. Structural Evolution (Wiring and Growth).
+    """
     mutated = genotype.copy()
     mutated.age = 0
     
-    # 1. Point mutations (module parameters)
-    for module in mutated.modules:
-        if random.random() < mutation_rate:
-            # Size mutation with drift, preventing runaway growth
-            change_factor = np.random.lognormal(0, 0.2) if module.size < 2048 else np.random.uniform(0.8, 1.0)
-            new_size = module.size * change_factor
-            module.size = int(new_size)
-            module.size = int(np.clip(module.size, 16, 4096)) # Increased clip
-        
-        if random.random() < mutation_rate * 0.5:
-            # Plasticity mutation
-            module.plasticity += np.random.normal(0, 0.1)
-            module.plasticity = float(np.clip(module.plasticity, 0, 1))
-        
-        if random.random() < mutation_rate * 0.3:
-            # Learning rate multiplier
-            module.learning_rate_mult *= np.random.lognormal(0, 0.15)
-            module.learning_rate_mult = float(np.clip(module.learning_rate_mult, 0.1, 2.0))
-        
-        if random.random() < mutation_rate * 0.2:
-            # Activation function mutation
-            module.activation = random.choice(POSSIBLE_ACTIVATIONS)
-        
-        # --- [YOUR NEW CODE: Module Type Mutation] ---
-        # This is a powerful new mutation operator you added!
-        if random.random() < mutation_rate * 0.1 and 'module_types' in st.session_state and st.session_state.module_types:
-            # Allows an *existing* module to change its fundamental type
-            module.module_type = random.choice(st.session_state.module_types)
+    # =====================================================
+    # PHASE 1: THE SPARK OF INVENTION (Global Discovery)
+    # =====================================================
     
-    # 2. Connection weight mutations
+    # A. Invent New Mathematics (The "How")
+    # -------------------------------------
+    # 5% chance to discover a new Activation Function equation
+    if random.random() < 0.05: 
+        new_activation = invent_new_mathematics(complexity_level=random.randint(2, 5))
+        if new_activation not in POSSIBLE_ACTIVATIONS:
+            POSSIBLE_ACTIVATIONS.append(new_activation)
+            
+    # 2% chance to discover a new Plasticity Rule
+    if random.random() < 0.02: 
+        new_rule = invent_new_mathematics(complexity_level=random.randint(3, 6))
+        if new_rule not in POSSIBLE_PLASTICITY:
+            POSSIBLE_PLASTICITY.append(new_rule)
+
+    # B. Invent New Module Types (The "What" - YOUR CODE)
+    # -------------------------------------
+    # 10% chance to invent a new "Concept" or "Organ" type
+    if random.random() < 0.1:
+        prefixes = [
+            'Algebraic', 'Bayesian', 'Fractal', 'Geometric', 'Quantum', 'Neural', 
+            'Entropic', 'Temporal', 'Holographic', 'Synaptic', 'Hyper', 'Deep',
+            'Stochastic', 'Topological', 'Kinetic', 'Resonant', 'Recursive'
+        ]
+        suffixes = [
+            'Matrix', 'Tensor', 'Manifold', 'Lattice', 'Vortex', 'Oscillator',
+            'Core', 'Gate', 'Filter', 'Transformer', 'Accumulator', 'Regulator',
+            'Projector', 'Inhibitor', 'Excitor', 'Memory', 'Oracle'
+        ]
+        
+        new_type_name = f"{random.choice(prefixes)}_{random.choice(suffixes)}_{random.randint(100, 999)}"
+        
+        # Ensure the global list exists
+        if 'module_types' not in st.session_state or not st.session_state.module_types:
+            st.session_state.module_types = ['mlp', 'attention', 'conv', 'recurrent']
+            
+        if new_type_name not in st.session_state.module_types:
+            st.session_state.module_types.append(new_type_name)
+            # st.toast(f"💡 New Organ Evolved: {new_type_name}", icon="🧬")
+
+    # =====================================================
+    # PHASE 2: ADAPTATION (Applying Mutations)
+    # =====================================================
+    
+    # 1. Mutate Modules
+    for module in mutated.modules:
+        # Size Drift
+        if random.random() < mutation_rate:
+            module.size = int(np.clip(module.size * np.random.uniform(0.8, 1.2), 16, 4096))
+            
+        # Math Mutation: Switch to a newly invented function?
+        if random.random() < mutation_rate * 0.2:
+            module.activation = random.choice(POSSIBLE_ACTIVATIONS)
+            
+        # Type Mutation: Evolve into a newly invented Organ Type?
+        if random.random() < mutation_rate * 0.1 and st.session_state.module_types:
+            module.module_type = random.choice(st.session_state.module_types)
+
+    # 2. Mutate Connections
     for connection in mutated.connections:
         if random.random() < mutation_rate:
             connection.weight += np.random.normal(0, 0.15)
-            connection.weight = float(np.clip(connection.weight, 0.05, 1.0))
-        
-        if random.random() < mutation_rate * 0.3:
-            # Plasticity rule mutation
-            connection.plasticity_rule = random.choice(['hebbian', 'anti-hebbian', 'stdp', 'static'])
+            
+        # Rule Mutation: Switch to a newly invented Plasticity Rule?
+        if random.random() < mutation_rate * 0.1:
+            connection.plasticity_rule = random.choice(POSSIBLE_PLASTICITY)
+
+    # =====================================================
+    # PHASE 3: TOPOLOGY (Growing the Network)
+    # =====================================================
     
-    # 3. Structural mutations (innovation)
-    
-    # 3a. Add new connection
+    # 1. Add Connection
     if random.random() < innovation_rate:
-        if len(mutated.modules) > 2:
-            source = random.choice(mutated.modules[:-1])
+        if len(mutated.modules) > 1:
+            source = random.choice(mutated.modules)
             target = random.choice([m for m in mutated.modules if m.id != source.id])
             
-            # Check if connection already exists
-            exists = any(c.source == source.id and c.target == target.id for c in mutated.connections)
-            if not exists:
+            # Don't duplicate connections
+            if not any(c.source == source.id and c.target == target.id for c in mutated.connections):
                 mutated.connections.append(ConnectionGene(
-                    source.id, target.id,
-                    float(np.random.uniform(0.2, 0.5)), 'excitatory',
-                    float(np.random.uniform(0.001, 0.02)), 'hebbian'
+                    source.id, target.id, 
+                    float(np.random.uniform(-0.5, 0.5)), 
+                    'excitatory', 0.01, 
+                    random.choice(POSSIBLE_PLASTICITY) # Use discovered rules
                 ))
-    
-    # 3b. Add new module
+
+    # 2. Add New Module (Using Discovered Tech)
     if random.random() < innovation_rate * 0.5:
-        # This is the *only* "Add new module" block now.
-        # It correctly uses the global list that your innovation code creates.
+        new_id = f"evolved_{random.randint(10000, 99999)}"
         
-        new_id = f"evolved_{len(mutated.modules)}"
-        avg_size = int(np.mean([m.size for m in mutated.modules])) if mutated.modules else 128
+        # Use the dynamic pools we just updated in Phase 1
+        new_type = random.choice(st.session_state.module_types)
+        new_math = random.choice(POSSIBLE_ACTIVATIONS)
         
-        # 1. Ensure the global list exists (in case the innovation code hasn't run yet)
-        # 1. Ensure the global list exists (in case the innovation code hasn't run yet)
-        if 'module_types' not in st.session_state or not st.session_state.module_types:
-            # This is the same default list from your innovation code,
-            # acting as a fallback.
-            # This is the same default list from your innovation code,
-            # acting as a fallback.
-            st.session_state.module_types = [
-                'mlp', 'attention', 'conv', 'recurrent', 'graph',
-                'transformer_block', 'autoencoder', 'variational_autoencoder', 
-                'generative_adversarial_net', 'diffusion_model', 'capsule_network',
-                'liquid_network', 'mixture_of_experts', 'lstm_unit', 'gru_unit', 
-                'rnn_simple', 'hopfield_network', 'echo_state_network', 'neural_turing_machine',
-                'spiking_neuron_if', 'spiking_neuron_lif', 'synaptic_plasticity_stdp',
-                'cortical_column', 'inhibitory_interneuron', 'thalamic_relay',
-                'hebbian_learning_layer', 'attractor_network', 'fourier_transform', 
-                'wavelet_transform', 'kalman_filter', 'particle_filter', 'state_space_model', 
-                'pid_controller', 'adaptive_filter', 'finite_automaton', 'pushdown_automaton', 
-                'logic_gate_array', 'hash_unit', 'memory_matrix', 'semantic_parser'
-            ]
-
-        # 2. Pick a random module type from the *entire* known universe
-        available_types = st.session_state.module_types
-        new_module_type = random.choice(available_types)
-
         new_module = ModuleGene(
-            new_id, new_module_type, # Use the type from the global list
-            int(np.clip(avg_size * np.random.uniform(0.5, 1.5), 16, 512)), random.choice(['gelu', 'swish']), 'layer',
-            0.2, 1.0, 0.5, '#DDA15E',
-            (len(mutated.modules), 0, 0)
+            new_id, new_type, 
+            random.randint(16, 128), new_math, 
+            'layer', 0.1, 1.0, 0.5, '#DDA15E',
+            (random.uniform(-5,5), random.uniform(-5,5), random.uniform(-5,5))
         )
         mutated.modules.append(new_module)
         
-        # 3. Connect to network
-        if mutated.modules[:-1]: # Check if there are other modules to connect from
-            source = random.choice(mutated.modules[:-1])
-            mutated.connections.append(ConnectionGene(
-                source.id, new_id, 0.3, 'excitatory', 0.01, 'hebbian'
-            ))
-    
-    # 4. Meta-parameter mutations
-    for key in mutated.meta_parameters:
-        if random.random() < mutation_rate * 0.4:
-            mutated.meta_parameters[key] *= np.random.lognormal(0, 0.1)
-    
+        # Wire it in immediately
+        if mutated.modules[:-1]:
+            parent = random.choice(mutated.modules[:-1])
+            mutated.connections.append(ConnectionGene(parent.id, new_id, 0.3, 'excitatory', 0.01, 'hebbian'))
+
+    # Recalculate complexity score
     mutated.complexity = mutated.compute_complexity()
     return mutated
+
+
 
 def crossover(parent1: Genotype, parent2: Genotype, crossover_rate: float = 0.7) -> Genotype:
     """Advanced recombination with homologous alignment"""
