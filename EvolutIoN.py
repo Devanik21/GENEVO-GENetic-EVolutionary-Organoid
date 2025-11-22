@@ -2067,22 +2067,49 @@ def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'kamada_kawai') -> go.Figure:
     """
     Adaptive 2D visualization that scales node size and hides labels 
-    when the network becomes highly complex.
+    when the network becomes highly complex. 
+    PRINCE NIK UPDATE: Now with Dynamic Type-Coloring!
     """
     
+    # --- HELPER: Dynamic Color Palette ---
+    def get_color_for_type(m_type):
+        m_type = m_type.lower()
+        # Vision / Spatial (Blues)
+        if any(x in m_type for x in ['conv', 'pool', 'spatial', 'image', 'vision']): return '#00BFFF' # Deep Sky Blue
+        # Attention / Transformer (Purples)
+        if any(x in m_type for x in ['attention', 'transformer', 'head', 'embed']): return '#9932CC' # Dark Orchid
+        # Recurrent / Memory (Greens)
+        if any(x in m_type for x in ['lstm', 'gru', 'rnn', 'memory', 'reservoir']): return '#32CD32' # Lime Green
+        # Logic / Math / Exotic (Reds/Pinks)
+        if any(x in m_type for x in ['logic', 'math', 'gate', 'act', 'siren']): return '#FF1493' # Deep Pink
+        # Normalization (Cyans)
+        if any(x in m_type for x in ['norm', 'batch', 'layer']): return '#00CED1' # Dark Turquoise
+        # Graph / Relational (Oranges)
+        if any(x in m_type for x in ['graph', 'edge', 'message']): return '#FF8C00' # Dark Orange
+        # Core / MLP (Yellows)
+        if any(x in m_type for x in ['mlp', 'dense', 'linear', 'feed']): return '#FFD700' # Gold
+        # Default
+        return '#A9A9A9' # Dark Grey
+
     G = nx.DiGraph()
     
-    # Add nodes
+    # Add nodes with Dynamic Coloring
     for module in genotype.modules:
+        # Determine color based on type (overriding the genetic color)
+        # Special handling for Input/Output to keep them distinct
+        if 'input' in module.id.lower(): final_color = '#FFFFFF' # White for Input
+        elif 'output' in module.id.lower(): final_color = '#000000' # Black for Output
+        else: final_color = get_color_for_type(module.module_type)
+
         G.add_node(
             module.id,
             size=module.size,
-            color=module.color,
+            color=final_color, # <--- Use our new dynamic color
             module_type=module.module_type,
             # Rich hover text always remains available!
             hover_text=(
                 f"<b>{module.id}</b><br>"
-                f"Type: {module.module_type}<br>"
+                f"Type: <span style='color:{final_color}'><b>{module.module_type}</b></span><br>"
                 f"Size: {module.size}<br>"
                 f"Act: {module.activation}<br>"
                 f"Plasticity: {module.plasticity:.2f}"
@@ -2099,7 +2126,6 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     
     # If huge, use spring layout with more spacing and iterations
     if node_count > 50:
-        # Stronger repulsion (k) and more iterations to untangle the mess
         pos = nx.spring_layout(G, seed=layout_seed, k=3.0/np.sqrt(node_count), iterations=200)
     else:
         try:
@@ -2120,7 +2146,6 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         x0, y0 = pos[u]
         x1, y1 = pos[v]
         
-        # Less curvature for dense graphs to keep it cleaner
         curve_intensity = 0.05 if node_count > 50 else 0.15
         curvature = curve_intensity if i % 2 == 0 else -curve_intensity
         
@@ -2145,11 +2170,9 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     node_x, node_y = [], []
     node_colors = []
     node_sizes = []
-    node_labels = [] # Text to display on chart
-    hover_texts = [] # Text to display on hover
+    node_labels = [] 
+    hover_texts = [] 
     
-    # Dynamic sizing: The more nodes, the smaller they get
-    # Base size calculation
     if node_count < 20: base_size_mult = 1.0
     elif node_count < 100: base_size_mult = 0.6
     else: base_size_mult = 0.3
@@ -2163,22 +2186,27 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         
         # Size calculation
         raw_size = np.log(G.nodes[node]['size']) * 8
-        node_sizes.append(max(6, raw_size * base_size_mult)) # Minimum size of 6
+        node_sizes.append(max(6, raw_size * base_size_mult)) 
         
-        # --- SMART LABELING ---
-        # Only show text for "Important" nodes if the graph is dense
+        # --- SMART LABELING 2.0 ---
+        # Now we also show the Type Name if space permits!
+        m_type_short = G.nodes[node]['module_type'][:4] # First 4 letters
+        
         if node_count > 40:
             if "forced" in node: 
-                node_labels.append("") # Hide label for forced nodes
+                node_labels.append("") 
             else:
-                node_labels.append(node) # Show label for original nodes (Input/Output/etc)
+                node_labels.append(node) 
         else:
-            node_labels.append(node) # Show all labels if graph is small
+            # PRINCE NIK UPDATE: Show ID + Type
+            if 'Input' in node: node_labels.append("Input")
+            elif 'Output' in node: node_labels.append("Output")
+            else: node_labels.append(f"{node}<br>({m_type_short})")
 
     # Layer 1: The Core Node
     fig.add_trace(go.Scatter(
         x=node_x, y=node_y,
-        mode='markers+text', # Text is conditional based on the list above
+        mode='markers+text', 
         text=node_labels,
         textposition="bottom center",
         textfont=dict(family="Arial", size=10 if node_count < 50 else 8, color="#EEE"),
@@ -2204,7 +2232,7 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         height=650,
-        plot_bgcolor='rgba(5,5,8,1)', # Deep space black
+        plot_bgcolor='rgba(5,5,8,1)', 
         paper_bgcolor='rgba(0,0,0,0)'
     )
     
