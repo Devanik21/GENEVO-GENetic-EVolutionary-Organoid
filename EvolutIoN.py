@@ -485,28 +485,28 @@ def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genot
 
 def apply_metabolic_mitosis(genotype: Genotype, generation: int) -> Genotype:
     """
-    The 'Hyper-Mitosis' Engine.
-    Aggressive, exponential expansion that forces the network to scale.
+    The 'Hyper-Mitosis' Engine (TURBOCHARGED FOR PRINCE NIK).
+    Aggressive, exponential expansion to reach Gen 60 complexity by Gen 20.
     """
     current_size = len(genotype.modules)
     
-    # 1. Aggressive Growth Schedule
-    # We grow CONSTANTLY until we hit a critical mass (e.g., 200 nodes)
-    # Then we switch to pulsed growth.
-    
-    if current_size < 100:
-        growth_prob = 1.0       # Always grow if small
-        duplication_rate = 0.5  # Clone 50% of the brain every single generation
-    elif generation % 5 == 0:   # Every 5th gen is a growth spurt
-        growth_prob = 1.0
-        duplication_rate = 0.2  # Clone 20% of the brain
+    # 1. Aggressive Growth Schedule (UPDATED)
+    # We keep the 'growth pedal' floored until 300 nodes (was 100)
+    if current_size < 300:
+        growth_prob = 0.8       # Always grow
+        duplication_rate = 0.8  # Clone 80% of the brain every generation (was 50%)
+    elif generation % 2 == 0:   # Grow every other gen (was every 5th)
+        growth_prob = 0.9
+        duplication_rate = 0.4  # Clone 40%
     else:
-        growth_prob = 0.1
-        duplication_rate = 0.05
+        growth_prob = 0.3
+        duplication_rate = 0.1
 
-    # Hard Cap to save your browser (Stops at 500 nodes)
-    if current_size > 500:
+    # Hard Cap increased to accommodate rapid expansion
+    if current_size > 800:
         return genotype
+        
+    # ... rest of the function remains the same ...
 
     # 2. The Mitosis Action
     if random.random() < growth_prob:
@@ -725,27 +725,30 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
             # Plasticity rule mutation
             connection.plasticity_rule = random.choice(['hebbian', 'anti-hebbian', 'stdp', 'static'])
     
-    # 3. Structural mutations (innovation)
+    # 3. Structural mutations (Innovation - TURBOCHARGED)
+    # We loop this 3 times to allow multiple new structures per generation
     
-    # 3a. Add new connection
-    if random.random() < innovation_rate:
-        if len(mutated.modules) > 2:
-            source = random.choice(mutated.modules[:-1])
-            target = random.choice([m for m in mutated.modules if m.id != source.id])
-            
-            # Check if connection already exists
-            exists = any(c.source == source.id and c.target == target.id for c in mutated.connections)
-            if not exists:
-                mutated.connections.append(ConnectionGene(
-                    source.id, target.id,
-                    float(np.random.uniform(0.2, 0.5)), 'excitatory',
-                    float(np.random.uniform(0.001, 0.02)), 'hebbian'
-                ))
+    # 3a. Add new connections (More wiring!)
+    for _ in range(3): # Try to add up to 3 connections at once
+        if random.random() < innovation_rate * 2.0: # Doubled probability
+            if len(mutated.modules) > 2:
+                source = random.choice(mutated.modules[:-1])
+                target = random.choice([m for m in mutated.modules if m.id != source.id])
+                
+                exists = any(c.source == source.id and c.target == target.id for c in mutated.connections)
+                if not exists:
+                    mutated.connections.append(ConnectionGene(
+                        source.id, target.id,
+                        float(np.random.uniform(0.2, 0.5)), 'excitatory',
+                        float(np.random.uniform(0.001, 0.02)), 'hebbian'
+                    ))
     
-    # 3b. Add new module
-    if random.random() < innovation_rate * 0.5:
+    # 3b. Add new module (More brain cells!)
+    # Increased multiplier from 0.5 to 1.5
+    if random.random() < innovation_rate * 1.5:
         
         new_id = f"evolved_{len(mutated.modules)}"
+        # ... rest of the module creation logic ...
         avg_size = int(np.mean([m.size for m in mutated.modules])) if mutated.modules else 128
         
         # PRINCE NIK UPDATE: Use the Encyclopedia of Neural Components
@@ -2529,7 +2532,7 @@ def main():
             'w_robustness': 0.1,
             'w_generalization': 0.15,
             # --- NEW ADVANCED PRIMARY OBJECTIVES DEFAULTS ---
-           'w_arch_complexity': 0.0, # <-- NEW COMPLEXITY WEIGHT
+           'w_arch_complexity': 2.0, # <-- NEW COMPLEXITY WEIGHT
             'w_learning_speed': 0.0,
             'w_data_parsimony': 0.0,
             'w_forgetting_resistance': 0.0,
@@ -2548,9 +2551,9 @@ def main():
             'w_autopoiesis': 0.0,
             'w_computational_irreducibility': 0.0,
             'w_cognitive_synergy': 0.0,
-            'mutation_rate': 0.2,
-            'crossover_rate': 0.7,
-            'innovation_rate': 0.05,
+            'mutation_rate': 0.8,
+            'crossover_rate': 0.9,
+            'innovation_rate': 0.2,
             'enable_development': True,
             'enable_baldwin': True,
             'baldwinian_assimilation_rate': 0.0,
