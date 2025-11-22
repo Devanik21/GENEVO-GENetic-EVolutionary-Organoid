@@ -521,6 +521,12 @@ def apply_metabolic_mitosis(genotype: Genotype, generation: int) -> Genotype:
         for _ in range(num_divisions):
             mother = random.choice(candidates)
             new_id = f"{random.choice(prefixes)}_{generation}_{random.randint(100,999)}"
+
+           # Prince Nik Update: 20% chance for daughter to pick a new type during birth
+            if random.random() < 0.2:
+                 new_birth_type = random.choice(POSSIBLE_MODULE_TYPES)
+            else:
+                 new_birth_type = mother.module_type
             
             # 1. Clone the Mother (Daughter Cell)
             daughter = ModuleGene(
@@ -704,10 +710,20 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
             # Learning rate multiplier
             module.learning_rate_mult *= np.random.lognormal(0, 0.15)
             module.learning_rate_mult = float(np.clip(module.learning_rate_mult, 0.1, 2.0))
+
+       
         
         if random.random() < mutation_rate * 0.2:
             # Activation function mutation
             module.activation = random.choice(POSSIBLE_ACTIVATIONS)
+
+       # --- [UPDATED LOGIC] High-Volatility Module Type Mutation ---
+        # Prince Nik Update: Increased probability from 0.1 to 0.5
+        if random.random() < mutation_rate * 0.5: 
+            # Allows an *existing* module to change its fundamental type
+            # We combine the standard list with any invented types to give it maximum variety
+            universe_of_types = POSSIBLE_MODULE_TYPES + st.session_state.get('module_types', [])
+            module.module_type = random.choice(universe_of_types)
         
         # --- [YOUR NEW CODE: Module Type Mutation] ---
         # This is a powerful new mutation operator you added!
