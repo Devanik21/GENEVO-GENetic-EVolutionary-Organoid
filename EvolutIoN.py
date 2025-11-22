@@ -1861,7 +1861,9 @@ def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
                 z=[z0, z1, None],
                 mode='lines',
                 line=dict(
-                    width=conn.weight * 8,
+                    # FIX: Use abs() to handle negative inhibitory weights
+                    # and max(0.1, ...) to ensure lines don't vanish
+                    width=max(0.1, abs(conn.weight) * 8),
                     color=edge_colors.get(conn.connection_type, 'rgba(125, 125, 125, 0.5)')
                 ),
                 hovertext=f'{conn.source}→{conn.target}<br>Weight: {conn.weight:.3f}<br>Type: {conn.connection_type}<br>Plasticity: {conn.plasticity_rule}',
@@ -2018,12 +2020,16 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         
         if conn_type == 'inhibitory': edge_color = f'rgba(255, 80, 80, {opacity})'
         elif conn_type == 'modulatory': edge_color = f'rgba(80, 150, 255, {opacity})'
-        else: edge_color = f'rgba(180, 180, 180, {min(0.5, weight)})'
+        else: 
+            # FIX: Use abs() for alpha channel to prevent negative opacity crash
+            safe_alpha = max(0.0, min(0.5, abs(weight)))
+            edge_color = f'rgba(180, 180, 180, {safe_alpha})'
             
         fig.add_trace(go.Scatter(
             x=bx, y=by,
             mode='lines',
-            line=dict(width=base_width + weight, color=edge_color),
+            # FIX: Use abs() for width to prevent negative line width crash
+            line=dict(width=base_width + abs(weight), color=edge_color),
             hoverinfo='none',
             showlegend=False
         ))
