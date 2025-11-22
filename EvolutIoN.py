@@ -2170,13 +2170,20 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         
         # --- SMART LABELING ---
         # Only show text for "Important" nodes if the graph is dense
-        if node_count > 40:
-            if "forced" in node: 
-                node_labels.append("") # Hide label for forced nodes
+        # --- SMART LABELING (UPDATED FOR PRINCE NIK) ---
+        # Only show text if the node is HUGE or is Input/Output
+        # This cleans up the "messy text" on 500+ node graphs
+        
+        is_special = "Input" in node or "Output" in node
+        is_hub = G.nodes[node]['size'] > 300  # Only label big nodes
+        
+        if node_count > 50:
+            if is_special or is_hub: 
+                node_labels.append(node) # Show label for VIP nodes
             else:
-                node_labels.append(node) # Show label for original nodes (Input/Output/etc)
+                node_labels.append("")   # Hide label for the crowd
         else:
-            node_labels.append(node) # Show all labels if graph is small
+            node_labels.append(node) # Show all if graph is small
 
     # Layer 1: The Core Node
     fig.add_trace(go.Scatter(
