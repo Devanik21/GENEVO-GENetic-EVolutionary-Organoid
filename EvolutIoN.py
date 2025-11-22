@@ -4889,7 +4889,7 @@ def main():
     st.sidebar.markdown("###### Advanced Controls")
     random_seed = st.sidebar.number_input(
         "Random Seed",
-        min_value=-1, value=s.get('random_seed', 42), step=1,
+        min_value=-1, value=s.get('random_seed', -1), step=1,
         help="Set a specific seed for reproducibility. Use -1 for a random seed on each run.",
         key="random_seed_input"
     )
