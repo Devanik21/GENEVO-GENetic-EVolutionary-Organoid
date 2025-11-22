@@ -83,9 +83,49 @@ if 'show_final_synthesis' not in st.session_state:  # <-- ADD THIS LINE
 # ==================== GLOBAL CONSTANTS ====================
 
 # Define the universe of possible activation functions
-# This central list is used for mutation and parasite targeting.
+# PRINCE NIK UPDATE: A massive, 100+ gene pool of mathematical functions.
+# This allows the system to discover completely novel neural architectures.
 
-POSSIBLE_ACTIVATIONS = ['relu', 'gelu', 'silu', 'swish', 'tanh', 'sigmoid']
+POSSIBLE_ACTIVATIONS = [
+    # --- 1. The Standards (High Performance) ---
+    'relu', 'gelu', 'silu', 'swish', 'mish', 'elu', 'selu', 'celu', 
+    'leaky_relu', 'prelu', 'rrelu', 'glu', 'relu6', 'hardtanh', 'log_sigmoid',
+    
+    # --- 2. The Classics (Probability & S-Curves) ---
+    'sigmoid', 'tanh', 'softplus', 'softsign', 'hard_sigmoid', 'hard_swish',
+    'arctan', 'tanhshrink', 'softshrink', 'hardshrink', 'threshold',
+    
+    # --- 3. Oscillatory & Periodic (For Signal Processing) ---
+    # Great for finding patterns in time-series or audio
+    'sin', 'cos', 'tan', 'sinh', 'cosh', 'sinc', 'snake', 'oscillating_gelu',
+    
+    # --- 4. Exotic & Research (The "Alien" Genes) ---
+    # These are rare in human designs but powerful in evolution
+    'lisht', 'bent_identity', 'inverse_sqrt', 'soft_clipping', 
+    'frelu', 'dy_relu', 'acon', 'meta_acon', 'aria', 'zen',
+    'sqnl', 'isru', 'isrlu', 'brelu', 'srelu', 'apl', 'soft_exponential',
+    
+    # --- 5. Mathematical Primitives (Raw Math) ---
+    # Evolution can combine these to build custom logic gates
+    'square', 'cube', 'abs', 'neg', 'reciprocal', 'log', 'exp', 'sqrt',
+    'sign', 'floor', 'ceil', 'round', 'trunc',
+    
+    # --- 6. Gated & Composite Units (Advanced) ---
+    'swiglu', 'geglu', 'reglu', 'liglu', 'crelu', 'channel_shuffle',
+    
+    # --- 7. Parametric Variations (Fine-Tuning) ---
+    # Specific "flavors" of functions that act differently
+    'leaky_relu_0.01', 'leaky_relu_0.1', 'leaky_relu_0.2', 'leaky_relu_0.25',
+    'elu_0.5', 'elu_1.0', 'elu_1.5', 
+    'celu_0.5', 'celu_1.0', 'celu_2.0',
+    'softplus_beta_1', 'softplus_beta_5', 'softplus_beta_10',
+    'mish_beta_1', 'swish_beta_0.5', 'swish_beta_2.0',
+    
+    # --- 8. Experimental "Fail-Fast" Functions ---
+    # These might break things or create genius. Evolution decides.
+    'gaussian', 'multiquadratic', 'inv_multiquadratic', 'polyharmonic',
+    'bump_function', 'step_function', 'linear'
+]
 
 # ==================== THEORETICAL FOUNDATIONS ====================
 
