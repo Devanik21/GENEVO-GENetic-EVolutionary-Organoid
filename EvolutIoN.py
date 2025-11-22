@@ -3204,7 +3204,7 @@ def main():
 
     st.sidebar.markdown("### Task Environment")
     task_options = [
-        'Universal Intelligence (AGI-Omni),
+        'Universal Intelligence (AGI-Omni)',
         'Abstract Reasoning (ARC-AGI-2)',
         # Vision Modalities
         'Vision (ImageNet)',
