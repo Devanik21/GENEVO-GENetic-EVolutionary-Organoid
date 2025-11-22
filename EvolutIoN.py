@@ -1953,106 +1953,152 @@ def visualize_phase_space_portraits(history_df: pd.DataFrame, metrics_df: pd.Dat
     st.plotly_chart(fig, width='stretch', key="phase_space_portraits_complex")
 
 
+
 def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     """
-    Advanced 3D visualization with 'X-Ray' transparency to fix the 'messy hairball' effect.
+    Sci-Fi 3D Visualization:
+    - 'X-Ray' edges (transparent weak links)
+    - 'Smart Labels' (only important nodes show text)
+    - 'Neural Halo' (glow effect)
+    - Shape coding (Diamonds for Inputs, Squares for Outputs)
     """
     
     # Create 3D node positions
     positions = {m.id: m.position for m in genotype.modules}
     
-    # --- 1. EDGE RENDERING (The "Neural Web") ---
+    # --- 1. EDGE RENDERING (The Neural Web) ---
     edge_traces = []
-    
-    # Calculate a density factor. If there are 1000+ connections, we need them VERY thin.
     num_edges = len(genotype.connections)
-    density_factor = 1.0
-    if num_edges > 500: density_factor = 0.3
-    elif num_edges > 200: density_factor = 0.6
+    density_factor = 0.3 if num_edges > 500 else 0.8
 
     for conn in genotype.connections:
         if conn.source in positions and conn.target in positions:
             x0, y0, z0 = positions[conn.source]
             x1, y1, z1 = positions[conn.target]
             
-            # DYNAMIC OPACITY (The "X-Ray" Logic)
-            # We square the weight so weak connections fade away (0.5^2 = 0.25 visibility)
-            # We also cap the max opacity at 0.5 so we can always see through the mesh
-            alpha = max(0.05, (conn.weight ** 2)) * 0.6
+            # Dynamic Opacity: Weak connections are ghost-like
+            alpha = max(0.02, (conn.weight ** 2)) * 0.5
             
-            # COLOR PALETTE (Cyberpunk / Neon)
+            # Neon Palette
             if conn.connection_type == 'excitatory':
-                # Teal/Cyan (Less intense than pure green)
-                edge_color = f'rgba(0, 255, 200, {alpha})' 
+                edge_color = f'rgba(0, 255, 200, {alpha})' # Cyan
             elif conn.connection_type == 'inhibitory':
-                # Hot Pink/Red
-                edge_color = f'rgba(255, 50, 100, {alpha * 1.2})' # Slightly brighter to pop
+                edge_color = f'rgba(255, 0, 100, {alpha * 1.5})' # Hot Pink
             else:
-                # Electric Blue (Modulatory)
-                edge_color = f'rgba(50, 100, 255, {alpha})'
+                edge_color = f'rgba(100, 100, 255, {alpha})' # Electric Blue
 
-            # Thinner lines based on weight and density
-            line_width = max(0.5, conn.weight * 4 * density_factor)
+            line_width = max(0.5, conn.weight * 3 * density_factor)
 
             edge_traces.append(go.Scatter3d(
-                x=[x0, x1, None],
-                y=[y0, y1, None],
-                z=[z0, z1, None],
+                x=[x0, x1, None], y=[y0, y1, None], z=[z0, z1, None],
                 mode='lines',
                 line=dict(width=line_width, color=edge_color),
-                hoverinfo='none', # Disable hover on individual lines to speed up rendering
+                hoverinfo='none',
                 showlegend=False
             ))
     
-    # --- 2. NODE RENDERING (The "Brain Cells") ---
-    node_x = [m.position[0] for m in genotype.modules]
-    node_y = [m.position[1] for m in genotype.modules]
-    node_z = [m.position[2] for m in genotype.modules]
-    node_colors = [m.color for m in genotype.modules]
+    # --- 2. NODE PREPARATION ---
+    node_x, node_y, node_z = [], [], []
+    node_colors = []
+    node_sizes = []
+    node_symbols = []
+    node_texts = [] # Hover text
+    node_labels = [] # Visible text (Smart Labels)
     
-    # Make nodes slightly larger so they stand out against the web
-    node_sizes = [max(3, m.size / 4) for m in genotype.modules] 
-    
-    node_text = [
-        f"<b>{m.id}</b><br>Type: {m.module_type}<br>Size: {m.size}<br>Act: {m.activation}"
-        for m in genotype.modules
-    ]
-    
-    node_trace = go.Scatter3d(
+    # Halo (Glow) Data
+    halo_sizes = []
+    halo_colors = []
+
+    for m in genotype.modules:
+        node_x.append(m.position[0])
+        node_y.append(m.position[1])
+        node_z.append(m.position[2])
+        node_colors.append(m.color)
+        
+        # Base size
+        s = max(3, m.size / 4)
+        node_sizes.append(s)
+        
+        # Create the "Halo" effect data (larger, transparent version of the node)
+        halo_sizes.append(s * 2.5)
+        halo_colors.append(m.color)
+
+        # Rich Hover Text
+        node_texts.append(
+            f"<b>{m.id}</b><br>Type: {m.module_type}<br>Size: {m.size}<br>Act: {m.activation}"
+        )
+
+        # --- SMART LABELS & SYMBOLS ---
+        # Logic: Only label Inputs, Outputs, or Huge Hubs
+        is_input = "Input" in m.id or "Sensory" in m.id
+        is_output = "Output" in m.id or "Motor" in m.id
+        is_hub = m.size > 250 # Arbitrary threshold for "Big Brain Nodes"
+
+        if is_input:
+            node_symbols.append('diamond')
+            node_labels.append(f"👁️ {m.id}") # Eye icon for sensors
+        elif is_output:
+            node_symbols.append('square')
+            node_labels.append(f"⚡ {m.id}") # Bolt for motors
+        elif is_hub:
+            node_symbols.append('circle')
+            node_labels.append(m.id) # Just ID for hubs
+        else:
+            node_symbols.append('circle')
+            node_labels.append("") # Invisible label for the crowd
+
+    # --- 3. TRACE: NEURAL HALO (Glow Effect) ---
+    # Renders behind the main nodes to create a soft atmosphere
+    halo_trace = go.Scatter3d(
         x=node_x, y=node_y, z=node_z,
         mode='markers',
-        hovertext=node_text,
+        marker=dict(
+            size=halo_sizes,
+            color=halo_colors,
+            opacity=0.15, # Very transparent
+            symbol=node_symbols
+        ),
+        hoverinfo='none',
+        showlegend=False
+    )
+
+    # --- 4. TRACE: CORE NODES ---
+    node_trace = go.Scatter3d(
+        x=node_x, y=node_y, z=node_z,
+        mode='markers+text', # Text enabled for smart labels
+        text=node_labels,
+        textposition="top center",
+        textfont=dict(color="white", size=10),
+        hovertext=node_texts,
         hoverinfo='text',
         marker=dict(
             size=node_sizes,
             color=node_colors,
-            # Add a white halo to nodes so they pop against the black void
-            line=dict(width=1, color='rgba(255,255,255,0.8)'),
-            opacity=1.0,
-            symbol='circle'
+            symbol=node_symbols,
+            line=dict(width=2, color='rgba(255,255,255,0.9)'), # Crisp white border
+            opacity=1.0
         )
     )
     
-    # --- 3. LAYOUT (The "Void") ---
-    fig = go.Figure(data=edge_traces + [node_trace])
+    # --- 5. LAYOUT (The Void) ---
+    fig = go.Figure(data=edge_traces + [halo_trace, node_trace])
     
     fig.update_layout(
         title=dict(
-            text=f"<b>Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f} | Nodes: {len(genotype.modules)}",
-            font=dict(size=14, color="#AAA"),
-            x=0.5,
-            y=0.95
+            text=f"<b>Neural Topography: Form {genotype.form_id}</b> | Fitness: {genotype.fitness:.4f} | Nodes: {len(genotype.modules)}",
+            font=dict(size=14, color="rgba(200,200,200,0.8)"),
+            x=0.5, y=0.95
         ),
         showlegend=False,
-        paper_bgcolor='rgba(5,5,10,1)', # Deep void black/blue
+        paper_bgcolor='rgba(0,0,0,1)', # Absolute Void Black
         scene=dict(
-            # Completely hide axes/grids for the floating effect
-            xaxis=dict(visible=False, showgrid=False, zeroline=False, showbackground=False),
-            yaxis=dict(visible=False, showgrid=False, zeroline=False, showbackground=False),
-            zaxis=dict(visible=False, showgrid=False, zeroline=False, showbackground=False),
-            # Adjust camera for a wider view
-            camera=dict(eye=dict(x=1.6, y=1.6, z=1.2)),
-            aspectmode='data' # Use data aspect ratio to prevent squashing
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            zaxis=dict(visible=False),
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.2)),
+            aspectmode='data',
+            # Darker background for the plot area itself
+            bgcolor='rgba(0,0,0,0)' 
         ),
         height=600,
         margin=dict(l=0, r=0, t=50, b=0)
