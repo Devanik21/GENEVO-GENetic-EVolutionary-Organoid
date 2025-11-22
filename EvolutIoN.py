@@ -356,6 +356,34 @@ def is_viable(genotype: Genotype) -> bool:
 
 # ==================== ADVANCED INITIALIZATION ====================
 
+import colorsys
+
+def generate_infinite_color(type_name: str) -> str:
+    """
+    The 'Prism' Engine.
+    Converts a text string (e.g., "Quantum_Oscillator") into a unique, consistent color.
+    Uses HSL to ensure all colors are vibrant and visible on a dark background.
+    """
+    # 1. Hash the string to get a number
+    # We use the sum of ASCII values to get a deterministic seed
+    hash_val = abs(hash(type_name))
+    
+    # 2. Generate Hue (0.0 to 1.0) from the hash
+    # This spreads colors across the entire rainbow
+    hue = (hash_val % 360) / 360.0
+    
+    # 3. Saturation and Lightness
+    # Keep Saturation high (0.7-1.0) for neon/cyberpunk look
+    # Keep Lightness medium-high (0.5-0.7) so it pops against black
+    saturation = 0.7 + ((hash_val % 30) / 100.0) 
+    lightness = 0.5 + ((hash_val % 20) / 100.0)
+    
+    # 4. Convert to Hex
+    r, g, b = colorsys.hls_to_rgb(hue, lightness, saturation)
+    return '#{:02x}{:02x}{:02x}'.format(int(r*255), int(g*255), int(b*255))
+
+
+
 def initialize_genotype(form_id: int, complexity_level: str = 'medium') -> Genotype:
     """
     The 'Zygote' Initialization. 
@@ -454,7 +482,8 @@ def apply_metabolic_mitosis(genotype: Genotype, generation: int) -> Genotype:
                 dropout_rate=mother.dropout_rate,
                 learning_rate_mult=mother.learning_rate_mult,
                 plasticity=mother.plasticity,
-                color=mother.color,
+                color=daughter_color,
+                daughter_color = mother.color,
                 # Spread them out physically so the 3D plot looks expanding
                 position=(
                     mother.position[0] + random.uniform(-3, 3),
@@ -623,17 +652,24 @@ def mutate(genotype: Genotype, mutation_rate: float = 0.2, innovation_rate: floa
                 ))
 
     # 2. Add New Module (Using Discovered Tech)
+    # 2. Add New Module (Using Discovered Tech)
     if random.random() < innovation_rate * 0.5:
         new_id = f"evolved_{random.randint(10000, 99999)}"
         
-        # Use the dynamic pools we just updated in Phase 1
+        # Use the dynamic pools
         new_type = random.choice(st.session_state.module_types)
         new_math = random.choice(POSSIBLE_ACTIVATIONS)
+        
+        # --- THE COLOR UPDATE ---
+        # Generate the color based on the Type Name
+        # Every 'Quantum_Gate' will be the same color, distinct from 'Neural_Lobe'
+        type_color = generate_infinite_color(new_type)
         
         new_module = ModuleGene(
             new_id, new_type, 
             random.randint(16, 128), new_math, 
-            'layer', 0.1, 1.0, 0.5, '#DDA15E',
+            'layer', 0.1, 1.0, 0.5, 
+            type_color, # <--- Apply the Infinite Color here
             (random.uniform(-5,5), random.uniform(-5,5), random.uniform(-5,5))
         )
         mutated.modules.append(new_module)
