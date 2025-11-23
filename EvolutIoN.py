@@ -47,7 +47,7 @@ from collections import Counter
 import json
 import zipfile # <-- ADD THIS
 import io      # <-- ADD THIS
-
+import base64
 
    # --- State Initialization for Lazy Loading ---
 if 'show_fitness_landscape' not in st.session_state:
@@ -2500,6 +2500,38 @@ def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genoty
     
     return fig
 
+
+
+
+# ... (Previous code, visualization functions, etc.) ...
+
+# --- [PRINCE NIK UPDATE: BACKGROUND FUNCTION] ---
+def set_app_background(image_file):
+    """Sets the background of the Streamlit app to a local image file."""
+    if not os.path.exists(image_file):
+        # Fail silently or show a warning if you prefer
+        st.warning(f"⚠️ Background image not found: '{image_file}'. Using default theme.")
+        return
+
+    with open(image_file, "rb") as f:
+        img_bytes = f.read()
+    
+    base64_img = base64.b64encode(img_bytes).decode()
+    
+    st.markdown(f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/jpeg;base64,{base64_img}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+
 # ==================== STREAMLIT APP ====================
 
 
@@ -2511,6 +2543,7 @@ def main():
         page_icon="🧬",
         initial_sidebar_state="expanded"
     )
+   set_app_background("Gemini_Generated_Image_6zf6sd6zf6sd6zf6 (1).jpeg")
 
     # --- End of State Initialization ---
     
