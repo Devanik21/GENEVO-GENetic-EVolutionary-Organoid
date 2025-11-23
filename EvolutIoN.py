@@ -2506,10 +2506,10 @@ def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genoty
 # ... (Previous code, visualization functions, etc.) ...
 
 # --- [PRINCE NIK UPDATE: BACKGROUND FUNCTION] ---
+# --- [PRINCE NIK UPDATE: BACKGROUND & UI STYLE] ---
 def set_app_background(image_file):
-    """Sets the background of the Streamlit app to a local image file."""
+    """Sets the background, makes sidebar transparent, and hides header."""
     if not os.path.exists(image_file):
-        # Fail silently or show a warning if you prefer
         st.warning(f"⚠️ Background image not found: '{image_file}'. Using default theme.")
         return
 
@@ -2520,12 +2520,30 @@ def set_app_background(image_file):
     
     st.markdown(f"""
     <style>
+    /* 1. Main Background */
     .stApp {{
         background-image: url("data:image/jpeg;base64,{base64_img}");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: fixed;
+    }}
+
+    /* 2. Transparent Sidebar */
+    [data-testid="stSidebar"] {{
+        background-color: rgba(0, 0, 0, 0.1); /* Slight tint for readability */
+        backdrop-filter: blur(10px); /* Glassmorphism effect */
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }}
+    
+    /* 3. Remove Top Black Header */
+    header[data-testid="stHeader"] {{
+        background-color: rgba(0,0,0,0); /* Make it transparent */
+    }}
+    
+    /* Optional: Improve text readability on custom backgrounds */
+    .stMarkdown, .stText, h1, h2, h3 {{
+        text-shadow: 0px 0px 5px rgba(0,0,0,0.8); /* Black glow behind text */
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -2548,16 +2566,19 @@ def main():
     # --- End of State Initialization ---
     set_app_background("Gemini_Generated_Image_6zf6sd6zf6sd6zf6 (1).jpeg")
     # --- Password Protection ---
+    # --- Password Protection (ROBUST FIX) ---
     def check_password():
         """Returns `True` if the user had the correct password."""
 
         def password_entered():
             """Checks whether a password entered by the user is correct."""
-            if st.session_state["password"] == st.secrets["password"]:
-                st.session_state["password_correct"] = True
-                del st.session_state["password"]  # don't store password
-            else:
-                st.session_state["password_correct"] = False
+            # SAFEGUARD: Only check if the key actually exists
+            if "password" in st.session_state:
+                if st.session_state["password"] == st.secrets["password"]:
+                    st.session_state["password_correct"] = True
+                    del st.session_state["password"]  # don't store password
+                else:
+                    st.session_state["password_correct"] = False
 
         if "password_correct" not in st.session_state:
             # First run, show input for password.
