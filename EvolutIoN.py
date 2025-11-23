@@ -2543,10 +2543,10 @@ def main():
         page_icon="🧬",
         initial_sidebar_state="expanded"
     )
-   set_app_background("Gemini_Generated_Image_6zf6sd6zf6sd6zf6 (1).jpeg")
+   
 
     # --- End of State Initialization ---
-    
+    set_app_background("Gemini_Generated_Image_6zf6sd6zf6sd6zf6 (1).jpeg")
     # --- Password Protection ---
     def check_password():
         """Returns `True` if the user had the correct password."""
