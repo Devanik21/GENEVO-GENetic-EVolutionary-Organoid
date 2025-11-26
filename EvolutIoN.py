@@ -2173,187 +2173,202 @@ def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
     return bx, by
 
 
-def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'neuro_flow') -> go.Figure:
+def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
     """
-    Adaptive 2D visualization with 'Neuro-Flow' layout.
-    Forces Inputs (Left) -> Hidden (Middle) -> Outputs (Right) to avoid the 'Potato' blob.
+    Mathematically forces nodes into cool Sci-Fi shapes based on their Form ID.
+    No physics. Pure geometry.
     """
+    pos = {}
+    sorted_hidden = sorted(hidden) # Sort for consistency
     
+    # --- SHAPE 1: THE SYNTHETIC CORTEX (Brain-like) ---
+    # Two lobes facing each other
+    if form_id % 5 == 1:
+        # Inputs in the "Brain Stem" (Bottom Center)
+        for i, n in enumerate(inputs):
+            pos[n] = np.array([0 + (i - len(inputs)/2)*0.5, -3.0])
+            
+        # Outputs in the "Prefrontal Cortex" (Top Center)
+        for i, n in enumerate(outputs):
+            pos[n] = np.array([0 + (i - len(outputs)/2)*0.5, 3.0])
+            
+        # Hidden nodes in two hemispheres
+        for i, n in enumerate(sorted_hidden):
+            t = (i / len(sorted_hidden)) * np.pi * 2
+            r = 2.0 + np.random.uniform(-0.2, 0.2)
+            
+            # Split into Left/Right Hemisphere
+            if i % 2 == 0:
+                x = -abs(r * np.cos(t)) - 0.5
+            else:
+                x = abs(r * np.cos(t)) + 0.5
+            y = r * np.sin(t)
+            pos[n] = np.array([x, y])
+
+    # --- SHAPE 2: THE SINGULARITY (Infinite Radial) ---
+    # Dense center exploding outwards
+    elif form_id % 5 == 2:
+        # Inputs on outer ring
+        for i, n in enumerate(inputs):
+            t = (i / len(inputs)) * 2 * np.pi
+            pos[n] = np.array([4 * np.cos(t), 4 * np.sin(t)])
+            
+        # Hidden nodes spiraling into the center
+        for i, n in enumerate(sorted_hidden):
+            t = i * 0.5  # Tight spiral
+            r = 3.0 * (1 - (i / len(sorted_hidden))) # Radius shrinks
+            pos[n] = np.array([r * np.cos(t), r * np.sin(t)])
+            
+        # Outputs at the absolute singularity (0,0)
+        for i, n in enumerate(outputs):
+            pos[n] = np.array([np.random.uniform(-0.2, 0.2), np.random.uniform(-0.2, 0.2)])
+
+    # --- SHAPE 3: THE DOUBLE HELIX (DNA / Time Stream) ---
+    # A horizontal sine wave stream
+    elif form_id % 5 == 3:
+        # Linear flow from Left to Right
+        total_nodes = inputs + sorted_hidden + outputs
+        length = 10.0
+        step = length / len(total_nodes)
+        
+        for i, n in enumerate(total_nodes):
+            x = -5.0 + (i * step)
+            # DNA Twist math
+            y_offset = np.sin(x * 1.5) * 2.0
+            
+            if i % 2 == 0:
+                y = y_offset
+            else:
+                y = -y_offset
+                
+            pos[n] = np.array([x, y])
+
+    # --- SHAPE 4: THE CYBER-STACK (Server Rack / Rectangular) ---
+    # Highly organized grid
+    elif form_id % 5 == 4:
+        # Inputs Left Column
+        for i, n in enumerate(inputs):
+            pos[n] = np.array([-3, (i - len(inputs)/2)])
+            
+        # Outputs Right Column
+        for i, n in enumerate(outputs):
+            pos[n] = np.array([3, (i - len(outputs)/2)])
+            
+        # Hidden in a grid in between
+        grid_size = int(np.sqrt(len(sorted_hidden))) + 1
+        for i, n in enumerate(sorted_hidden):
+            row = i % grid_size
+            col = i // grid_size
+            # Center the grid
+            x = -2.0 + (col * (4.0 / grid_size))
+            y = -2.0 + (row * (4.0 / grid_size))
+            pos[n] = np.array([x, y])
+
+    # --- SHAPE 0 (Default): THE NEBULA (Cloud) ---
+    else: 
+        pos = nx.kamada_kawai_layout(G, scale=3.0)
+        
+    return pos
+
+def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
+    """
+    2D Visualization engine that selects a Sci-Fi Geometry based on the Form ID.
+    """
     G = nx.DiGraph()
     
-    # 1. Identify Node Roles & Add to Graph
-    inputs = []
-    outputs = []
-    hidden = []
+    # 1. Identify Nodes
+    inputs, outputs, hidden = [], [], []
     
     for module in genotype.modules:
-        # Determine role based on ID or type
         if 'Input' in module.id or 'Sensory' in module.id:
-            role = 'input'
-            inputs.append(module.id)
+            role = 'input'; inputs.append(module.id)
         elif 'Output' in module.id or 'Motor' in module.id:
-            role = 'output'
-            outputs.append(module.id)
+            role = 'output'; outputs.append(module.id)
         else:
-            role = 'hidden'
-            hidden.append(module.id)
+            role = 'hidden'; hidden.append(module.id)
             
         G.add_node(
-            module.id,
-            size=module.size,
-            color=module.color,
-            module_type=module.module_type,
-            role=role,
-            hover_text=(
-                f"<b>{module.id}</b><br>"
-                f"Type: {module.module_type}<br>"
-                f"Size: {module.size}<br>"
-                f"Act: {module.activation}<br>"
-                f"Plasticity: {module.plasticity:.2f}"
-            )
+            module.id, size=module.size, color=module.color,
+            module_type=module.module_type, role=role,
+            hover_text=f"<b>{module.id}</b><br>{module.module_type}"
         )
         
-    # Add edges
     for conn in genotype.connections:
         if conn.source in G.nodes and conn.target in G.nodes:
             G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
-            
+
     node_count = len(G.nodes())
 
-    # --- 2. THE NEURO-FLOW LAYOUT ENGINE ---
-    # Instead of a random blob, we calculate specific coordinates.
-    pos = {}
-    
-    # A. Pin Inputs to the Left (x = -1 to -2)
-    if inputs:
-        # Spread them vertically
-        y_positions = np.linspace(-1, 1, len(inputs))
-        for i, node in enumerate(inputs):
-            # Add slight curvature to the input layer
-            x_offset = -2.0 - (abs(y_positions[i]) * 0.2) 
-            pos[node] = np.array([x_offset, y_positions[i]])
+    # 2. APPLY SCI-FI GEOMETRY (Deterministic based on Form ID)
+    # This ensures Form 1 always looks like a Brain, Form 2 like a Star, etc.
+    pos = apply_scifi_geometry(G, genotype.form_id, inputs, outputs, hidden)
 
-    # B. Pin Outputs to the Right (x = 2 to 3)
-    if outputs:
-        y_positions = np.linspace(-1, 1, len(outputs))
-        for i, node in enumerate(outputs):
-            x_offset = 2.0 + (abs(y_positions[i]) * 0.2)
-            pos[node] = np.array([x_offset, y_positions[i]])
-
-    # C. Let Hidden nodes float, but influenced by gravity
-    fixed_nodes = inputs + outputs
-    if not fixed_nodes: fixed_nodes = None # Handle edge case of no I/O
-    
-    # Use Spring layout, but "fix" the inputs and outputs so they can't move.
-    # This acts like a rack, stretching the hidden nodes between the fixed ends.
-    try:
-        # k is the optimal distance between nodes. Smaller k = tighter clusters.
-        k_val = 2.0 / np.sqrt(node_count) if node_count > 0 else 1.0
-        
-        pos = nx.spring_layout(
-            G, 
-            pos=pos,             # Initial positions
-            fixed=fixed_nodes,   # Pin the inputs/outputs!
-            seed=layout_seed, 
-            k=k_val, 
-            iterations=300,      # More iterations to smooth it out
-            scale=2.0            # Stretch the physics
-        )
-    except:
-        # Fallback if pinning fails (e.g., unconnected graph)
-        pos = nx.kamada_kawai_layout(G)
-
-    # --- 3. PLOTTING (Standard Logic) ---
+    # 3. Plotting
     fig = go.Figure()
 
-    # Draw Edges (Curved)
-    base_width = 0.5 if node_count > 100 else 1.5
-    opacity = 0.3 if node_count > 100 else 0.6
-
+    # Edges: Use simpler curves to avoid the "Messy Hairball" look
     for i, (u, v, data) in enumerate(G.edges(data=True)):
+        if u not in pos or v not in pos: continue
         x0, y0 = pos[u]
         x1, y1 = pos[v]
         
-        # Curve logic: flow forward (left to right) usually curves up/down
-        dist = np.sqrt((x1-x0)**2 + (y1-y0)**2)
-        curve_intensity = 0.15 * (dist / 2.0) # Longer lines curve more
+        # Reduce curvature for cleaner, tech-like lines
+        curve_intensity = 0.05 
         curvature = curve_intensity if i % 2 == 0 else -curve_intensity
-        
         bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature)
         
         conn_type = data.get('type', 'excitatory')
-        if conn_type == 'inhibitory': edge_color = f'rgba(255, 80, 80, {opacity})'
-        elif conn_type == 'modulatory': edge_color = f'rgba(80, 150, 255, {opacity})'
-        else: edge_color = f'rgba(200, 200, 200, {opacity})' # White-ish for normal
+        color_map = {'excitatory': 'rgba(0, 255, 200, 0.4)', 'inhibitory': 'rgba(255, 50, 50, 0.4)'}
+        edge_color = color_map.get(conn_type, 'rgba(100, 100, 255, 0.3)')
             
         fig.add_trace(go.Scatter(
-            x=bx, y=by,
-            mode='lines',
-            line=dict(width=base_width, color=edge_color),
-            hoverinfo='none',
-            showlegend=False
+            x=bx, y=by, mode='lines',
+            line=dict(width=0.8, color=edge_color),
+            hoverinfo='none', showlegend=False
         ))
 
-    # Draw Nodes
-    node_x, node_y = [], []
-    node_colors = []
-    node_sizes = []
-    node_labels = [] 
-    hover_texts = []
+    # Nodes: Glowing Tech Orbs
+    node_x, node_y, node_colors, node_sizes = [], [], [], []
+    node_labels = []
     
-    # Dynamic sizing base
-    if node_count < 20: base_size_mult = 1.0
-    elif node_count < 100: base_size_mult = 0.7
-    else: base_size_mult = 0.4
-
     for node in G.nodes():
+        if node not in pos: continue
         x, y = pos[node]
-        node_x.append(x)
-        node_y.append(y)
+        node_x.append(x); node_y.append(y)
         node_colors.append(G.nodes[node]['color'])
-        hover_texts.append(G.nodes[node]['hover_text'])
         
-        raw_size = np.log(G.nodes[node]['size']) * 8
-        node_sizes.append(max(5, raw_size * base_size_mult))
+        # Size based on role
+        base_size = 8
+        if G.nodes[node]['role'] in ['input', 'output']: base_size = 12
+        node_sizes.append(base_size + np.log(G.nodes[node]['size']))
         
-        # Only label Inputs, Outputs, and Big Hubs
-        role = G.nodes[node]['role']
-        is_hub = G.nodes[node]['size'] > 500
-        
-        if role == 'input': node_labels.append("I")
-        elif role == 'output': node_labels.append("O")
-        elif is_hub and node_count < 100: node_labels.append(node[:4])
+        # Clean labels
+        if G.nodes[node]['role'] == 'input': node_labels.append("I")
+        elif G.nodes[node]['role'] == 'output': node_labels.append("O")
         else: node_labels.append("")
 
+    # Halo Effect (Glow)
     fig.add_trace(go.Scatter(
-        x=node_x, y=node_y,
-        mode='markers+text',
-        text=node_labels,
-        textposition="middle center",
-        textfont=dict(size=8, color="black"), # Label inside the node
-        hovertext=hover_texts,
-        hoverinfo='text',
-        marker=dict(
-            color=node_colors,
-            size=node_sizes,
-            line=dict(width=1, color='rgba(255,255,255,0.8)'),
-            opacity=1.0
-        ),
+        x=node_x, y=node_y, mode='markers',
+        marker=dict(size=[s*2 for s in node_sizes], color=node_colors, opacity=0.2),
+        hoverinfo='none', showlegend=False
+    ))
+
+    # Core Nodes
+    fig.add_trace(go.Scatter(
+        x=node_x, y=node_y, mode='markers+text',
+        text=node_labels, textposition="middle center",
+        textfont=dict(size=8, color="black"),
+        marker=dict(size=node_sizes, color=node_colors, line=dict(width=1, color='white'), opacity=1.0),
         name='Modules'
     ))
 
-    title_text = f"<b>Neural Topography: Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f} | Nodes: {node_count}"
-
     fig.update_layout(
-        title=dict(text=title_text, x=0.5, font=dict(size=14, color='#AAA')),
-        showlegend=False,
-        hovermode='closest',
+        title=dict(text=f"<b>Neural Blueprint: Form {genotype.form_id}</b>", x=0.5, font=dict(size=14, color='#AAA')),
+        showlegend=False, hovermode='closest',
         margin=dict(b=10, l=10, r=10, t=40),
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, visible=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, visible=False),
-        height=650,
-        plot_bgcolor='rgba(5,5,8,1)',
-        paper_bgcolor='rgba(0,0,0,0)'
+        xaxis=dict(visible=False), yaxis=dict(visible=False),
+        height=650, plot_bgcolor='rgba(5,5,8,1)', paper_bgcolor='rgba(0,0,0,0)'
     )
     
     return fig
