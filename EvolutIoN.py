@@ -2272,170 +2272,157 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
 
 def generate_procedural_scifi(G, seed, inputs, outputs, hidden):
     """
-    Procedural Geometry Engine.
-    Uses the seed to generate unique mathematical rules for node placement.
-    This ensures 'Infinite Shapes' - every Form/Seed gets a unique sci-fi topology.
+    Advanced Geometry Engine: Uses Chaos Theory and Fractals.
+    Generates non-Euclidean, sophisticated, and organic sci-fi shapes.
     """
-    rng = random.Random(seed) # Seed the artist with the Form ID
+    rng = random.Random(seed)
     pos = {}
     
-    # 1. Select a "Base Archetype" randomly
-    archetypes = ['cosmos', 'stream', 'implosion', 'grid', 'helix', 'atom']
+    # Complex Archetypes based on Chaos Theory & Fractals
+    archetypes = ['lorenz_attractor', 'fractal_dendrite', 'quantum_interference', 'hyper_torus', 'cyber_construct']
     archetype = rng.choice(archetypes)
     
-    # 2. Generate Random Mathematical Parameters (The "DNA" of the shape)
-    # These ensure that even two "helix" shapes look completely different
-    freq_x = rng.uniform(0.5, 3.0)
-    freq_y = rng.uniform(0.5, 3.0)
-    amplitude = rng.uniform(1.0, 4.0)
-    spiral_tightness = rng.uniform(0.1, 0.8)
-    chaos_factor = rng.uniform(0.0, 0.3) # Jitter amount
+    # DNA Parameters (Randomized physics constants)
+    # These ensure no two runs ever look the same
+    p1 = rng.uniform(0.1, 5.0)
+    p2 = rng.uniform(0.1, 5.0)
+    p3 = rng.uniform(0.0, np.pi * 2)
+    chaos_zoom = rng.uniform(0.5, 2.5)
     
     sorted_hidden = sorted(hidden)
-    total_nodes = len(inputs) + len(hidden) + len(outputs)
+    all_nodes = inputs + sorted_hidden + outputs
+    total = len(all_nodes)
     
-    # --- ARCHETYPE 1: COSMOS (Radial Splatter) ---
-    if archetype == 'cosmos':
-        # Inputs Core, Outputs Rim (or vice versa)
-        if rng.random() > 0.5:
-            center_nodes, rim_nodes = inputs, outputs
-        else:
-            center_nodes, rim_nodes = outputs, inputs
-            
-        for i, n in enumerate(center_nodes):
-            t = (i / len(center_nodes)) * 2 * np.pi
-            pos[n] = np.array([0.5 * np.cos(t), 0.5 * np.sin(t)])
-            
-        for i, n in enumerate(rim_nodes):
-            t = (i / len(rim_nodes)) * 2 * np.pi
-            r = amplitude + 1.0
-            pos[n] = np.array([r * np.cos(t), r * np.sin(t)])
-            
-        # Hidden: Galaxy Spirals
-        arms = rng.randint(3, 8)
-        for i, n in enumerate(sorted_hidden):
-            arm_idx = i % arms
-            progress = i / len(sorted_hidden)
-            theta = (arm_idx / arms) * 2 * np.pi + (progress * freq_x * 2)
-            r = 1.0 + (progress * amplitude)
-            pos[n] = np.array([r * np.cos(theta), r * np.sin(theta)])
-
-    # --- ARCHETYPE 2: DATA STREAM (Linear Flow) ---
-    elif archetype == 'stream':
-        # Left to Right flow with mathematical modulation
-        layer_gap = 6.0 / 3 # roughly space for In, Hidden, Out
-        
-        # Inputs Left
-        for i, n in enumerate(inputs):
-            y = (i - len(inputs)/2) * 0.5
-            pos[n] = np.array([-amplitude, y])
-            
-        # Outputs Right
-        for i, n in enumerate(outputs):
-            y = (i - len(outputs)/2) * 0.5
-            pos[n] = np.array([amplitude, y])
-            
-        # Hidden: The Flow
-        for i, n in enumerate(sorted_hidden):
-            # Map to x range [-Amp, +Amp]
-            norm_x = (i / len(sorted_hidden)) * 2 - 1 
-            x = norm_x * (amplitude * 0.8)
-            
-            # Complex Wave Function based on random params
-            y = np.sin(x * freq_x) * np.cos(x * freq_y) * (amplitude * 0.5)
-            # Add "Thickness" to the stream
-            y += rng.uniform(-0.5, 0.5)
-            
-            pos[n] = np.array([x, y])
-
-    # --- ARCHETYPE 3: IMPLOSION (Singularity) ---
-    elif archetype == 'implosion':
-        # Everything gets sucked into (0,0)
-        all_nodes = inputs + sorted_hidden + outputs
-        rng.shuffle(all_nodes) # Randomize order for chaotic look
+    # --- ARCHETYPE 1: STRANGE ATTRACTOR (The Lorenz Butterfly) ---
+    # Uses chaos equations to trace a path that never repeats
+    if archetype == 'lorenz_attractor':
+        dt = 0.015 * p1
+        x, y, z = 0.1, 0.0, 0.0
+        sigma, rho, beta = 10.0, 28.0, 8.0/3.0
         
         for i, n in enumerate(all_nodes):
-            # Logarithmic spiral distribution
-            t = i * spiral_tightness
-            r = amplitude * np.exp(-0.1 * t) # Decay radius
+            # Run the physics simulation steps
+            dx = sigma * (y - x) * dt
+            dy = (x * (rho - z) - y) * dt
+            dz = (x * y - beta * z) * dt
+            x += dx; y += dy; z += dz
             
-            # Determine angle based on role to keep some structure
-            if n in inputs: angle_offset = 0
-            elif n in outputs: angle_offset = np.pi
-            else: angle_offset = rng.uniform(0, 2*np.pi)
+            # Project 3D chaos to 2D sci-fi view
+            # Rotate view based on seed
+            view_x = x * np.cos(p3) - z * np.sin(p3)
+            view_y = y
             
-            x = r * np.cos(t + angle_offset)
-            y = r * np.sin(t + angle_offset)
-            pos[n] = np.array([x, y])
+            pos[n] = np.array([view_x * 0.2 * chaos_zoom, view_y * 0.2 * chaos_zoom])
 
-    # --- ARCHETYPE 4: THE ATOM (Orbital Shells) ---
-    elif archetype == 'atom':
-        # Nucleus
-        nucleus = sorted_hidden[:len(sorted_hidden)//5]
-        shells = sorted_hidden[len(sorted_hidden)//5:]
-        
-        # Place Nucleus tightly
-        for i, n in enumerate(nucleus):
-            pos[n] = np.array([rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5)])
-            
-        # Place Inputs/Outputs in specific orbits
-        orbit_radius = 1.5
-        for group in [inputs, shells, outputs]:
-            for i, n in enumerate(group):
-                t = (i / len(group)) * 2 * np.pi
-                # Tilt the orbit randomly
-                tilt_x = np.cos(rng.uniform(0, np.pi))
-                tilt_y = np.sin(rng.uniform(0, np.pi))
-                
-                x = orbit_radius * np.cos(t) * tilt_x
-                y = orbit_radius * np.sin(t) * tilt_y + (x * 0.2) # Fake 3D perspective
-                pos[n] = np.array([x, y])
-            orbit_radius += 1.5 # Next shell is further out
-
-    # --- ARCHETYPE 5: HYPER-GRID (Structured) ---
-    elif archetype == 'grid':
-        cols = int(np.sqrt(total_nodes)) + 1
-        
-        # Inputs Top Row
+    # --- ARCHETYPE 2: FRACTAL DENDRITE (The Neural Tree) ---
+    # Recursively grows branches like lightning or neurons
+    elif archetype == 'fractal_dendrite':
+        # Inputs are the "Roots"
         for i, n in enumerate(inputs):
-            x = (i - len(inputs)/2) 
-            pos[n] = np.array([x, amplitude])
+            pos[n] = np.array([(i - len(inputs)/2), -4.0])
             
-        # Outputs Bottom Row
+        # Grow the tree for hidden nodes
+        branches = [[0, -2.0, np.pi/2, 2.0]] # x, y, angle, length
+        hidden_idx = 0
+        
+        while hidden_idx < len(sorted_hidden):
+            # Pop a branch point
+            if not branches: branches = [[0, 0, rng.uniform(0, np.pi), 1.0]]
+            bx, by, angle, length = branches.pop(0)
+            
+            # Create 2-3 sub-branches
+            num_subs = rng.randint(2, 3)
+            for _ in range(num_subs):
+                if hidden_idx >= len(sorted_hidden): break
+                
+                # Mutate angle slightly for organic look
+                new_angle = angle + rng.uniform(-1.0, 1.0)
+                new_len = length * 0.9 # Shrink slightly
+                
+                nx_pos = bx + new_len * np.cos(new_angle)
+                ny_pos = by + new_len * np.sin(new_angle)
+                
+                pos[sorted_hidden[hidden_idx]] = np.array([nx_pos, ny_pos])
+                
+                # Add this new point as a potential parent for future nodes
+                branches.append([nx_pos, ny_pos, new_angle, new_len])
+                hidden_idx += 1
+                
+        # Outputs float above the canopy
         for i, n in enumerate(outputs):
-            x = (i - len(outputs)/2)
-            pos[n] = np.array([x, -amplitude])
-            
-        # Hidden in middle grid with distortion
-        for i, n in enumerate(sorted_hidden):
-            row = (i // cols)
-            col = (i % cols)
-            # Center coordinates
-            x = col - (cols/2)
-            y = (amplitude - 1) - (row * 0.5)
-            
-            # Apply "Warp" distortion
-            warp = np.sin(y * freq_y) * 0.5
-            pos[n] = np.array([x + warp, y])
+            pos[n] = np.array([(i - len(outputs)/2) * 2.0, 4.0])
 
-    # --- ARCHETYPE 6: DOUBLE HELIX (DNA) ---
-    else: # helix
-        nodes_ordered = inputs + sorted_hidden + outputs
-        for i, n in enumerate(nodes_ordered):
-            progress = i / len(nodes_ordered)
-            x = (progress * 2 - 1) * amplitude * 1.5
+    # --- ARCHETYPE 3: QUANTUM INTERFERENCE (Wave Function) ---
+    # Overlapping high-frequency sine waves creating interference patterns
+    elif archetype == 'quantum_interference':
+        for i, n in enumerate(all_nodes):
+            # Map index to a "time" variable
+            t = (i / total) * 10.0 * p1
             
-            # Double Helix Math
-            strand = 1 if i % 2 == 0 else -1
-            y = np.sin(x * freq_x) * strand * 1.5
+            # Lissajous-like curve math
+            x = np.sin(t) + np.sin(p2 * t) 
+            y = np.cos(t) + np.cos((p2 + 0.5) * t)
             
-            pos[n] = np.array([x, y])
+            # Add a "glitch" offset
+            if rng.random() < 0.1:
+                x += rng.uniform(-1, 1)
+            
+            pos[n] = np.array([x * 2.0, y * 2.0])
 
-    # 3. Final Polish: Apply Noise/Jitter to everything
-    # This breaks perfect lines and makes it look "organic"
+    # --- ARCHETYPE 4: HYPER-TORUS (The 4D Donut) ---
+    # Spirals projected onto a donut shape
+    elif archetype == 'hyper_torus':
+        R, r = 3.0, 1.0 # Major and minor radius
+        
+        for i, n in enumerate(all_nodes):
+            u = (i / total) * 4 * np.pi * p1 # Angle around tube
+            v = (i / total) * 2 * np.pi      # Angle around torus center
+            
+            # Torus parametric equation
+            x = (R + r * np.cos(v)) * np.cos(u)
+            y = (R + r * np.cos(v)) * np.sin(u)
+            
+            # Add z-depth simulated by expanding radius
+            z_factor = 1.0 + (0.3 * np.sin(v))
+            
+            pos[n] = np.array([x * z_factor, y * z_factor])
+
+    # --- ARCHETYPE 5: CYBER-CONSTRUCT (Asymmetric Architecture) ---
+    # Floating platforms and geometric clusters
+    elif archetype == 'cyber_construct':
+        clusters = rng.randint(3, 7)
+        centers = []
+        # Generate random cluster centers
+        for _ in range(clusters):
+            centers.append(np.array([rng.uniform(-4, 4), rng.uniform(-4, 4)]))
+            
+        # Assign nodes to clusters
+        for n in all_nodes:
+            # Pick a random cluster
+            c_idx = rng.randint(0, clusters - 1)
+            center = centers[c_idx]
+            
+            # Place relative to center (geometric shape, e.g., hexagon)
+            angle = rng.uniform(0, 2*np.pi)
+            # Snap angle to geometric segments (e.g., 60 degrees for hex)
+            segments = 6
+            snapped_angle = round(angle / (2*np.pi/segments)) * (2*np.pi/segments)
+            
+            radius = rng.uniform(0.5, 1.5)
+            offset = np.array([radius * np.cos(snapped_angle), radius * np.sin(snapped_angle)])
+            
+            pos[n] = center + offset
+
+    # Fallback: simple randomized cloud if something fails
+    else:
+        for n in all_nodes:
+            pos[n] = np.array([rng.uniform(-3, 3), rng.uniform(-3, 3)])
+
+    # --- 3. FINAL POLISH: Micro-Jitter ---
+    # Even within perfect math, biological systems vibrate.
     for n in pos:
-        pos[n] += np.array([rng.uniform(-chaos_factor, chaos_factor), 
-                           rng.uniform(-chaos_factor, chaos_factor)])
+        jitter = np.array([rng.uniform(-0.1, 0.1), rng.uniform(-0.1, 0.1)])
+        pos[n] += jitter
         
     return pos
 
