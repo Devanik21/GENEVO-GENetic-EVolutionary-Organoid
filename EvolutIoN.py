@@ -2270,168 +2270,13 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
         
     return pos
 
-def generate_procedural_scifi(G, seed, inputs, outputs, hidden):
-    """
-    Advanced Geometry Engine: Uses Chaos Theory and Fractals.
-    Generates non-Euclidean, sophisticated, and organic sci-fi shapes.
-    """
-    rng = random.Random(seed)
-    pos = {}
-    
-    # Complex Archetypes based on Chaos Theory & Fractals
-    archetypes = ['lorenz_attractor', 'fractal_dendrite', 'quantum_interference', 'hyper_torus', 'cyber_construct']
-    archetype = rng.choice(archetypes)
-    
-    # DNA Parameters (Randomized physics constants)
-    # These ensure no two runs ever look the same
-    p1 = rng.uniform(0.1, 5.0)
-    p2 = rng.uniform(0.1, 5.0)
-    p3 = rng.uniform(0.0, np.pi * 2)
-    chaos_zoom = rng.uniform(0.5, 2.5)
-    
-    sorted_hidden = sorted(hidden)
-    all_nodes = inputs + sorted_hidden + outputs
-    total = len(all_nodes)
-    
-    # --- ARCHETYPE 1: STRANGE ATTRACTOR (The Lorenz Butterfly) ---
-    # Uses chaos equations to trace a path that never repeats
-    if archetype == 'lorenz_attractor':
-        dt = 0.015 * p1
-        x, y, z = 0.1, 0.0, 0.0
-        sigma, rho, beta = 10.0, 28.0, 8.0/3.0
-        
-        for i, n in enumerate(all_nodes):
-            # Run the physics simulation steps
-            dx = sigma * (y - x) * dt
-            dy = (x * (rho - z) - y) * dt
-            dz = (x * y - beta * z) * dt
-            x += dx; y += dy; z += dz
-            
-            # Project 3D chaos to 2D sci-fi view
-            # Rotate view based on seed
-            view_x = x * np.cos(p3) - z * np.sin(p3)
-            view_y = y
-            
-            pos[n] = np.array([view_x * 0.2 * chaos_zoom, view_y * 0.2 * chaos_zoom])
-
-    # --- ARCHETYPE 2: FRACTAL DENDRITE (The Neural Tree) ---
-    # Recursively grows branches like lightning or neurons
-    elif archetype == 'fractal_dendrite':
-        # Inputs are the "Roots"
-        for i, n in enumerate(inputs):
-            pos[n] = np.array([(i - len(inputs)/2), -4.0])
-            
-        # Grow the tree for hidden nodes
-        branches = [[0, -2.0, np.pi/2, 2.0]] # x, y, angle, length
-        hidden_idx = 0
-        
-        while hidden_idx < len(sorted_hidden):
-            # Pop a branch point
-            if not branches: branches = [[0, 0, rng.uniform(0, np.pi), 1.0]]
-            bx, by, angle, length = branches.pop(0)
-            
-            # Create 2-3 sub-branches
-            num_subs = rng.randint(2, 3)
-            for _ in range(num_subs):
-                if hidden_idx >= len(sorted_hidden): break
-                
-                # Mutate angle slightly for organic look
-                new_angle = angle + rng.uniform(-1.0, 1.0)
-                new_len = length * 0.9 # Shrink slightly
-                
-                nx_pos = bx + new_len * np.cos(new_angle)
-                ny_pos = by + new_len * np.sin(new_angle)
-                
-                pos[sorted_hidden[hidden_idx]] = np.array([nx_pos, ny_pos])
-                
-                # Add this new point as a potential parent for future nodes
-                branches.append([nx_pos, ny_pos, new_angle, new_len])
-                hidden_idx += 1
-                
-        # Outputs float above the canopy
-        for i, n in enumerate(outputs):
-            pos[n] = np.array([(i - len(outputs)/2) * 2.0, 4.0])
-
-    # --- ARCHETYPE 3: QUANTUM INTERFERENCE (Wave Function) ---
-    # Overlapping high-frequency sine waves creating interference patterns
-    elif archetype == 'quantum_interference':
-        for i, n in enumerate(all_nodes):
-            # Map index to a "time" variable
-            t = (i / total) * 10.0 * p1
-            
-            # Lissajous-like curve math
-            x = np.sin(t) + np.sin(p2 * t) 
-            y = np.cos(t) + np.cos((p2 + 0.5) * t)
-            
-            # Add a "glitch" offset
-            if rng.random() < 0.1:
-                x += rng.uniform(-1, 1)
-            
-            pos[n] = np.array([x * 2.0, y * 2.0])
-
-    # --- ARCHETYPE 4: HYPER-TORUS (The 4D Donut) ---
-    # Spirals projected onto a donut shape
-    elif archetype == 'hyper_torus':
-        R, r = 3.0, 1.0 # Major and minor radius
-        
-        for i, n in enumerate(all_nodes):
-            u = (i / total) * 4 * np.pi * p1 # Angle around tube
-            v = (i / total) * 2 * np.pi      # Angle around torus center
-            
-            # Torus parametric equation
-            x = (R + r * np.cos(v)) * np.cos(u)
-            y = (R + r * np.cos(v)) * np.sin(u)
-            
-            # Add z-depth simulated by expanding radius
-            z_factor = 1.0 + (0.3 * np.sin(v))
-            
-            pos[n] = np.array([x * z_factor, y * z_factor])
-
-    # --- ARCHETYPE 5: CYBER-CONSTRUCT (Asymmetric Architecture) ---
-    # Floating platforms and geometric clusters
-    elif archetype == 'cyber_construct':
-        clusters = rng.randint(3, 7)
-        centers = []
-        # Generate random cluster centers
-        for _ in range(clusters):
-            centers.append(np.array([rng.uniform(-4, 4), rng.uniform(-4, 4)]))
-            
-        # Assign nodes to clusters
-        for n in all_nodes:
-            # Pick a random cluster
-            c_idx = rng.randint(0, clusters - 1)
-            center = centers[c_idx]
-            
-            # Place relative to center (geometric shape, e.g., hexagon)
-            angle = rng.uniform(0, 2*np.pi)
-            # Snap angle to geometric segments (e.g., 60 degrees for hex)
-            segments = 6
-            snapped_angle = round(angle / (2*np.pi/segments)) * (2*np.pi/segments)
-            
-            radius = rng.uniform(0.5, 1.5)
-            offset = np.array([radius * np.cos(snapped_angle), radius * np.sin(snapped_angle)])
-            
-            pos[n] = center + offset
-
-    # Fallback: simple randomized cloud if something fails
-    else:
-        for n in all_nodes:
-            pos[n] = np.array([rng.uniform(-3, 3), rng.uniform(-3, 3)])
-
-    # --- 3. FINAL POLISH: Micro-Jitter ---
-    # Even within perfect math, biological systems vibrate.
-    for n in pos:
-        jitter = np.array([rng.uniform(-0.1, 0.1), rng.uniform(-0.1, 0.1)])
-        pos[n] += jitter
-        
-    return pos
-
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
-    2D Visualization with Infinite Procedural Geometry.
+    2D Visualization engine that selects a Sci-Fi Geometry based on the Form ID.
     """
     G = nx.DiGraph()
     
+    # 1. Identify Nodes
     inputs, outputs, hidden = [], [], []
     
     for module in genotype.modules:
@@ -2442,38 +2287,49 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         else:
             role = 'hidden'; hidden.append(module.id)
             
-        G.add_node(module.id, size=module.size, color=module.color, module_type=module.module_type, role=role)
+        G.add_node(
+            module.id, size=module.size, color=module.color,
+            module_type=module.module_type, role=role,
+            hover_text=f"<b>{module.id}</b><br>{module.module_type}"
+        )
         
     for conn in genotype.connections:
         if conn.source in G.nodes and conn.target in G.nodes:
             G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
 
-    # --- GENERATE INFINITE GEOMETRY ---
-    # Use the Form ID + Generation as the seed to ensure evolution changes the shape
-    unique_seed = genotype.form_id * 1000 + genotype.generation + layout_seed
-    pos = generate_procedural_scifi(G, unique_seed, inputs, outputs, hidden)
+    node_count = len(G.nodes())
 
+    # 2. APPLY SCI-FI GEOMETRY (Deterministic based on Form ID)
+    # This ensures Form 1 always looks like a Brain, Form 2 like a Star, etc.
+    pos = apply_scifi_geometry(G, genotype.form_id, inputs, outputs, hidden)
+
+    # 3. Plotting
     fig = go.Figure()
 
-    # --- Draw Edges (Thinner and subtler for complex graphs) ---
+    # Edges: Use simpler curves to avoid the "Messy Hairball" look
     for i, (u, v, data) in enumerate(G.edges(data=True)):
         if u not in pos or v not in pos: continue
-        x0, y0 = pos[u]; x1, y1 = pos[v]
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
         
-        # Dynamic curvature based on seed
-        curve_seed = (unique_seed + i) % 100
-        curvature = 0.1 if curve_seed > 50 else -0.1
+        # Reduce curvature for cleaner, tech-like lines
+        curve_intensity = 0.05 
+        curvature = curve_intensity if i % 2 == 0 else -curve_intensity
         bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature)
         
         conn_type = data.get('type', 'excitatory')
-        # Very transparent edges to highlight the nodes
-        color_map = {'excitatory': 'rgba(0, 255, 200, 0.2)', 'inhibitory': 'rgba(255, 50, 50, 0.2)'}
-        edge_color = color_map.get(conn_type, 'rgba(100, 100, 255, 0.1)')
+        color_map = {'excitatory': 'rgba(0, 255, 200, 0.4)', 'inhibitory': 'rgba(255, 50, 50, 0.4)'}
+        edge_color = color_map.get(conn_type, 'rgba(100, 100, 255, 0.3)')
             
-        fig.add_trace(go.Scatter(x=bx, y=by, mode='lines', line=dict(width=0.6, color=edge_color), hoverinfo='none', showlegend=False))
+        fig.add_trace(go.Scatter(
+            x=bx, y=by, mode='lines',
+            line=dict(width=0.8, color=edge_color),
+            hoverinfo='none', showlegend=False
+        ))
 
-    # --- Draw Nodes (SIGNIFICANTLY REDUCED SIZE) ---
+    # Nodes: Glowing Tech Orbs
     node_x, node_y, node_colors, node_sizes = [], [], [], []
+    node_labels = []
     
     for node in G.nodes():
         if node not in pos: continue
@@ -2481,39 +2337,38 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         node_x.append(x); node_y.append(y)
         node_colors.append(G.nodes[node]['color'])
         
-        # --- NEW SIZE LOGIC: Much smaller, sleek sci-fi dots ---
-        # Base size is small (3), scales slightly with parameter count
-        raw_size = np.log(max(1, G.nodes[node]['size'])) 
-        final_size = 3 + (raw_size * 0.8) # Much tighter scaling
+        # Size based on role
+        base_size = 8
+        if G.nodes[node]['role'] in ['input', 'output']: base_size = 12
+        node_sizes.append(base_size + np.log(G.nodes[node]['size']))
         
-        # Inputs/Outputs get a slight boost
-        if G.nodes[node]['role'] in ['input', 'output']:
-            final_size += 2
-            
-        node_sizes.append(final_size)
+        # Clean labels
+        if G.nodes[node]['role'] == 'input': node_labels.append("I")
+        elif G.nodes[node]['role'] == 'output': node_labels.append("O")
+        else: node_labels.append("")
 
-    # Glow Trace (Slightly larger, very transparent)
+    # Halo Effect (Glow)
     fig.add_trace(go.Scatter(
         x=node_x, y=node_y, mode='markers',
-        marker=dict(size=[s*2.5 for s in node_sizes], color=node_colors, opacity=0.15), # Soft glow
+        marker=dict(size=[s*2 for s in node_sizes], color=node_colors, opacity=0.2),
         hoverinfo='none', showlegend=False
     ))
 
-    # Core Node Trace
+    # Core Nodes
     fig.add_trace(go.Scatter(
-        x=node_x, y=node_y, mode='markers',
-        hovertext=[f"{n}" for n in G.nodes()],
-        hoverinfo='text',
-        marker=dict(size=node_sizes, color=node_colors, line=dict(width=0.5, color='white'), opacity=0.9),
+        x=node_x, y=node_y, mode='markers+text',
+        text=node_labels, textposition="middle center",
+        textfont=dict(size=8, color="black"),
+        marker=dict(size=node_sizes, color=node_colors, line=dict(width=1, color='white'), opacity=1.0),
         name='Modules'
     ))
 
     fig.update_layout(
-        title=dict(text=f"<b>Neuro-Topology: Form {genotype.form_id}</b>", x=0.5, font=dict(size=14, color='#888')),
+        title=dict(text=f"<b>Neural Blueprint: Form {genotype.form_id}</b>", x=0.5, font=dict(size=14, color='#AAA')),
         showlegend=False, hovermode='closest',
         margin=dict(b=10, l=10, r=10, t=40),
         xaxis=dict(visible=False), yaxis=dict(visible=False),
-        height=650, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)'
+        height=650, plot_bgcolor='rgba(5,5,8,1)', paper_bgcolor='rgba(0,0,0,0)'
     )
     
     return fig
