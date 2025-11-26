@@ -2173,22 +2173,37 @@ def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
     return bx, by
 
 
-def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'kamada_kawai') -> go.Figure:
+def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'neuro_flow') -> go.Figure:
     """
-    Adaptive 2D visualization that scales node size and hides labels 
-    when the network becomes highly complex.
+    Adaptive 2D visualization with 'Neuro-Flow' layout.
+    Forces Inputs (Left) -> Hidden (Middle) -> Outputs (Right) to avoid the 'Potato' blob.
     """
     
     G = nx.DiGraph()
     
-    # Add nodes
+    # 1. Identify Node Roles & Add to Graph
+    inputs = []
+    outputs = []
+    hidden = []
+    
     for module in genotype.modules:
+        # Determine role based on ID or type
+        if 'Input' in module.id or 'Sensory' in module.id:
+            role = 'input'
+            inputs.append(module.id)
+        elif 'Output' in module.id or 'Motor' in module.id:
+            role = 'output'
+            outputs.append(module.id)
+        else:
+            role = 'hidden'
+            hidden.append(module.id)
+            
         G.add_node(
             module.id,
             size=module.size,
             color=module.color,
             module_type=module.module_type,
-            # Rich hover text always remains available!
+            role=role,
             hover_text=(
                 f"<b>{module.id}</b><br>"
                 f"Type: {module.module_type}<br>"
@@ -2203,65 +2218,93 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         if conn.source in G.nodes and conn.target in G.nodes:
             G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
             
-    # --- ADAPTIVE SCALING LOGIC ---
     node_count = len(G.nodes())
-    
-    # If huge, use spring layout with more spacing and iterations
-    if node_count > 50:
-        # Stronger repulsion (k) and more iterations to untangle the mess
-        pos = nx.spring_layout(G, seed=layout_seed, k=3.0/np.sqrt(node_count), iterations=200)
-    else:
-        try:
-            if layout_algo == 'kamada_kawai': pos = nx.kamada_kawai_layout(G)
-            elif layout_algo == 'circular': pos = nx.circular_layout(G)
-            else: pos = nx.spring_layout(G, seed=layout_seed, k=0.8)
-        except:
-            pos = nx.spring_layout(G, seed=layout_seed, k=0.8)
 
+    # --- 2. THE NEURO-FLOW LAYOUT ENGINE ---
+    # Instead of a random blob, we calculate specific coordinates.
+    pos = {}
+    
+    # A. Pin Inputs to the Left (x = -1 to -2)
+    if inputs:
+        # Spread them vertically
+        y_positions = np.linspace(-1, 1, len(inputs))
+        for i, node in enumerate(inputs):
+            # Add slight curvature to the input layer
+            x_offset = -2.0 - (abs(y_positions[i]) * 0.2) 
+            pos[node] = np.array([x_offset, y_positions[i]])
+
+    # B. Pin Outputs to the Right (x = 2 to 3)
+    if outputs:
+        y_positions = np.linspace(-1, 1, len(outputs))
+        for i, node in enumerate(outputs):
+            x_offset = 2.0 + (abs(y_positions[i]) * 0.2)
+            pos[node] = np.array([x_offset, y_positions[i]])
+
+    # C. Let Hidden nodes float, but influenced by gravity
+    fixed_nodes = inputs + outputs
+    if not fixed_nodes: fixed_nodes = None # Handle edge case of no I/O
+    
+    # Use Spring layout, but "fix" the inputs and outputs so they can't move.
+    # This acts like a rack, stretching the hidden nodes between the fixed ends.
+    try:
+        # k is the optimal distance between nodes. Smaller k = tighter clusters.
+        k_val = 2.0 / np.sqrt(node_count) if node_count > 0 else 1.0
+        
+        pos = nx.spring_layout(
+            G, 
+            pos=pos,             # Initial positions
+            fixed=fixed_nodes,   # Pin the inputs/outputs!
+            seed=layout_seed, 
+            k=k_val, 
+            iterations=300,      # More iterations to smooth it out
+            scale=2.0            # Stretch the physics
+        )
+    except:
+        # Fallback if pinning fails (e.g., unconnected graph)
+        pos = nx.kamada_kawai_layout(G)
+
+    # --- 3. PLOTTING (Standard Logic) ---
     fig = go.Figure()
 
-    # --- 1. Draw Curved Edges ---
-    # Thinner lines for dense graphs to avoid "spaghetti" look
+    # Draw Edges (Curved)
     base_width = 0.5 if node_count > 100 else 1.5
-    opacity = 0.4 if node_count > 100 else 0.8
+    opacity = 0.3 if node_count > 100 else 0.6
 
     for i, (u, v, data) in enumerate(G.edges(data=True)):
         x0, y0 = pos[u]
         x1, y1 = pos[v]
         
-        # Less curvature for dense graphs to keep it cleaner
-        curve_intensity = 0.05 if node_count > 50 else 0.15
+        # Curve logic: flow forward (left to right) usually curves up/down
+        dist = np.sqrt((x1-x0)**2 + (y1-y0)**2)
+        curve_intensity = 0.15 * (dist / 2.0) # Longer lines curve more
         curvature = curve_intensity if i % 2 == 0 else -curve_intensity
         
         bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature)
         
-        weight = data.get('weight', 0.5)
         conn_type = data.get('type', 'excitatory')
-        
         if conn_type == 'inhibitory': edge_color = f'rgba(255, 80, 80, {opacity})'
         elif conn_type == 'modulatory': edge_color = f'rgba(80, 150, 255, {opacity})'
-        else: edge_color = f'rgba(180, 180, 180, {min(0.5, weight)})'
+        else: edge_color = f'rgba(200, 200, 200, {opacity})' # White-ish for normal
             
         fig.add_trace(go.Scatter(
             x=bx, y=by,
             mode='lines',
-            line=dict(width=base_width + weight, color=edge_color),
+            line=dict(width=base_width, color=edge_color),
             hoverinfo='none',
             showlegend=False
         ))
 
-    # --- 2. Draw Nodes (Adaptive) ---
+    # Draw Nodes
     node_x, node_y = [], []
     node_colors = []
     node_sizes = []
-    node_labels = [] # Text to display on chart
-    hover_texts = [] # Text to display on hover
+    node_labels = [] 
+    hover_texts = []
     
-    # Dynamic sizing: The more nodes, the smaller they get
-    # Base size calculation
+    # Dynamic sizing base
     if node_count < 20: base_size_mult = 1.0
-    elif node_count < 100: base_size_mult = 0.6
-    else: base_size_mult = 0.3
+    elif node_count < 100: base_size_mult = 0.7
+    else: base_size_mult = 0.4
 
     for node in G.nodes():
         x, y = pos[node]
@@ -2270,46 +2313,35 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         node_colors.append(G.nodes[node]['color'])
         hover_texts.append(G.nodes[node]['hover_text'])
         
-        # Size calculation
         raw_size = np.log(G.nodes[node]['size']) * 8
-        node_sizes.append(max(6, raw_size * base_size_mult)) # Minimum size of 6
+        node_sizes.append(max(5, raw_size * base_size_mult))
         
-        # --- SMART LABELING ---
-        # Only show text for "Important" nodes if the graph is dense
-        # --- SMART LABELING (UPDATED FOR PRINCE NIK) ---
-        # Only show text if the node is HUGE or is Input/Output
-        # This cleans up the "messy text" on 500+ node graphs
+        # Only label Inputs, Outputs, and Big Hubs
+        role = G.nodes[node]['role']
+        is_hub = G.nodes[node]['size'] > 500
         
-        is_special = "Input" in node or "Output" in node
-        is_hub = G.nodes[node]['size'] > 300  # Only label big nodes
-        
-        if node_count > 50:
-            if is_special or is_hub: 
-                node_labels.append(node) # Show label for VIP nodes
-            else:
-                node_labels.append("")   # Hide label for the crowd
-        else:
-            node_labels.append(node) # Show all if graph is small
+        if role == 'input': node_labels.append("I")
+        elif role == 'output': node_labels.append("O")
+        elif is_hub and node_count < 100: node_labels.append(node[:4])
+        else: node_labels.append("")
 
-    # Layer 1: The Core Node
     fig.add_trace(go.Scatter(
         x=node_x, y=node_y,
-        mode='markers+text', # Text is conditional based on the list above
+        mode='markers+text',
         text=node_labels,
-        textposition="bottom center",
-        textfont=dict(family="Arial", size=10 if node_count < 50 else 8, color="#EEE"),
+        textposition="middle center",
+        textfont=dict(size=8, color="black"), # Label inside the node
         hovertext=hover_texts,
         hoverinfo='text',
         marker=dict(
             color=node_colors,
             size=node_sizes,
-            line=dict(width=1 if node_count > 100 else 2, color='white'),
+            line=dict(width=1, color='rgba(255,255,255,0.8)'),
             opacity=1.0
         ),
         name='Modules'
     ))
 
-    # Layout Styling
     title_text = f"<b>Neural Topography: Form {genotype.form_id}</b> | Gen {genotype.generation} | Fitness: {genotype.fitness:.4f} | Nodes: {node_count}"
 
     fig.update_layout(
@@ -2317,10 +2349,10 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         showlegend=False,
         hovermode='closest',
         margin=dict(b=10, l=10, r=10, t=40),
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, visible=False),
+        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, visible=False),
         height=650,
-        plot_bgcolor='rgba(5,5,8,1)', # Deep space black
+        plot_bgcolor='rgba(5,5,8,1)',
         paper_bgcolor='rgba(0,0,0,0)'
     )
     
