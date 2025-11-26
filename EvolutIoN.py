@@ -2273,6 +2273,7 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
     2D Visualization engine that selects a Sci-Fi Geometry based on the Form ID.
+    UPDATED: Node sizes reduced for a 'Complex Network' aesthetic.
     """
     G = nx.DiGraph()
     
@@ -2300,19 +2301,18 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     node_count = len(G.nodes())
 
     # 2. APPLY SCI-FI GEOMETRY (Deterministic based on Form ID)
-    # This ensures Form 1 always looks like a Brain, Form 2 like a Star, etc.
     pos = apply_scifi_geometry(G, genotype.form_id, inputs, outputs, hidden)
 
     # 3. Plotting
     fig = go.Figure()
 
-    # Edges: Use simpler curves to avoid the "Messy Hairball" look
+    # Edges: Thinner and cleaner for complex network look
     for i, (u, v, data) in enumerate(G.edges(data=True)):
         if u not in pos or v not in pos: continue
         x0, y0 = pos[u]
         x1, y1 = pos[v]
         
-        # Reduce curvature for cleaner, tech-like lines
+        # Reduced curvature for cleaner lines
         curve_intensity = 0.05 
         curvature = curve_intensity if i % 2 == 0 else -curve_intensity
         bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature)
@@ -2323,11 +2323,12 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
             
         fig.add_trace(go.Scatter(
             x=bx, y=by, mode='lines',
-            line=dict(width=0.8, color=edge_color),
+            # Width reduced to 0.5 for finer webs
+            line=dict(width=0.5, color=edge_color),
             hoverinfo='none', showlegend=False
         ))
 
-    # Nodes: Glowing Tech Orbs
+    # Nodes: Fine Points (Complex Network Style)
     node_x, node_y, node_colors, node_sizes = [], [], [], []
     node_labels = []
     
@@ -2337,20 +2338,28 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         node_x.append(x); node_y.append(y)
         node_colors.append(G.nodes[node]['color'])
         
-        # Size based on role
-        base_size = 8
-        if G.nodes[node]['role'] in ['input', 'output']: base_size = 12
-        node_sizes.append(base_size + np.log(G.nodes[node]['size']))
+        # --- SIZE UPDATE START ---
+        # Drastically reduced base sizes
+        base_size = 3  # Was 8
+        if G.nodes[node]['role'] in ['input', 'output']: 
+            base_size = 5  # Was 12
+        
+        # Reduced the impact of neuron count on visual size
+        # (log(size) * 0.3) keeps giant layers from becoming giant circles
+        calc_size = base_size + (np.log(G.nodes[node]['size']) * 0.3)
+        node_sizes.append(calc_size)
+        # --- SIZE UPDATE END ---
         
         # Clean labels
         if G.nodes[node]['role'] == 'input': node_labels.append("I")
         elif G.nodes[node]['role'] == 'output': node_labels.append("O")
         else: node_labels.append("")
 
-    # Halo Effect (Glow)
+    # Halo Effect (Glow) - Adjusted for smaller nodes
     fig.add_trace(go.Scatter(
         x=node_x, y=node_y, mode='markers',
-        marker=dict(size=[s*2 for s in node_sizes], color=node_colors, opacity=0.2),
+        # Halo is now 3x the small node size, creating a subtle glow
+        marker=dict(size=[s*3 for s in node_sizes], color=node_colors, opacity=0.3),
         hoverinfo='none', showlegend=False
     ))
 
@@ -2359,7 +2368,8 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         x=node_x, y=node_y, mode='markers+text',
         text=node_labels, textposition="middle center",
         textfont=dict(size=8, color="black"),
-        marker=dict(size=node_sizes, color=node_colors, line=dict(width=1, color='white'), opacity=1.0),
+        # Line width reduced to 0.5 for crisp look
+        marker=dict(size=node_sizes, color=node_colors, line=dict(width=0.5, color='white'), opacity=1.0),
         name='Modules'
     ))
 
