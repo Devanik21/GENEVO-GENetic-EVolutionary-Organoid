@@ -2273,7 +2273,9 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
     2D Visualization engine that selects a Sci-Fi Geometry based on the Form ID.
-    UPDATED: Node sizes reduced for a 'Complex Network' aesthetic.
+    UPDATED: 
+    1. Node sizes reduced for 'Complex Network' look.
+    2. Rich Hover Data added (Type, Size, Activation, etc.).
     """
     G = nx.DiGraph()
     
@@ -2288,10 +2290,16 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         else:
             role = 'hidden'; hidden.append(module.id)
             
+        # Store all attributes in the graph node for easy access later
         G.add_node(
-            module.id, size=module.size, color=module.color,
-            module_type=module.module_type, role=role,
-            hover_text=f"<b>{module.id}</b><br>{module.module_type}"
+            module.id, 
+            size=module.size, 
+            color=module.color,
+            module_type=module.module_type, 
+            activation=module.activation,
+            plasticity=module.plasticity,
+            lr_mult=module.learning_rate_mult,
+            role=role
         )
         
     for conn in genotype.connections:
@@ -2318,12 +2326,12 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature)
         
         conn_type = data.get('type', 'excitatory')
-        color_map = {'excitatory': 'rgba(0, 255, 200, 0.4)', 'inhibitory': 'rgba(255, 50, 50, 0.4)'}
-        edge_color = color_map.get(conn_type, 'rgba(100, 100, 255, 0.3)')
+        # Lighter alpha for edges to make nodes pop
+        color_map = {'excitatory': 'rgba(0, 255, 200, 0.3)', 'inhibitory': 'rgba(255, 50, 50, 0.3)'}
+        edge_color = color_map.get(conn_type, 'rgba(100, 100, 255, 0.2)')
             
         fig.add_trace(go.Scatter(
             x=bx, y=by, mode='lines',
-            # Width reduced to 0.5 for finer webs
             line=dict(width=0.5, color=edge_color),
             hoverinfo='none', showlegend=False
         ))
@@ -2331,34 +2339,43 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     # Nodes: Fine Points (Complex Network Style)
     node_x, node_y, node_colors, node_sizes = [], [], [], []
     node_labels = []
+    node_hover_texts = []  # <-- NEW: List to hold rich hover strings
     
     for node in G.nodes():
         if node not in pos: continue
         x, y = pos[node]
         node_x.append(x); node_y.append(y)
-        node_colors.append(G.nodes[node]['color'])
         
-        # --- SIZE UPDATE START ---
-        # Drastically reduced base sizes
-        base_size = 3  # Was 8
-        if G.nodes[node]['role'] in ['input', 'output']: 
-            base_size = 5  # Was 12
+        # Retrieve attributes
+        attrs = G.nodes[node]
+        node_colors.append(attrs['color'])
         
-        # Reduced the impact of neuron count on visual size
-        # (log(size) * 0.3) keeps giant layers from becoming giant circles
-        calc_size = base_size + (np.log(G.nodes[node]['size']) * 0.3)
+        # --- SIZE UPDATE ---
+        base_size = 3 
+        if attrs['role'] in ['input', 'output']: base_size = 5
+        calc_size = base_size + (np.log(attrs['size']) * 0.3)
         node_sizes.append(calc_size)
-        # --- SIZE UPDATE END ---
         
-        # Clean labels
-        if G.nodes[node]['role'] == 'input': node_labels.append("I")
-        elif G.nodes[node]['role'] == 'output': node_labels.append("O")
+        # --- RICH HOVER TEXT GENERATION ---
+        # We format this as HTML for Plotly to render cleanly
+        hover_str = (
+            f"<b>ID:</b> {node}<br>"
+            f"<b>Type:</b> {attrs['module_type'].upper()}<br>"
+            f"<b>Size (Neurons):</b> {attrs['size']}<br>"
+            f"<b>Activation:</b> {attrs['activation']}<br>"
+            f"<b>Plasticity:</b> {attrs['plasticity']:.3f}<br>"
+            f"<b>LR Multiplier:</b> {attrs['lr_mult']:.2f}x"
+        )
+        node_hover_texts.append(hover_str)
+        
+        # Clean labels (Only I/O get visible text)
+        if attrs['role'] == 'input': node_labels.append("I")
+        elif attrs['role'] == 'output': node_labels.append("O")
         else: node_labels.append("")
 
-    # Halo Effect (Glow) - Adjusted for smaller nodes
+    # Halo Effect (Glow)
     fig.add_trace(go.Scatter(
         x=node_x, y=node_y, mode='markers',
-        # Halo is now 3x the small node size, creating a subtle glow
         marker=dict(size=[s*3 for s in node_sizes], color=node_colors, opacity=0.3),
         hoverinfo='none', showlegend=False
     ))
@@ -2368,7 +2385,10 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         x=node_x, y=node_y, mode='markers+text',
         text=node_labels, textposition="middle center",
         textfont=dict(size=8, color="black"),
-        # Line width reduced to 0.5 for crisp look
+        # Pass the rich text list here
+        hovertext=node_hover_texts, 
+        # 'text' means use the hovertext list, 'name' adds the trace name
+        hoverinfo='text', 
         marker=dict(size=node_sizes, color=node_colors, line=dict(width=0.5, color='white'), opacity=1.0),
         name='Modules'
     ))
