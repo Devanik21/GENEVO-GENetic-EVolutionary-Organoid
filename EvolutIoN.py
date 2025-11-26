@@ -2173,167 +2173,164 @@ def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
     return bx, by
 
 
-def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'kamada_kawai') -> go.Figure:
+def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'layered') -> go.Figure:
     """
-    Prince Nik's Directed Flow Visualization.
-    Forces Inputs to the LEFT and Outputs to the RIGHT to prevent 'blob' shapes.
-    Preserves 100% of complexity while adding structural clarity.
+    Prince Nik's 'Circuit Board' Layout.
+    Mathematically forces a Left-to-Right flow based on network depth.
+    Eliminates the 'Potato Effect' by organizing nodes into calculated layers.
     """
     
     G = nx.DiGraph()
     
-    # 1. Identify Inputs and Outputs for pinning
+    # 1. Build the Graph & Identify Roles
     input_nodes = []
     output_nodes = []
     
-    # Add nodes
     for module in genotype.modules:
         G.add_node(
             module.id,
             size=module.size,
             color=module.color,
             module_type=module.module_type,
-            hover_text=(
-                f"<b>{module.id}</b><br>"
-                f"Type: {module.module_type}<br>"
-                f"Size: {module.size}<br>"
-                f"Act: {module.activation}<br>"
-                f"Plasticity: {module.plasticity:.2f}"
-            )
+            hover_text=(f"<b>{module.id}</b><br>Type: {module.module_type}<br>Size: {module.size}")
         )
-        # Classify node roles for layout
         if 'Input' in module.id or 'Sensory' in module.id:
             input_nodes.append(module.id)
         elif 'Output' in module.id or 'Motor' in module.id:
             output_nodes.append(module.id)
-        
-    # Add edges
+            
     for conn in genotype.connections:
         if conn.source in G.nodes and conn.target in G.nodes:
             G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
-            
-    # --- PRINCE NIK'S "NO-BLOB" LAYOUT ENGINE ---
-    node_count = len(G.nodes())
+
+    # --- THE "CIRCUIT BOARD" ALGORITHM ---
     pos = {}
     
-    # A. Set rigid positions for Inputs (Left) and Outputs (Right)
-    # We spread them out vertically so they don't stack on top of each other
-    for i, node in enumerate(input_nodes):
-        y_pos = (i - len(input_nodes)/2) * 2.0  # Spread vertically
-        pos[node] = np.array([-2.0, y_pos])     # Fixed Left X=-2
+    # A. Calculate "Depth" (Layer) for every node using Breadth-First Search
+    # This tells us how many steps away a node is from the input.
+    layers = {} # {depth: [node_ids]}
+    
+    # Initialize layers
+    for n in G.nodes():
+        # Inputs are always layer 0
+        if n in input_nodes:
+            depth = 0
+        # Outputs are always the 'last' layer (we'll push them far right later)
+        elif n in output_nodes:
+            depth = 999 
+        else:
+            # Find shortest path from any input to this node
+            try:
+                paths = []
+                for inp in input_nodes:
+                    if nx.has_path(G, inp, n):
+                        paths.append(nx.shortest_path_length(G, inp, n))
+                depth = min(paths) if paths else 5 # Default to middle if disconnected
+            except:
+                depth = 5 # Fallback
         
-    for i, node in enumerate(output_nodes):
-        y_pos = (i - len(output_nodes)/2) * 2.0 # Spread vertically
-        pos[node] = np.array([2.0, y_pos])      # Fixed Right X=+2
+        if depth not in layers: layers[depth] = []
+        layers[depth].append(n)
 
-    # B. Calculate positions for the "Hidden" brain (the middle complexity)
-    # We use spring layout but LOCK the inputs and outputs in place.
-    # This forces the hidden nodes to flow nicely between them.
-    fixed_nodes = input_nodes + output_nodes
-    if not fixed_nodes: fixed_nodes = None # Safety fallback
+    # B. Normalize Output Layer
+    # Find the max depth calculated, and move outputs slightly beyond that
+    real_max_depth = max([k for k in layers.keys() if k != 999], default=0)
+    final_layer_idx = real_max_depth + 2
+    if 999 in layers:
+        layers[final_layer_idx] = layers.pop(999)
+
+    # C. Assign X,Y Coordinates
+    sorted_layers = sorted(layers.keys())
+    max_nodes_in_column = max([len(v) for v in layers.values()]) if layers else 1
     
-    # Use k (spacing) based on density to prevent clutter
-    k_val = 5.0 / np.sqrt(node_count) if node_count > 0 else 1.0
-    
-    try:
-        # The Magic: 'pos' provides start coords, 'fixed' locks the edges
-        pos = nx.spring_layout(G, k=k_val, pos=pos, fixed=fixed_nodes, seed=layout_seed, iterations=150)
-    except:
-        # Fallback if something fails (e.g. graph disconnected)
-        pos = nx.kamada_kawai_layout(G)
+    for layer_idx in sorted_layers:
+        nodes_in_layer = layers[layer_idx]
+        
+        # X is simply the layer index (spaced out)
+        x = layer_idx * 3.0 
+        
+        # Y is calculated to center the column
+        count = len(nodes_in_layer)
+        for i, node in enumerate(nodes_in_layer):
+            # Spread nodes vertically, centered around Y=0
+            y = (i - count / 2.0) * 1.5
+            
+            # Add a tiny bit of jitter to hidden layers to look organic, but keep structure
+            if layer_idx != 0 and layer_idx != final_layer_idx:
+                y += random.uniform(-0.2, 0.2)
+                
+            pos[node] = np.array([x, y])
 
     # --- VISUALIZATION BUILDING ---
     fig = go.Figure()
+    node_count = len(G.nodes())
 
-    # 1. Draw Curved Edges (Thinner for high complexity to see better)
+    # 1. Draw Curved Edges 
     base_width = 0.3 if node_count > 300 else 0.8
-    opacity = 0.3 if node_count > 300 else 0.6
+    opacity = 0.2 if node_count > 300 else 0.5 # Lower opacity for cleaner look
 
     for i, (u, v, data) in enumerate(G.edges(data=True)):
-        x0, y0 = pos[u]
-        x1, y1 = pos[v]
-        
-        # Curve the edges slightly to show direction
-        curvature = 0.1 if i % 2 == 0 else -0.1
-        bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature)
-        
-        weight = data.get('weight', 0.5)
-        conn_type = data.get('type', 'excitatory')
-        
-        if conn_type == 'inhibitory': edge_color = f'rgba(255, 80, 80, {opacity})'
-        elif conn_type == 'modulatory': edge_color = f'rgba(80, 150, 255, {opacity})'
-        else: edge_color = f'rgba(180, 180, 180, {opacity})'
+        if u in pos and v in pos:
+            x0, y0 = pos[u]
+            x1, y1 = pos[v]
             
-        fig.add_trace(go.Scatter(
-            x=bx, y=by,
-            mode='lines',
-            line=dict(width=base_width + (weight), color=edge_color),
-            hoverinfo='none',
-            showlegend=False
-        ))
+            # Standard Bezier Curve
+            curvature = 0.15 if i % 2 == 0 else -0.15
+            bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature)
+            
+            conn_type = data.get('type', 'excitatory')
+            if conn_type == 'inhibitory': edge_color = f'rgba(255, 80, 80, {opacity})'
+            else: edge_color = f'rgba(180, 180, 180, {opacity})'
+                
+            fig.add_trace(go.Scatter(
+                x=bx, y=by, mode='lines',
+                line=dict(width=base_width, color=edge_color),
+                hoverinfo='none', showlegend=False
+            ))
 
     # 2. Draw Nodes
-    node_x, node_y = [], []
-    node_colors = []
-    node_sizes = []
-    node_labels = [] 
-    hover_texts = [] 
-    
-    # Scale nodes down slightly as complexity grows so they don't overlap
-    base_size_mult = 0.5 if node_count > 200 else 0.8
+    node_x, node_y, node_colors, node_sizes, hover_texts = [], [], [], [], []
+    node_labels = []
 
     for node in G.nodes():
-        x, y = pos[node]
-        node_x.append(x)
-        node_y.append(y)
-        node_colors.append(G.nodes[node]['color'])
-        hover_texts.append(G.nodes[node]['hover_text'])
-        
-        # Size calculation
-        raw_size = np.log(G.nodes[node]['size']) * 8
-        node_sizes.append(max(4, raw_size * base_size_mult))
-        
-        # Only Label Inputs, Outputs, and Giant Hubs
-        is_input = node in input_nodes
-        is_output = node in output_nodes
-        is_hub = G.nodes[node]['size'] > 500
-        
-        if is_input: node_labels.append("👁️") # Icon only to save space
-        elif is_output: node_labels.append("⚡")
-        elif is_hub: node_labels.append("✪")
-        else: node_labels.append("")
+        if node in pos:
+            x, y = pos[node]
+            node_x.append(x)
+            node_y.append(y)
+            node_colors.append(G.nodes[node]['color'])
+            hover_texts.append(G.nodes[node]['hover_text'])
+            
+            # Scaling
+            raw_size = np.log(G.nodes[node]['size']) * 8
+            node_sizes.append(max(5, raw_size * 0.6))
+            
+            # Labels
+            if node in input_nodes: node_labels.append("In")
+            elif node in output_nodes: node_labels.append("Out")
+            elif G.nodes[node]['size'] > 500: node_labels.append("Hub")
+            else: node_labels.append("")
 
-    # Layer 1: The Core Node
     fig.add_trace(go.Scatter(
         x=node_x, y=node_y,
         mode='markers+text',
-        text=node_labels,
-        textposition="middle center",
-        textfont=dict(size=10, color="#EEE"),
-        hovertext=hover_texts,
-        hoverinfo='text',
+        text=node_labels, textposition="middle center",
+        textfont=dict(size=8, color="black"),
+        hovertext=hover_texts, hoverinfo='text',
         marker=dict(
-            color=node_colors,
-            size=node_sizes,
-            line=dict(width=1, color='rgba(255,255,255,0.5)'),
-            opacity=1.0
+            color=node_colors, size=node_sizes,
+            line=dict(width=1, color='rgba(255,255,255,0.8)'), opacity=1.0
         ),
         name='Modules'
     ))
 
-    # Layout Styling
-    title_text = f"<b>Neural Topography: Form {genotype.form_id}</b> | Nodes: {node_count}"
-
     fig.update_layout(
-        title=dict(text=title_text, x=0.5, font=dict(size=14, color='#AAA')),
-        showlegend=False,
-        hovermode='closest',
+        title=f"<b>Neural Circuit: Form {genotype.form_id}</b> | Layers: {len(layers)}",
+        showlegend=False, hovermode='closest',
         margin=dict(b=10, l=10, r=10, t=40),
         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
         height=650,
-        plot_bgcolor='rgba(5,5,8,1)',
-        paper_bgcolor='rgba(0,0,0,0)'
+        plot_bgcolor='rgba(5,5,8,1)', paper_bgcolor='rgba(0,0,0,0)'
     )
     
     return fig
