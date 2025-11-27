@@ -2175,105 +2175,106 @@ def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
 
 def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
     """
-    Generates a unique, procedurally generated 'Strange Attractor' or 'Harmonic' 
-    layout for each Form ID. No forcing—just pure math-driven chaos.
+    Hyper-Chaos Engine: Uses Strange Attractors and Iterative Chaos equations
+    to generate non-Euclidean, organic, and 'scary' layouts.
     """
     pos = {}
-    
-    # Consolidate all nodes to assign positions
-    # We order them: Inputs -> Hidden -> Outputs to create a 'flow' in the time parameter
     all_nodes = inputs + sorted(hidden) + outputs
-    total = len(all_nodes)
-    if total == 0: return pos
+    total_nodes = len(all_nodes)
+    
+    if total_nodes == 0: return pos
 
-    # --- CHAOS SEEDING ---
-    # Use form_id to seed a local random generator.
-    # This ensures Form 5 always looks like Form 5, but Form 5 looks nothing like Form 6.
-    rng = random.Random(form_id * 314159) # Pi seed for extra "irrationality"
+    # 1. CHAOS SEEDING
+    # We use a high-entropy seed based on form_id to ensure unique math per form.
+    # Multipliers ensure Form 1 and Form 2 have completely different mathematical constants.
+    seed_val = form_id * 9999999
+    rng = random.Random(seed_val)
+    np.random.seed(seed_val) 
+
+    # 2. SELECT A CHAOS EQUATION
+    # We don't use shapes. We use mathematical attractors.
+    equation_type = rng.choice([
+        'clifford_attractor', 
+        'bedhead_attractor', 
+        'fractal_dream', 
+        'svensson_attractor', 
+        'hopalong_orbit'
+    ])
+
+    # 3. GENERATE RANDOM COEFFICIENTS (The "DNA" of the shape)
+    # Tiny changes here result in completely different global structures (Butterfly Effect).
+    a = rng.uniform(-3.0, 3.0)
+    b = rng.uniform(-3.0, 3.0)
+    c = rng.uniform(-3.0, 3.0)
+    d = rng.uniform(-3.0, 3.0)
+
+    # 4. SIMULATE THE ATTRACTOR
+    # We generate a trajectory of points. The nodes will inhabit these points.
+    x, y = 0.1, 0.1 # Starting point
+    coords = []
     
-    # --- PROCEDURAL PARAMETER GENERATION ---
-    # We construct complex parametric curves: x = f(t), y = g(t)
+    # Burn-in period to find the attractor's stable groove
+    for _ in range(100):
+        if equation_type == 'clifford_attractor':
+            x_new = np.sin(a * y) + c * np.cos(a * x)
+            y_new = np.sin(b * x) + d * np.cos(b * y)
+        elif equation_type == 'bedhead_attractor':
+            x_new = np.sin(x*y/b)*y + np.cos(a*x-y)
+            y_new = x + np.sin(y)/b
+        else:
+            x_new = y - np.sign(x) * np.sqrt(abs(b * x - c))
+            y_new = a - x
+        x, y = x_new, y_new
+
+    # Generate actual points for nodes
+    for _ in range(total_nodes):
+        # --- Equation 1: Clifford Attractor (Organic/Fluid) ---
+        if equation_type == 'clifford_attractor':
+            # x(n+1) = sin(a*y) + c*cos(a*x)
+            # y(n+1) = sin(b*x) + d*cos(b*y)
+            x_new = np.sin(a * y) + c * np.cos(a * x)
+            y_new = np.sin(b * x) + d * np.cos(b * y)
+            
+        # --- Equation 2: Bedhead Attractor (Industrial/Scary) ---
+        elif equation_type == 'bedhead_attractor':
+            x_new = np.sin(x*y/b)*y + np.cos(a*x-y)
+            y_new = x + np.sin(y)/b
+            
+        # --- Equation 3: Svensson Attractor (Folded/Geometric) ---
+        elif equation_type == 'svensson_attractor':
+            x_new = d * np.sin(a * x) - np.sin(b * y)
+            y_new = c * np.cos(a * x) + np.cos(b * y)
+
+        # --- Equation 4: Fractal Dream (Spiral/Nebula) ---
+        elif equation_type == 'fractal_dream':
+            r = np.sqrt(x**2 + y**2)
+            x_new = x * np.cos(a) - (y - x*x) * np.sin(a)
+            y_new = x * np.sin(a) + (y - x*x) * np.cos(a)
+            
+        # --- Equation 5: Hopalong (Jagged/Glitchy) ---
+        else: 
+            x_new = y - np.sign(x) * np.sqrt(abs(b * x - c))
+            y_new = a - x
+
+        # Update and Store
+        x, y = x_new, y_new
+        
+        # Add dynamic spatial warping (Non-linear distortion)
+        # This ensures no shape is ever a perfect square/circle
+        dist = np.sqrt(x**2 + y**2)
+        warp = 1.0 + 0.2 * np.sin(dist * 5.0)
+        coords.append((x * warp, y * warp))
+
+    # 5. MAP NODES TO CHAOS COORDINATES
+    # We shuffle the coordinates so adjacent nodes in the list don't always stay neighbors,
+    # creating a "long-range connection" aesthetic (the scary web look).
+    rng.shuffle(coords)
     
-    # Randomize harmonic frequencies
-    a = rng.uniform(1, 7)
-    b = rng.uniform(1, 7)
-    c = rng.uniform(1, 7)
-    d = rng.uniform(1, 7)
-    
-    # Randomize phase shifts
-    p1 = rng.uniform(0, np.pi)
-    p2 = rng.uniform(0, np.pi)
-    
-    # Randomize scale factors (stretch/squash)
-    A = rng.uniform(1, 3.5)
-    B = rng.uniform(0.5, 2)
-    C = rng.uniform(1, 3.5)
-    D = rng.uniform(0.5, 2)
-    
-    # Select a random "Style of Chaos" for this specific Form
-    style = rng.choice(['harmonic', 'strange_attractor', 'atomic_shells', 'bio_spiral', 'quantum_cloud'])
-    
-    # --- GENERATE GEOMETRY ---
     for i, n in enumerate(all_nodes):
-        # t is a parameter that moves along the curve
-        progress = i / total
-        t = progress * 2 * np.pi * rng.uniform(1, 4) # Multiple loops around the shape
-        
-        x, y = 0, 0
-        
-        if style == 'harmonic':
-            # Lissajous-like complex interference curves
-            x = A * np.sin(a*t + p1) + B * np.cos(b*t)
-            y = C * np.sin(c*t + p2) + D * np.cos(d*t)
-            
-        elif style == 'bio_spiral':
-            # Logarithmic spirals with organic perturbations
-            r = progress * 5 + 0.2
-            theta = t * 3
-            # Add a "wobble" to the spiral
-            x = r * np.cos(theta) + np.sin(theta * 8) * 0.3
-            y = r * np.sin(theta) + np.cos(theta * 8) * 0.3
-            
-        elif style == 'atomic_shells':
-            # Electron shell-like orbits with jumps
-            # Create distinct orbital radii
-            shell_r = rng.choice([1.5, 2.8, 4.0, 5.2]) 
-            # Spread nodes along the ring
-            angle = t + rng.uniform(0, 0.5) 
-            x = shell_r * np.cos(angle)
-            y = shell_r * np.sin(angle)
-            
-        elif style == 'strange_attractor':
-            # A pseudo-Clifford attractor simulation
-            # Iterative chaos: x_n+1 depends on x_n, y_n
-            # We approximate this by using 't' as a driver
-            x = np.sin(a * t) + c * np.cos(a * t)
-            y = np.sin(b * t) + d * np.cos(b * t)
-            
-        else: # 'quantum_cloud'
-            # A chaotic cloud with dense cores
-            r = rng.uniform(0.1, 4.5)
-            theta = rng.uniform(0, 2*np.pi)
-            # Bias towards the center
-            r = r * r / 4.5 
-            x = r * np.cos(theta)
-            y = r * np.sin(theta)
-            
-            # Force Inputs/Outputs to opposite ends for this specific messy style
-            if n in inputs: 
-                x = -4.0 + rng.uniform(-0.5, 0.5)
-                y = rng.uniform(-2, 2)
-            if n in outputs: 
-                x = 4.0 + rng.uniform(-0.5, 0.5)
-                y = rng.uniform(-2, 2)
+        # Apply a final jitter so nodes don't stack perfectly
+        fx, fy = coords[i]
+        pos[n] = np.array([fx, fy])
 
-        # Add slight "organic noise" so nodes don't stack perfectly on top of each other
-        jitter = 0.08
-        x += np.random.normal(0, jitter)
-        y += np.random.normal(0, jitter)
-        
-        pos[n] = np.array([x, y])
-        
     return pos
 
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
