@@ -2326,10 +2326,18 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         if node not in pos: continue
         x, y = pos[node]
         node_x.append(x); node_y.append(y)
-        
+
         attrs = G.nodes[node]
-        node_colors.append(attrs['color'])
-        
+
+        # --- Cybernetic Color Scheme ---
+        if attrs['role'] == 'input':
+            node_colors.append('#00F0FF')  # Cyber Blue
+        elif attrs['role'] == 'output':
+            node_colors.append('#FF007F')  # Cyber Pink
+        else:
+            # Keep original color for hidden nodes, but can be changed
+            node_colors.append(attrs['color'])
+
         # Reduced Size Logic
         # Was: np.log(size) * 2.5 | Now: np.log(size) * 1.5
         base_size = np.log(attrs['size']) * 1.5
