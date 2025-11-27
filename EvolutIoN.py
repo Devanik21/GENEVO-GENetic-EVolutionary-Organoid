@@ -8777,6 +8777,73 @@ def main():
         
     # --- End of State Initialization ---
 
+    if 'show_final_bomb' not in st.session_state:
+        st.session_state.show_final_bomb = False
+
+    st.markdown("---")
+    st.header("🌌 The Holographic Connectome: Network Science Telemetry")
+    
+    if st.session_state.show_final_bomb:
+        st.markdown("""
+        **Visualizing the 'Mind' of the Machine.** This advanced analysis moves beyond physical architecture to visualize the **functional communities** evolved by the network. 
+        Colors represent distinct "lobes" (modular communities) that perform specialized tasks, detected via graph modularity maximization.
+        """)
+        
+        # Get the absolute best individual
+        if st.session_state.current_population:
+            elite = max(st.session_state.current_population, key=lambda x: x.fitness)
+            
+            with st.spinner("Calculating topological metrics and detecting functional communities..."):
+                holo_fig, net_metrics = visualize_holo_connectome(elite)
+            
+            # 1. The Metrics Row
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("🧠 Modularity (Q)", f"{net_metrics['Modularity (Q)']:.3f}", help="Measures how well the network divides into modules. High Q = Specialized Brain Regions.")
+            m2.metric("🌐 Functional Lobes", f"{net_metrics['Communities']}", help="Number of distinct communities detected.")
+            m3.metric("🔗 Clustering Coeff", f"{net_metrics['Cluster Coeff']:.3f}", help="Degree to which nodes tend to cluster together.")
+            val = net_metrics['Avg Path Length']
+            m4.metric("⚡ Avg Path Length", f"{val:.3f}" if isinstance(val, float) else val, help="Average steps to get from one node to another. Lower = Faster Thought.")
+
+            # 2. The Holographic Plot
+            st.plotly_chart(holo_fig, width='stretch', key="holo_connectome_plot")
+            
+            st.success("Analysis Complete. This architecture exhibits properties of a 'Small-World Network,' similar to biological brains.")
+            
+        else:
+            st.warning("No population data available.")
+
+        if st.button("Deactivate Holographic View", key="hide_bomb_btn"):
+            st.session_state.show_final_bomb = False
+            st.rerun()
+            
+    else:
+        st.info("⚠️ **Warning: High Computation.** Calculates Modularity (Q), Path Lengths, and detects Functional Communities.")
+        
+        # --- CSS HACK: THE GHOST BUTTON ---
+        # This makes the primary button 100% transparent with a neon glow
+        st.markdown("""
+        <style>
+        div.stButton > button[kind="primary"] {
+            background-color: transparent !important;
+            border: 1px solid rgba(0, 229, 255, 0.5) !important; /* Subtle Cyan Border */
+            color: #00E5FF !important; /* Cyan Text */
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+            transition: all 0.3s ease-in-out;
+        }
+        div.stButton > button[kind="primary"]:hover {
+            background-color: rgba(0, 229, 255, 0.1) !important; /* Slight glow on hover */
+            border-color: #00E5FF !important;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.6); /* Bright Halo */
+            color: white !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        if st.button("Launch Holographic Connectome Analysis", type="primary", key="show_bomb_btn"):
+            st.session_state.show_final_bomb = True
+            st.rerun()
+
+   
     # --- LAZY LOADING FOR EPILOGUE ---
     if st.session_state.show_epilogue:
         st.header("🏁 Epilogue: Reflections on the Evolutionary Journey and Future Directions")
@@ -8920,50 +8987,7 @@ def main():
     )
 
 # --- THE FINAL BOMB: COMPLEX NETWORK ANALYSIS ---
-    if 'show_final_bomb' not in st.session_state:
-        st.session_state.show_final_bomb = False
-
-    st.markdown("---")
-    st.header("🌌 The Holographic Connectome: Network Science Telemetry")
     
-    if st.session_state.show_final_bomb:
-        st.markdown("""
-        **Visualizing the 'Mind' of the Machine.** This advanced analysis moves beyond physical architecture to visualize the **functional communities** evolved by the network. 
-        Colors represent distinct "lobes" (modular communities) that perform specialized tasks, detected via graph modularity maximization.
-        """)
-        
-        # Get the absolute best individual
-        if st.session_state.current_population:
-            elite = max(st.session_state.current_population, key=lambda x: x.fitness)
-            
-            with st.spinner("Calculating topological metrics and detecting functional communities..."):
-                holo_fig, net_metrics = visualize_holo_connectome(elite)
-            
-            # 1. The Metrics Row
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("🧠 Modularity (Q)", f"{net_metrics['Modularity (Q)']:.3f}", help="Measures how well the network divides into modules. High Q = Specialized Brain Regions.")
-            m2.metric("🌐 Functional Lobes", f"{net_metrics['Communities']}", help="Number of distinct communities detected.")
-            m3.metric("🔗 Clustering Coeff", f"{net_metrics['Cluster Coeff']:.3f}", help="Degree to which nodes tend to cluster together.")
-            val = net_metrics['Avg Path Length']
-            m4.metric("⚡ Avg Path Length", f"{val:.3f}" if isinstance(val, float) else val, help="Average steps to get from one node to another. Lower = Faster Thought.")
-
-            # 2. The Holographic Plot
-            st.plotly_chart(holo_fig, width='stretch', key="holo_connectome_plot")
-            
-            st.success("Analysis Complete. This architecture exhibits properties of a 'Small-World Network,' similar to biological brains.")
-            
-        else:
-            st.warning("No population data available.")
-
-        if st.button("Deactivate Holographic View", key="hide_bomb_btn"):
-            st.session_state.show_final_bomb = False
-            st.rerun()
-            
-    else:
-        st.info("⚠️ **Warning: High Computation.** Calculates Modularity (Q), Path Lengths, and detects Functional Communities.")
-        if st.button("🚀 Launch Holographic Connectome Analysis", type="primary", key="show_bomb_btn"):
-            st.session_state.show_final_bomb = True
-            st.rerun()
 
 
 if __name__ == "__main__":
