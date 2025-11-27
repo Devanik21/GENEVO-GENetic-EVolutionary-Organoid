@@ -7433,6 +7433,10 @@ def main():
                     if st.button("Render Phase-Space Portraits", key="show_phase_space_btn"):
                         st.session_state.show_phase_space = True
                         st.rerun()
+                       
+                st.markdown("---")
+
+              
         
         st.markdown("<hr style='margin-top: 2rem; margin-bottom: 2rem;'>", unsafe_allow_html=True)
 
