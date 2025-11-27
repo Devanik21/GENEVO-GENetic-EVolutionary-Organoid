@@ -2283,12 +2283,23 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
 
     # --- EDGES: Subtle Cyber-Gray ---
     edge_x, edge_y = [], []
+    edge_mid_x, edge_mid_y = [], []
+    edge_hover_texts = []
     
     for u, v, data in G.edges(data=True):
         if u not in pos or v not in pos: continue
         x0, y0 = pos[u]
         x1, y1 = pos[v]
         
+        # Create hover info for an invisible marker at the edge's midpoint
+        edge_mid_x.append((x0 + x1) / 2)
+        edge_mid_y.append((y0 + y1) / 2)
+        edge_hover_texts.append(
+            f"<b>Connection:</b> {u} → {v}<br>"
+            f"<b>Weight:</b> {data.get('weight', 'N/A'):.3f}<br>"
+            f"<b>Type:</b> {data.get('type', 'N/A')}"
+        )
+
         dist = np.sqrt((x1-x0)**2 + (y1-y0)**2)
         
         if dist > 8.0:
@@ -2310,6 +2321,22 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         ),
         hoverinfo='none',
         showlegend=False
+    ))
+
+    # --- EDGE HOVER: Invisible markers on edge midpoints ---
+    fig.add_trace(go.Scattergl(
+        x=edge_mid_x,
+        y=edge_mid_y,
+        mode='markers',
+        marker=dict(
+            size=8,
+            color='rgba(0,0,0,0)', # Invisible markers
+            opacity=0
+        ),
+        hovertext=edge_hover_texts,
+        hovertemplate="%{hovertext}<extra></extra>",
+        showlegend=False,
+        name='Connections'
     ))
 
     # --- NODES: Cyber Blue & Pink ---
