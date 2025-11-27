@@ -1990,6 +1990,129 @@ def visualize_phase_space_portraits(history_df: pd.DataFrame, metrics_df: pd.Dat
 
 
 
+def visualize_living_connectome(genotype: Genotype):
+    """
+    THE LIVING BRAIN: Renders a 4D animation (Space + Time) of neural activity.
+    Simulates a 'Spike' traveling from the central hub to the periphery.
+    """
+    import networkx as nx
+    
+    # 1. Build Graph & Physics Layout
+    G = nx.Graph()
+    for m in genotype.modules:
+        G.add_node(m.id, size=m.size, color=m.color)
+    for c in genotype.connections:
+        G.add_edge(c.source, c.target, weight=c.weight)
+        
+    pos = nx.spring_layout(G, dim=3, seed=42, k=0.6) # Tighter gravity for the living brain
+
+    # 2. Identify the "Heart" (Most Central Node) to start the pulse
+    try:
+        center_node = max(dict(nx.degree(G)).items(), key=lambda x: x[1])[0]
+        # Calculate distance from center to all other nodes (The Ripple Effect)
+        distances = nx.single_source_shortest_path_length(G, center_node)
+        max_dist = max(distances.values()) if distances else 1
+    except:
+        center_node = list(G.nodes())[0] if G.nodes() else None
+        distances = {n: 0 for n in G.nodes()}
+        max_dist = 1
+
+    # 3. Base Structures (Static Edges)
+    edge_x, edge_y, edge_z = [], [], []
+    for u, v in G.edges():
+        x0, y0, z0 = pos[u]; x1, y1, z1 = pos[v]
+        edge_x.extend([x0, x1, None]); edge_y.extend([y0, y1, None]); edge_z.extend([z0, z1, None])
+
+    edge_trace = go.Scatter3d(
+        x=edge_x, y=edge_y, z=edge_z,
+        mode='lines',
+        line=dict(color='rgba(0, 255, 255, 0.15)', width=1), # Faint bio-luminescent web
+        hoverinfo='none', name='Synapses'
+    )
+
+    # 4. Animation Frames (The "Alive" Part)
+    frames = []
+    node_list = list(G.nodes())
+    
+    # We create 20 frames of a repeating "heartbeat" signal
+    num_frames = 20
+    
+    for t in range(num_frames):
+        node_x, node_y, node_z = [], [], []
+        node_color = []
+        node_size = []
+        
+        # Calculate the "Wave" position (0.0 to 1.0)
+        wave_pos = t / (num_frames - 1) * (max_dist + 2)
+        
+        for node in node_list:
+            x, y, z = pos[node]
+            node_x.append(x); node_y.append(y); node_z.append(z)
+            
+            # Determine if the wave is hitting this node
+            dist = distances.get(node, 999)
+            
+            # Gaussian Pulse Math: bright when wave_pos is close to node's distance
+            intensity = np.exp(-((dist - wave_pos)**2) / 0.5) 
+            
+            # Base glow + Pulse intensity
+            # If intensity is high -> White/Cyan. If low -> Dark Blue/Purple.
+            if intensity > 0.6:
+                c = '#FFFFFF' # Flash White
+                s = 15 + (intensity * 20) # Grow huge
+            elif intensity > 0.3:
+                c = '#00FFFF' # Cyan tail
+                s = 10
+            else:
+                c = '#4400FF' # Resting state (Deep Purple)
+                s = 6
+                
+            node_color.append(c)
+            node_size.append(s)
+
+        frame = go.Frame(
+            data=[
+                go.Scatter3d(
+                    x=node_x, y=node_y, z=node_z,
+                    mode='markers',
+                    marker=dict(size=node_size, color=node_color, opacity=1.0, line=dict(width=0)),
+                )
+            ],
+            name=f'frame{t}'
+        )
+        frames.append(frame)
+
+    # 5. Initial Node Trace (Frame 0 state)
+    node_trace = frames[0].data[0]
+
+    # 6. Layout with Play Button
+    layout = go.Layout(
+        title="<b>Live Neural Telemetry</b><br><i>Visualizing Signal Propagation Path</i>",
+        scene=dict(
+            xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False),
+            bgcolor='rgba(0,0,0,0)',
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.2)) # Cinematic angle
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=0, r=0, b=0, t=50),
+        updatemenus=[{
+            'type': 'buttons',
+            'showactive': False,
+            'x': 0.1, 'y': 0,
+            'xanchor': 'right', 'yanchor': 'top',
+            'pad': {'t': 0, 'r': 10},
+            'buttons': [{
+                'label': '▶ FIRE SYNAPSES', # Sci-Fi Label
+                'method': 'animate',
+                'args': [None, dict(frame=dict(duration=100, redraw=True), fromcurrent=True, mode='immediate', loop=True)]
+            }]
+        }]
+    )
+
+    fig = go.Figure(data=[edge_trace, node_trace], layout=layout, frames=frames)
+    return fig
+
+
 def visualize_holo_connectome(genotype: Genotype):
     """
     THE BOMB: Renders the Functional Connectome using Graph Theory & Network Science.
@@ -8783,68 +8906,102 @@ def main():
         
     # --- End of State Initialization ---
 
+    # --- THE FINAL BOMB: COMPLEX NETWORK ANALYSIS ---
     if 'show_final_bomb' not in st.session_state:
         st.session_state.show_final_bomb = False
+    
+    # Initialize the specific toggle state for the view mode
+    if 'bomb_view_mode' not in st.session_state:
+        st.session_state.bomb_view_mode = 'Static' # Options: 'Static', 'Living'
 
     st.markdown("---")
     st.header("🌌 The Holographic Connectome: Network Science Telemetry")
     
     if st.session_state.show_final_bomb:
-        st.markdown("""
-        **Visualizing the 'Mind' of the Machine.** This advanced analysis moves beyond physical architecture to visualize the **functional communities** evolved by the network. 
-        Colors represent distinct "lobes" (modular communities) that perform specialized tasks, detected via graph modularity maximization.
-        """)
+        # --- CONTROL DECK ---
+        # We create a layout for the controls to sit nicely above the visualization
+        col_ctrl1, col_ctrl2 = st.columns([3, 1])
         
-        # Get the absolute best individual
+        with col_ctrl1:
+            if st.session_state.bomb_view_mode == 'Static':
+                st.markdown("""
+                **STATUS: STRUCTURAL SCAN COMPLETE.** Displaying functional communities (lobes) and topological metrics. 
+                *Colors represent modular groups detected via graph theory.*
+                """)
+            else:
+                st.markdown("""
+                **STATUS: LIVE NEURAL FEED ONLINE.** Visualizing real-time action potential propagation.
+                *Observe signal transmission (white/cyan pulse) through the synaptic web.*
+                """)
+
+        with col_ctrl2:
+            # THE TOGGLE BUTTON
+            # Uses a different style to stand out from the launch button
+            mode_btn_label = "⚡ GO LIVE" if st.session_state.bomb_view_mode == 'Static' else "🛑 FREEZE SCAN"
+            if st.button(mode_btn_label, key="toggle_bomb_mode_btn", use_container_width=True):
+                # Flip the state
+                st.session_state.bomb_view_mode = 'Living' if st.session_state.bomb_view_mode == 'Static' else 'Static'
+                st.rerun()
+
+        # --- MAIN VISUALIZATION LOGIC ---
         if st.session_state.current_population:
             elite = max(st.session_state.current_population, key=lambda x: x.fitness)
             
-            with st.spinner("Calculating topological metrics and detecting functional communities..."):
-                holo_fig, net_metrics = visualize_holo_connectome(elite)
-            
-            # 1. The Metrics Row
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("🧠 Modularity (Q)", f"{net_metrics['Modularity (Q)']:.3f}", help="Measures how well the network divides into modules. High Q = Specialized Brain Regions.")
-            m2.metric("🌐 Functional Lobes", f"{net_metrics['Communities']}", help="Number of distinct communities detected.")
-            m3.metric("🔗 Clustering Coeff", f"{net_metrics['Cluster Coeff']:.3f}", help="Degree to which nodes tend to cluster together.")
-            val = net_metrics['Avg Path Length']
-            m4.metric("⚡ Avg Path Length", f"{val:.3f}" if isinstance(val, float) else val, help="Average steps to get from one node to another. Lower = Faster Thought.")
+            # MODE A: STATIC ANALYSIS (The Scientist View)
+            if st.session_state.bomb_view_mode == 'Static':
+                with st.spinner("Calculating topological metrics and detecting functional communities..."):
+                    holo_fig, net_metrics = visualize_holo_connectome(elite)
+                
+                # Metrics Row (Only needed for Static analysis)
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("🧠 Modularity (Q)", f"{net_metrics['Modularity (Q)']:.3f}")
+                m2.metric("🌐 Functional Lobes", f"{net_metrics['Communities']}")
+                m3.metric("🔗 Clustering Coeff", f"{net_metrics['Cluster Coeff']:.3f}")
+                val = net_metrics['Avg Path Length']
+                m4.metric("⚡ Avg Path Length", f"{val:.3f}" if isinstance(val, float) else val)
 
-            # 2. The Holographic Plot
-            st.plotly_chart(holo_fig, width='stretch', key="holo_connectome_plot")
-            
-            st.success("Analysis Complete. This architecture exhibits properties of a 'Small-World Network,' similar to biological brains.")
-            
+                st.plotly_chart(holo_fig, width='stretch', key="holo_connectome_static")
+
+            # MODE B: LIVING TELEMETRY (The Sci-Fi View)
+            else:
+                with st.spinner("Initializing Neural Physics Engine & Signal Simulation..."):
+                    live_fig = visualize_living_connectome(elite)
+                
+                # Render the 4D Plot
+                st.plotly_chart(live_fig, width='stretch', key="living_connectome_dynamic")
+                st.success("Telemetry Active. Signal propagation nominal. Click '▶ FIRE SYNAPSES' in the chart to trigger pulse.")
+
         else:
             st.warning("No population data available.")
 
-        if st.button("Deactivate Holographic View", key="hide_bomb_btn"):
+        # Close Button
+        st.markdown("---")
+        if st.button("Deactivate Holographic Interface", key="hide_bomb_btn"):
             st.session_state.show_final_bomb = False
             st.rerun()
             
     else:
-        st.info("⚠️ **Warning: High Computation.** Calculates Modularity (Q), Path Lengths, and detects Functional Communities.")
+        st.info("⚠️ **Warning: High Computation.** Activates advanced Graph Theory & Physics simulation.")
         
-        # --- CSS HACK: THE GHOST BUTTON ---
-        # This makes the primary button 100% transparent with a neon glow
+        # --- CSS HACK: THE GHOST BUTTON (Kept from previous step) ---
         st.markdown("""
         <style>
         div.stButton > button[kind="primary"] {
             background-color: transparent !important;
-            border: 1px solid rgba(0, 229, 255, 0.5) !important; /* Subtle Cyan Border */
-            color: #00E5FF !important; /* Cyan Text */
+            border: 1px solid rgba(0, 229, 255, 0.5) !important;
+            color: #00E5FF !important;
             box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
             transition: all 0.3s ease-in-out;
         }
         div.stButton > button[kind="primary"]:hover {
-            background-color: rgba(0, 229, 255, 0.1) !important; /* Slight glow on hover */
+            background-color: rgba(0, 229, 255, 0.1) !important;
             border-color: #00E5FF !important;
-            box-shadow: 0 0 20px rgba(0, 229, 255, 0.6); /* Bright Halo */
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
             color: white !important;
         }
         </style>
         """, unsafe_allow_html=True)
-       
+
         if st.button("Launch Holographic Connectome Analysis", type="primary", key="show_bomb_btn"):
             st.session_state.show_final_bomb = True
             st.rerun()
