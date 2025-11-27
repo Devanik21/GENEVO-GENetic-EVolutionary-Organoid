@@ -2178,7 +2178,6 @@ import numpy as np
 import plotly.graph_objects as go
 import random
 
-# --- 1. The Geometry Engine (Brain-Like Clusters) ---
 def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
     """
     Generates a 'Deep Neuro-Web' layout.
@@ -2220,14 +2219,14 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
         lobe_idx = rng.randint(0, num_lobes - 1)
         cx, cy = lobe_centers[lobe_idx]
         
-        # Heavy-tail scatter (Expovariate) to fling nodes far out
+        # Heavy-tail scatter to fling nodes far out
         dist = rng.expovariate(0.35) 
         angle = rng.uniform(0, 2 * np.pi)
         
         x = cx + np.cos(angle) * dist
         y = cy + np.sin(angle) * dist
         
-        # Cortical Folding (Sine wave distortion)
+        # Cortical Folding
         fold_frequency = rng.uniform(0.3, 0.8)
         fold_amplitude = rng.uniform(1.0, 3.0)
         
@@ -2238,15 +2237,18 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
 
     return pos
 
-# --- 2. The Visualization Engine (Renderer) ---
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
-    Renders the 'Deep Neuro-Web' with safe edge drawing.
+    Renders the 'True Deep Network' aesthetic:
+    - High visibility edges (Axons).
+    - Reduced, subtle glow.
+    - Sharp, crisp nodes.
     """
     G = nx.DiGraph()
     
-    # Sort modules
+    # 1. Identify Nodes & Build Graph
     inputs, outputs, hidden = [], [], []
+    
     for module in genotype.modules:
         if 'Input' in module.id or 'Sensory' in module.id:
             role = 'input'; inputs.append(module.id)
@@ -2255,19 +2257,28 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         else:
             role = 'hidden'; hidden.append(module.id)
             
-        G.add_node(module.id, size=module.size, color=module.color, 
-                   module_type=module.module_type, activation=module.activation, role=role)
+        G.add_node(
+            module.id, 
+            size=module.size, 
+            color=module.color,
+            module_type=module.module_type, 
+            activation=module.activation,
+            plasticity=module.plasticity,
+            lr_mult=module.learning_rate_mult,
+            role=role
+        )
         
     for conn in genotype.connections:
         if conn.source in G.nodes and conn.target in G.nodes:
             G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
 
-    # Apply Geometry
+    # 2. APPLY GEOMETRY
     pos = apply_scifi_geometry(G, genotype.form_id, inputs, outputs, hidden)
 
+    # 3. PLOTTING
     fig = go.Figure()
 
-    # --- EDGES (The Fix) ---
+    # --- EDGES: HIGH VISIBILITY ---
     edge_x, edge_y = [], []
     
     for u, v, data in G.edges(data=True):
@@ -2286,23 +2297,29 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
             curve_dir = 1 if random.random() > 0.5 else -1
             curvature = 0.15 * curve_dir * (10/(dist+1e-5)) 
             
-            # Helper to get points (assuming get_bezier_curve exists globally)
             bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature, points=10)
             
-            # --- CRITICAL FIX START ---
-            # cast to list() to handle both numpy arrays and lists safely
+            # Safe list extension
             edge_x.extend(list(bx) + [None])
             edge_y.extend(list(by) + [None])
-            # --- CRITICAL FIX END ---
 
+    # Draw Edges: Increased Width and Opacity for Visibility
     fig.add_trace(go.Scattergl(
-        x=edge_x, y=edge_y, mode='lines',
-        line=dict(width=0.4, color='rgba(100, 200, 255, 0.15)'),
-        hoverinfo='none', showlegend=False
+        x=edge_x, y=edge_y,
+        mode='lines',
+        line=dict(
+            width=0.6,  # Thicker lines (was 0.4)
+            color='rgba(100, 220, 255, 0.5)' # Higher opacity (was 0.15)
+        ),
+        hoverinfo='none',
+        showlegend=False
     ))
 
     # --- NODES ---
-    node_x, node_y, node_colors, node_sizes, node_texts = [], [], [], [], []
+    node_x, node_y = [], []
+    node_colors = []
+    node_sizes = []
+    node_hover_texts = []
     
     for node in G.nodes():
         if node not in pos: continue
@@ -2312,32 +2329,61 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         attrs = G.nodes[node]
         node_colors.append(attrs['color'])
         
-        # Bizarre sizing: Hubs are massive, others are dust
+        # Dynamic Sizing
         base_size = np.log(attrs['size']) * 2.5
         if attrs['role'] != 'hidden': base_size *= 2.0
         node_sizes.append(base_size)
         
-        node_texts.append(f"<b>{node}</b><br>{attrs['module_type'].upper()}<br>Size: {attrs['size']}")
+        hover_str = (
+            f"<b>{node}</b><br>"
+            f"Type: {attrs['module_type'].upper()}<br>"
+            f"Neurons: {attrs['size']}<br>"
+            f"Act: {attrs['activation']}"
+        )
+        node_hover_texts.append(hover_str)
 
-    # Glow
+    # 1. Reduced Glow (Subtle Halo)
     fig.add_trace(go.Scattergl(
-        x=node_x, y=node_y, mode='markers',
-        marker=dict(size=[s*3.5 for s in node_sizes], color=node_colors, opacity=0.2, line=dict(width=0)),
+        x=node_x, y=node_y,
+        mode='markers',
+        marker=dict(
+            size=[s * 2.0 for s in node_sizes], # Smaller halo (was s*3.5)
+            color=node_colors,
+            opacity=0.1, # Reduced opacity (was 0.2)
+            line=dict(width=0)
+        ),
         hoverinfo='none', showlegend=False
     ))
 
-    # Core
+    # 2. Sharp Core Nodes
     fig.add_trace(go.Scattergl(
-        x=node_x, y=node_y, mode='markers',
-        marker=dict(size=node_sizes, color=node_colors, line=dict(width=1, color='rgba(255,255,255,0.8)'), opacity=1.0),
-        hovertext=node_texts, hoverinfo='text', name='Neurons'
+        x=node_x, y=node_y,
+        mode='markers',
+        marker=dict(
+            size=node_sizes,
+            color=node_colors,
+            line=dict(width=1.5, color='rgba(255,255,255,0.9)'), # Thicker, brighter border
+            opacity=1.0
+        ),
+        hovertext=node_hover_texts,
+        hoverinfo='text',
+        name='Neurons'
     ))
 
     fig.update_layout(
-        title=dict(text=f"<b>Deep Neural Topography: Form {genotype.form_id}</b>", x=0.05, y=0.95, font=dict(size=16, color='#888', family="monospace")),
-        showlegend=False, hovermode='closest', margin=dict(b=0, l=0, r=0, t=0),
-        xaxis=dict(visible=False), yaxis=dict(visible=False),
-        plot_bgcolor='#050508', paper_bgcolor='#050508', height=800
+        title=dict(
+            text=f"<b>Deep Neural Topography: Form {genotype.form_id}</b>", 
+            x=0.05, y=0.95, 
+            font=dict(size=16, color='#888', family="monospace")
+        ),
+        showlegend=False,
+        hovermode='closest',
+        margin=dict(b=0, l=0, r=0, t=0),
+        xaxis=dict(visible=False, showgrid=False, zeroline=False),
+        yaxis=dict(visible=False, showgrid=False, zeroline=False),
+        plot_bgcolor='#050508', 
+        paper_bgcolor='#050508',
+        height=800
     )
     
     return fig
