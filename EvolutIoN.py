@@ -2374,15 +2374,15 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         
         # Rich Detail Hover List (HTML Formatted)
         hover_str = (
-            f"<b>ID:</b> {node}  (<i>{attrs['role'].upper()}</i>)<br>"
+            f"<b>ID:</b> {node}  (<span style='color:{node_color};'>{attrs['role'].upper()}</span>)<br>"
             f"<span style='color: #555;'><b>——— CORE ———</b></span><br>"
             f"<b>Type:</b> {attrs['module_type']}<br>"
             f"<b>Size:</b> {attrs['size']} neurons<br>"
             f"<b>Activation:</b> {attrs['activation']}<br>"
             f"<b>Normalization:</b> {attrs['normalization']}<br>"
             f"<span style='color: #555;'><b>——— LEARNING ———</b></span><br>"
-            f"<b>Plasticity:</b> {attrs['plasticity']:.3f}<br>"
-            f"<b>LR Multiplier:</b> {attrs.get('lr_mult', 'N/A'):.2f}"
+            f"<b>Plasticity:</b> {attrs['plasticity']:.3f}<br>" # Higher is more adaptable
+            f"<b>LR Multiplier:</b> {attrs.get('lr_mult', 'N/A'):.2f}" # Modifies learning speed
         )
         node_hover_texts.append(hover_str)
 
@@ -2399,20 +2399,21 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         hoverinfo='none', showlegend=False
     ))
 
-    # 2. The Core Node
+    # 2. The Core Node (with hover info)
     fig.add_trace(go.Scattergl(
         x=node_x, y=node_y,
         mode='markers',
         marker=dict(
             size=node_sizes,
             color=node_colors,
-            line=dict(width=1, color='rgba(255,255,255,0.9)'), # Bright white rim
+            line=dict(width=1, color='rgba(255,255,255,0.9)'),
             opacity=1.0
         ),
         hovertext=node_hover_texts,
-        # Force the hover info to display using this template
         hovertemplate="%{hovertext}<extra></extra>",
-        name='Neurons'
+        name='Neurons',
+        # Ensure this trace is rendered on top for hover priority
+        zorder=10 
     ))
 
     fig.update_layout(
