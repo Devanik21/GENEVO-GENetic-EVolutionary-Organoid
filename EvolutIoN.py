@@ -8849,7 +8849,7 @@ def main():
             st.session_state.show_final_bomb = True
             st.rerun()
 
-   
+    st.markdown("---")  
     # --- LAZY LOADING FOR EPILOGUE ---
     if st.session_state.show_epilogue:
         st.header("🏁 Epilogue: Reflections on the Evolutionary Journey and Future Directions")
