@@ -2354,7 +2354,7 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo
         mode='lines',
         line=dict(
             width=0.8, 
-            color='rgba(130, 160, 200, 0.35)'  # Soft blue-gray with good visibility
+            color='rgba(90, 255, 176, 0.25)'  # Soft green glow for edges
         ),
         hoverinfo='skip',
         showlegend=False
@@ -2366,10 +2366,10 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo
     node_sizes = []
     node_hover_texts = []
     
-    # Eye-friendly color palette with good contrast
-    CYBER_BLUE = '#4DB8FF'      # Inputs: Soft cyan-blue
-    DEEP_BLUE = '#5C9FFF'       # Hidden: Gentle blue
-    NEON_PINK = '#FF6BBF'       # Outputs: Soft pink
+    # Eye-friendly cyberpunk palette with soft greens
+    CYBER_GREEN = '#5AFFB0'     # Inputs: Soft cyan-green
+    DEEP_GREEN = '#4AE88E'      # Hidden: Gentle emerald
+    NEON_CYAN = '#00E5FF'       # Outputs: Soft cyan
     
     for node in G.nodes():
         if node not in pos: continue
@@ -2380,11 +2380,11 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo
         
         # Color by role
         if attrs['role'] == 'input':
-            node_color = CYBER_BLUE
+            node_color = CYBER_GREEN
         elif attrs['role'] == 'output':
-            node_color = NEON_PINK
+            node_color = NEON_CYAN
         else:
-            node_color = DEEP_BLUE 
+            node_color = DEEP_GREEN 
             
         node_colors.append(node_color)
         
@@ -2450,7 +2450,6 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo
     )
     
     return fig
-
 
 def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype], evolutionary_metrics_df: pd.DataFrame) -> go.Figure:
     """Extremely advanced, comprehensive evolution analytics dashboard"""
