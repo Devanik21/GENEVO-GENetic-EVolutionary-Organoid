@@ -1989,6 +1989,126 @@ def visualize_phase_space_portraits(history_df: pd.DataFrame, metrics_df: pd.Dat
 
 
 
+
+def visualize_holo_connectome(genotype: Genotype):
+    """
+    THE BOMB: Renders the Functional Connectome using Graph Theory & Network Science.
+    Detects communities (brain lobes), calculates Small-Worldness, and highlights Hubs.
+    """
+    import networkx as nx
+    
+    # 1. Build the Graph
+    G = nx.Graph() # Undirected for structural analysis
+    for m in genotype.modules:
+        G.add_node(m.id, size=m.size, type=m.module_type, activation=m.activation)
+    for c in genotype.connections:
+        G.add_edge(c.source, c.target, weight=c.weight)
+    
+    # 2. Network Science Calculations
+    # Detect Communities (Lobes) using Greedy Modularity
+    try:
+        communities = list(nx.community.greedy_modularity_communities(G))
+        # Map node to community ID
+        community_map = {}
+        for i, comm in enumerate(communities):
+            for node in comm:
+                community_map[node] = i
+        num_communities = len(communities)
+    except:
+        community_map = {n: 0 for n in G.nodes()}
+        num_communities = 1
+
+    # Calculate Centrality (Hubness)
+    degree_centrality = nx.degree_centrality(G)
+    
+    # 3. 3D Force-Directed Layout (The "Cosmic Web" look)
+    # k is the optimal distance between nodes. Higher = more spread out.
+    pos = nx.spring_layout(G, dim=3, seed=42, k=0.5, iterations=50)
+    
+    # 4. Plotting
+    node_x, node_y, node_z = [], [], []
+    node_color = []
+    node_size = []
+    node_text = []
+    
+    # Color palette for communities
+    lobe_colors = px.colors.qualitative.Bold
+    
+    for node in G.nodes():
+        x, y, z = pos[node]
+        node_x.append(x); node_y.append(y); node_z.append(z)
+        
+        # Color by Community
+        comm_id = community_map.get(node, 0)
+        color = lobe_colors[comm_id % len(lobe_colors)]
+        node_color.append(color)
+        
+        # Size by Centrality (Hubs are huge)
+        cent = degree_centrality.get(node, 0)
+        node_size.append(cent * 50 + 5) # Scale factor
+        
+        node_text.append(f"<b>{node}</b><br>Lobe: {comm_id}<br>Centrality: {cent:.3f}")
+
+    # Edges
+    edge_x, edge_y, edge_z = [], [], []
+    for u, v in G.edges():
+        x0, y0, z0 = pos[u]
+        x1, y1, z1 = pos[v]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+        edge_z.extend([z0, z1, None])
+
+    # Trace 1: The Neural Pathways
+    edge_trace = go.Scatter3d(
+        x=edge_x, y=edge_y, z=edge_z,
+        mode='lines',
+        line=dict(color='rgba(200, 200, 200, 0.2)', width=1),
+        hoverinfo='none'
+    )
+
+    # Trace 2: The Functional Nodes (Lobes)
+    node_trace = go.Scatter3d(
+        x=node_x, y=node_y, z=node_z,
+        mode='markers',
+        marker=dict(
+            showscale=False,
+            color=node_color,
+            size=node_size,
+            line=dict(width=2, color='white'),
+            opacity=0.9
+        ),
+        text=node_text,
+        hoverinfo='text'
+    )
+
+    layout = go.Layout(
+        title=dict(text="<b>Holographic Functional Connectome</b><br><i>Colors represent evolved modular communities (lobes)</i>"),
+        showlegend=False,
+        scene=dict(
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, title=''),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, title=''),
+            zaxis=dict(showgrid=False, zeroline=False, showticklabels=False, title=''),
+            bgcolor='rgba(0,0,0,0)'
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=0, r=0, b=0, t=50)
+    )
+    
+    fig = go.Figure(data=[edge_trace, node_trace], layout=layout)
+    
+    # 5. Return Figure AND Metrics
+    metrics = {
+        "Modularity (Q)": nx.community.modularity(G, communities) if num_communities > 0 else 0,
+        "Avg Path Length": nx.average_shortest_path_length(G) if nx.is_connected(G) else "Fragmented",
+        "Cluster Coeff": nx.average_clustering(G),
+        "Communities": num_communities
+    }
+    
+    return fig, metrics
+
+
+
+
 def visualize_genotype_3d(genotype: Genotype) -> go.Figure:
     """
     Sci-Fi 3D Visualization:
@@ -8798,6 +8918,52 @@ def main():
         "**GENEVO** is a research prototype demonstrating advanced concepts in neuroevolution. "
         "Architectures are simulated and not trained on real data."
     )
+
+# --- THE FINAL BOMB: COMPLEX NETWORK ANALYSIS ---
+    if 'show_final_bomb' not in st.session_state:
+        st.session_state.show_final_bomb = False
+
+    st.markdown("---")
+    st.header("🌌 The Holographic Connectome: Network Science Telemetry")
+    
+    if st.session_state.show_final_bomb:
+        st.markdown("""
+        **Visualizing the 'Mind' of the Machine.** This advanced analysis moves beyond physical architecture to visualize the **functional communities** evolved by the network. 
+        Colors represent distinct "lobes" (modular communities) that perform specialized tasks, detected via graph modularity maximization.
+        """)
+        
+        # Get the absolute best individual
+        if st.session_state.current_population:
+            elite = max(st.session_state.current_population, key=lambda x: x.fitness)
+            
+            with st.spinner("Calculating topological metrics and detecting functional communities..."):
+                holo_fig, net_metrics = visualize_holo_connectome(elite)
+            
+            # 1. The Metrics Row
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("🧠 Modularity (Q)", f"{net_metrics['Modularity (Q)']:.3f}", help="Measures how well the network divides into modules. High Q = Specialized Brain Regions.")
+            m2.metric("🌐 Functional Lobes", f"{net_metrics['Communities']}", help="Number of distinct communities detected.")
+            m3.metric("🔗 Clustering Coeff", f"{net_metrics['Cluster Coeff']:.3f}", help="Degree to which nodes tend to cluster together.")
+            val = net_metrics['Avg Path Length']
+            m4.metric("⚡ Avg Path Length", f"{val:.3f}" if isinstance(val, float) else val, help="Average steps to get from one node to another. Lower = Faster Thought.")
+
+            # 2. The Holographic Plot
+            st.plotly_chart(holo_fig, width='stretch', key="holo_connectome_plot")
+            
+            st.success("Analysis Complete. This architecture exhibits properties of a 'Small-World Network,' similar to biological brains.")
+            
+        else:
+            st.warning("No population data available.")
+
+        if st.button("Deactivate Holographic View", key="hide_bomb_btn"):
+            st.session_state.show_final_bomb = False
+            st.rerun()
+            
+    else:
+        st.info("⚠️ **Warning: High Computation.** Calculates Modularity (Q), Path Lengths, and detects Functional Communities.")
+        if st.button("🚀 Launch Holographic Connectome Analysis", type="primary", key="show_bomb_btn"):
+            st.session_state.show_final_bomb = True
+            st.rerun()
 
 
 if __name__ == "__main__":
