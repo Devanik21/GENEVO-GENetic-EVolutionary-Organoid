@@ -2175,95 +2175,97 @@ def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
 
 def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
     """
-    Generates 'Night Sky Constellation' layouts using the Peter de Jong Attractor.
-    Creates organic, nebula-like, and brain-like point clouds.
+    Generates a 'Deep Neuro-Web' layout.
+    Simulates biological growth: Nodes cluster into 'Lobes' (Nuclei) and 
+    are distorted by 'Cortical Folding' to create bizarre, brain-like shapes.
     """
     pos = {}
-    all_nodes = inputs + sorted(hidden) + outputs
-    total_nodes = len(all_nodes)
     
-    if total_nodes == 0: return pos
+    # 1. BIOLOGICAL SEEDING
+    # A unique seed ensures each Form evolves a distinct brain shape.
+    rng = random.Random(form_id * 888)
+    np.random.seed(form_id * 888) # Sync numpy seed
+    
+    # 2. DEFINE THE CANVAS (The Void)
+    # We create a wide, scattered space.
+    canvas_width = 20.0
+    canvas_height = 12.0
+    
+    # 3. POSITION INPUTS & OUTPUTS (The Sensory-Motor Interface)
+    # Inputs are scattered loosely on the left, Outputs on the right.
+    # We add 'jitter' so they aren't perfect lines, looking more organic.
+    
+    def scatter_line(nodes, x_base, height_spread):
+        y_step = height_spread / (len(nodes) + 1)
+        for i, node in enumerate(nodes):
+            # Organic jitter
+            jx = rng.uniform(-1.5, 1.5)
+            jy = rng.uniform(-1.0, 1.0) 
+            
+            # Curve slightly based on index (Retinotopic map simulation)
+            curve_offset = np.sin((i / len(nodes)) * np.pi) * 2.0
+            
+            pos[node] = np.array([x_base + jx - curve_offset, 
+                                  (i - len(nodes)/2) * y_step * 1.5 + jy])
 
-    # 1. CHAOS SEEDING
-    # A unique high-entropy seed for every Form ensures totally unique galaxies.
-    seed_val = form_id * 424242
-    rng = random.Random(seed_val)
-    
-    # 2. THE ATTRACTOR CONSTANTS (The DNA of the Galaxy)
-    # Small changes here completely reshape the universe.
-    # We pick from a range known to produce "beautiful" chaos.
-    a = rng.uniform(-2.5, 2.5)
-    b = rng.uniform(-2.5, 2.5)
-    c = rng.uniform(-2.5, 2.5)
-    d = rng.uniform(-2.5, 2.5)
+    scatter_line(inputs, -canvas_width/2, canvas_height)
+    scatter_line(outputs, canvas_width/2, canvas_height)
 
-    # 3. GENERATE THE STAR FIELD
-    # We generate more points than we need, to find the "density" of the attractor
-    points = []
-    x, y = rng.uniform(-1, 1), rng.uniform(-1, 1)
+    # 4. POSITION HIDDEN NODES (The Deep Cortex)
+    # Instead of random scatter, we grow "Lobes" (Clusters).
     
-    # Burn-in samples (to reach the attractor's orbit)
-    for _ in range(100):
-        xn = np.sin(a * y) - np.cos(b * x)
-        yn = np.sin(c * x) - np.cos(d * y)
-        x, y = xn, yn
+    if not hidden: return pos
 
-    # Generate visible star points
-    # We generate a cloud of points
-    cloud_size = max(total_nodes, 2000) 
-    generated_points = []
+    # Determine number of brain regions (Lobes) based on complexity
+    num_lobes = rng.randint(3, 8) 
+    lobe_centers = []
     
-    for _ in range(cloud_size):
-        # Peter de Jong Attractor Equations
-        xn = np.sin(a * y) - np.cos(b * x)
-        yn = np.sin(c * x) - np.cos(d * y)
-        x, y = xn, yn
+    # Create random centers for these lobes in the 3D void
+    for _ in range(num_lobes):
+        cx = rng.uniform(-canvas_width/2 + 4, canvas_width/2 - 4)
+        cy = rng.uniform(-canvas_height/2, canvas_height/2)
+        lobe_centers.append((cx, cy))
         
-        # Add subtle 3D-ish noise (Depth of Field effect)
-        jitter = rng.uniform(-0.05, 0.05)
-        generated_points.append((x + jitter, y + jitter))
-
-    # 4. MAPPING NODES TO STARS
-    # To ensure the brain "flows" logically, we sort the cloud by the X-axis.
-    # This puts Inputs on one side of the nebula and Outputs on the other,
-    # but keeps the messy, organic shape intact.
-    
-    # Sort points by X coordinate
-    generated_points.sort(key=lambda p: p[0])
-    
-    # We select evenly spaced points from the cloud to ensure we cover the whole shape
-    indices = np.linspace(0, len(generated_points) - 1, total_nodes, dtype=int)
-    selected_stars = [generated_points[i] for i in indices]
-    
-    # Optional: Shuffle the hidden nodes slightly to tangle the web (more complexity)
-    # This creates that "dense neural wiring" look
-    mid_start = len(inputs)
-    mid_end = total_nodes - len(outputs)
-    if mid_end > mid_start:
-        mid_stars = selected_stars[mid_start:mid_end]
-        rng.shuffle(mid_stars)
-        selected_stars[mid_start:mid_end] = mid_stars
-
-    # 5. ASSIGN POSITIONS
-    # Scale it up to fill the screen nicely
-    scale_factor = 3.5
-    
-    for i, n in enumerate(all_nodes):
-        sx, sy = selected_stars[i]
-        pos[n] = np.array([sx * scale_factor, sy * scale_factor])
+    # Assign every hidden neuron to a Lobe
+    for node in hidden:
+        # Pick a primary lobe for this neuron
+        lobe_idx = rng.randint(0, num_lobes - 1)
+        cx, cy = lobe_centers[lobe_idx]
+        
+        # SCATTER LOGIC: "Diffusion Limited Aggregation" style
+        # Nodes scatter around the lobe center, but some fly far away (long-range connections)
+        
+        # Distance from lobe center (Heavy tail distribution for 'scattered' look)
+        dist = rng.expovariate(0.25) # The lower the lambda, the wider the scatter
+        angle = rng.uniform(0, 2 * np.pi)
+        
+        # Base Position
+        x = cx + np.cos(angle) * dist
+        y = cy + np.sin(angle) * dist
+        
+        # 5. CORTICAL FOLDING (The Bizarre Factor)
+        # Apply a non-linear sine-wave distortion to simulate brain folds (Gyri/Sulci)
+        # This turns clusters into weird, alien streaks.
+        fold_frequency = rng.uniform(0.3, 0.8)
+        fold_amplitude = rng.uniform(1.0, 3.0)
+        
+        x += np.sin(y * fold_frequency) * fold_amplitude
+        y += np.cos(x * fold_frequency) * fold_amplitude
+        
+        pos[node] = np.array([x, y])
 
     return pos
 
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
-    2D Visualization engine that selects a Sci-Fi Geometry based on the Form ID.
-    UPDATED: 
-    1. Node sizes reduced for 'Complex Network' look.
-    2. Rich Hover Data added (Type, Size, Activation, etc.).
+    Renders the 'True Deep Network' aesthetic:
+    - Scattered, organic distribution.
+    - Thousands of thin, transparent axons (edges).
+    - Glowing soma (nodes) acting as constellations.
     """
     G = nx.DiGraph()
     
-    # 1. Identify Nodes
+    # 1. Identify Nodes & Build Graph
     inputs, outputs, hidden = [], [], []
     
     for module in genotype.modules:
@@ -2274,7 +2276,6 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         else:
             role = 'hidden'; hidden.append(module.id)
             
-        # Store all attributes in the graph node for easy access later
         G.add_node(
             module.id, 
             size=module.size, 
@@ -2290,99 +2291,124 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         if conn.source in G.nodes and conn.target in G.nodes:
             G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
 
-    node_count = len(G.nodes())
-
-    # 2. APPLY SCI-FI GEOMETRY (Deterministic based on Form ID)
+    # 2. APPLY DEEP NEURO-WEB GEOMETRY
     pos = apply_scifi_geometry(G, genotype.form_id, inputs, outputs, hidden)
 
-    # 3. Plotting
+    # 3. PLOTTING THE NETWORK
     fig = go.Figure()
 
-    # Edges: Thinner and cleaner for complex network look
-    for i, (u, v, data) in enumerate(G.edges(data=True)):
+    # --- EDGES: The Synaptic Web ---
+    # We process edges in batches to improve performance for massive networks
+    edge_x, edge_y = [], []
+    
+    # Optimization: Only draw curves for strong connections, straight lines for weak ones
+    # to save rendering time on massive scattered graphs
+    for u, v, data in G.edges(data=True):
         if u not in pos or v not in pos: continue
         x0, y0 = pos[u]
         x1, y1 = pos[v]
         
-        # Reduced curvature for cleaner lines
-        curve_intensity = 0.05 
-        curvature = curve_intensity if i % 2 == 0 else -curve_intensity
-        bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature)
+        # Calculate distance to determine curvature intensity
+        dist = np.sqrt((x1-x0)**2 + (y1-y0)**2)
         
-        conn_type = data.get('type', 'excitatory')
-        # Lighter alpha for edges to make nodes pop
-        color_map = {'excitatory': 'rgba(0, 255, 200, 0.3)', 'inhibitory': 'rgba(255, 50, 50, 0.3)'}
-        edge_color = color_map.get(conn_type, 'rgba(100, 100, 255, 0.2)')
-            
-        fig.add_trace(go.Scatter(
-            x=bx, y=by, mode='lines',
-            line=dict(width=0.5, color=edge_color),
-            hoverinfo='none', showlegend=False
-        ))
+        # "Synaptic Thread" Logic:
+        # If nodes are far apart, the connection is a taut, straight axon.
+        # If nodes are close, it's a curved dendrite.
+        if dist > 8.0:
+            # Long range axon - Straight line
+            edge_x.extend([x0, x1, None])
+            edge_y.extend([y0, y1, None])
+        else:
+            # Short range dendrite - Bezier Curve
+            # Random curvature direction adds to the "tangled" organic look
+            curve_dir = 1 if random.random() > 0.5 else -1
+            curvature = 0.15 * curve_dir * (10/dist) # More curve for closer nodes
+            bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature, points=10)
+            edge_x.extend(bx.tolist() + [None])
+            edge_y.extend(by.tolist() + [None])
 
-    # Nodes: Fine Points (Complex Network Style)
-    node_x, node_y, node_colors, node_sizes = [], [], [], []
-    node_labels = []
-    node_hover_texts = []  # <-- NEW: List to hold rich hover strings
+    # Draw all edges as a single trace for max speed, but extremely thin and transparent
+    fig.add_trace(go.Scattergl( # Use WebGL for speed on complex plots
+        x=edge_x, y=edge_y,
+        mode='lines',
+        line=dict(width=0.3, color='rgba(100, 200, 255, 0.15)'), # Ghostly Cyan
+        hoverinfo='none',
+        showlegend=False
+    ))
+
+    # --- NODES: The Neural Soma ---
+    node_x, node_y = [], []
+    node_colors = []
+    node_sizes = []
+    node_hover_texts = []
     
     for node in G.nodes():
         if node not in pos: continue
         x, y = pos[node]
         node_x.append(x); node_y.append(y)
         
-        # Retrieve attributes
         attrs = G.nodes[node]
         node_colors.append(attrs['color'])
         
-        # --- SIZE UPDATE ---
-        base_size = 3 
-        if attrs['role'] in ['input', 'output']: base_size = 5
-        calc_size = base_size + (np.log(attrs['size']) * 0.3)
-        node_sizes.append(calc_size)
+        # Dynamic Sizing: Hubs are huge, standard nodes are tiny dust
+        base_size = np.log(attrs['size']) * 2
         
-        # --- RICH HOVER TEXT GENERATION ---
-        # We format this as HTML for Plotly to render cleanly
+        # Boost size for I/O so they are visible anchors
+        if attrs['role'] != 'hidden': base_size *= 2.5
+        
+        node_sizes.append(base_size)
+        
         hover_str = (
-            f"<b>ID:</b> {node}<br>"
-            f"<b>Type:</b> {attrs['module_type'].upper()}<br>"
-            f"<b>Size (Neurons):</b> {attrs['size']}<br>"
-            f"<b>Activation:</b> {attrs['activation']}<br>"
-            f"<b>Plasticity:</b> {attrs['plasticity']:.3f}<br>"
-            f"<b>LR Multiplier:</b> {attrs['lr_mult']:.2f}x"
+            f"<b>{node}</b><br>"
+            f"Type: {attrs['module_type'].upper()}<br>"
+            f"Neurons: {attrs['size']}<br>"
+            f"Act: {attrs['activation']}"
         )
         node_hover_texts.append(hover_str)
-        
-        # Clean labels (Only I/O get visible text)
-        if attrs['role'] == 'input': node_labels.append("I")
-        elif attrs['role'] == 'output': node_labels.append("O")
-        else: node_labels.append("")
 
-    # Halo Effect (Glow)
-    fig.add_trace(go.Scatter(
-        x=node_x, y=node_y, mode='markers',
-        marker=dict(size=[s*3 for s in node_sizes], color=node_colors, opacity=0.3),
+    # 1. The Glow (Halo) - Large, very transparent behind the nodes
+    fig.add_trace(go.Scattergl(
+        x=node_x, y=node_y,
+        mode='markers',
+        marker=dict(
+            size=[s * 4 for s in node_sizes], # Big glow
+            color=node_colors,
+            opacity=0.2,
+            line=dict(width=0)
+        ),
         hoverinfo='none', showlegend=False
     ))
 
-    # Core Nodes
-    fig.add_trace(go.Scatter(
-        x=node_x, y=node_y, mode='markers+text',
-        text=node_labels, textposition="middle center",
-        textfont=dict(size=8, color="black"),
-        # Pass the rich text list here
-        hovertext=node_hover_texts, 
-        # 'text' means use the hovertext list, 'name' adds the trace name
-        hoverinfo='text', 
-        marker=dict(size=node_sizes, color=node_colors, line=dict(width=0.5, color='white'), opacity=1.0),
-        name='Modules'
+    # 2. The Core - Sharp, bright dots
+    fig.add_trace(go.Scattergl(
+        x=node_x, y=node_y,
+        mode='markers',
+        marker=dict(
+            size=node_sizes,
+            color=node_colors,
+            line=dict(width=1, color='rgba(255,255,255,0.8)'), # Crisp edge
+            opacity=1.0
+        ),
+        hovertext=node_hover_texts,
+        hoverinfo='text',
+        name='Neurons'
     ))
 
     fig.update_layout(
-        title=dict(text=f"<b>Neural Blueprint: Form {genotype.form_id}</b>", x=0.5, font=dict(size=14, color='#AAA')),
-        showlegend=False, hovermode='closest',
-        margin=dict(b=10, l=10, r=10, t=40),
-        xaxis=dict(visible=False), yaxis=dict(visible=False),
-        height=650, plot_bgcolor='rgba(5,5,8,1)', paper_bgcolor='rgba(0,0,0,0)'
+        title=dict(
+            text=f"<b>Deep Neural Topography: Form {genotype.form_id}</b>", 
+            x=0.05, y=0.95,
+            font=dict(size=16, color='#888', family="monospace")
+        ),
+        showlegend=False,
+        hovermode='closest',
+        margin=dict(b=0, l=0, r=0, t=0),
+        xaxis=dict(visible=False, showgrid=False, zeroline=False),
+        yaxis=dict(visible=False, showgrid=False, zeroline=False),
+        # Deep Space Colors
+        plot_bgcolor='#050508', 
+        paper_bgcolor='#050508',
+        height=800 # Taller for more detail
     )
     
     return fig
