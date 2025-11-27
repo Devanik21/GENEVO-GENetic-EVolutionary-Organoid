@@ -2279,7 +2279,7 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden, seed=None):
     return pos
 
 
-def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
+def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo: str = 'scifi') -> go.Figure:
     """
     Renders the 'Deep Neuro-Web' with beautiful, eye-friendly aesthetics.
     
@@ -2287,7 +2287,7 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     - Soft color palette: Blues for inputs/hidden, Pink for outputs
     - Organic network topology with cortical folding
     - Responsive hover on all nodes with detailed info
-    - Dynamic layouts via seed parameter (-1 for random)
+    - Dynamic layouts via seed parameter (default -1 for random/infinite shapes)
     """
     G = nx.DiGraph()
     
@@ -2444,8 +2444,8 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         margin=dict(b=20, l=20, r=20, t=50),
         xaxis=dict(visible=False, showgrid=False, zeroline=False),
         yaxis=dict(visible=False, showgrid=False, zeroline=False),
-        plot_bgcolor='#0B0F1A',  # Rich dark blue-gray
-        paper_bgcolor='#0B0F1A',
+        plot_bgcolor='#000000',  # Pure black
+        paper_bgcolor='#000000',
         height=800
     )
     
