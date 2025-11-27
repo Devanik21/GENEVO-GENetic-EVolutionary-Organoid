@@ -1728,64 +1728,126 @@ def identify_pareto_frontier(individuals: List[Genotype]) -> List[Genotype]:
 
 def generate_neural_symphony(genotype: Genotype, duration_sec=8):
     """
-    Procedurally generates a sci-fi 'ambient drone' based on the Neural Architecture.
-    Maps graph topology to sound frequencies.
+    THE OMNI-ACOUSTIC ENGINE
+    Procedurally synthesizes a complex soundscape based on 100+ activation functions.
+    Maps mathematical properties to timbre, harmonics, and modulation.
     """
     import numpy as np
     import io
     from scipy.io.wavfile import write
 
-    # 1. Analyze the Brain
-    num_modules = len(genotype.modules)
-    num_conns = len(genotype.connections)
+    # 1. Analyze the Brain's Composition
+    # Count how many of each category exist in this specific brain
+    act_counts = {'rectifier': 0, 'sigmoid': 0, 'oscillator': 0, 'gated': 0, 'exotic': 0}
     
-    # 2. Audio Parameters
+    for m in genotype.modules:
+        a = m.activation.lower()
+        # CATEGORY 1: Sharp Energy (Rectifiers)
+        if any(x in a for x in ['relu', 'elu', 'swish', 'mish', 'plus', 'softsign']):
+            act_counts['rectifier'] += 1
+        # CATEGORY 2: Smooth Stability (Sigmoids)
+        elif any(x in a for x in ['sigmoid', 'tanh', 'shrink', 'arctan']):
+            act_counts['sigmoid'] += 1
+        # CATEGORY 3: Rhythmic (Oscillators)
+        elif any(x in a for x in ['sin', 'cos', 'snake', 'sinc', 'poly']):
+            act_counts['oscillator'] += 1
+        # CATEGORY 4: Computation (Gated/Logic)
+        elif any(x in a for x in ['glu', 'gate', 'stutter', 'hard']):
+            act_counts['gated'] += 1
+        # CATEGORY 5: Alien/Math (Exotics)
+        else: 
+            act_counts['exotic'] += 1
+
+    total_modules = len(genotype.modules)
+    if total_modules == 0: total_modules = 1
+    
+    # Normalize strengths (0.0 to 1.0)
+    mix = {k: v / total_modules for k, v in act_counts.items()}
+
+    # 2. Audio Setup
     sample_rate = 44100
     t = np.linspace(0, duration_sec, int(sample_rate * duration_sec), endpoint=False)
+    final_mix = np.zeros_like(t)
     
-    # 3. The "Base Drone" (Based on Network Size)
-    # Larger networks = Deeper, lower hum (60Hz - 150Hz)
-    base_freq = 150 - min(100, num_modules) 
-    drone = 0.5 * np.sin(2 * np.pi * base_freq * t)
-    
-    # 4. The "Activity Layer" (Based on Activation Functions)
-    texture = np.zeros_like(t)
-    activations = [m.activation for m in genotype.modules]
-    
-    if 'relu' in activations or 'gelu' in activations:
-        # Sharp, saw-like buzz
-        texture += 0.3 * (np.mod(t * base_freq * 1.5, 1) - 0.5)
-    
-    if 'tanh' in activations or 'sigmoid' in activations:
-        # Smooth, high-pitched sine
-        texture += 0.3 * np.sin(2 * np.pi * (base_freq * 2.5) * t)
+    # Base Fundamental Frequency (The "Soul" of the net)
+    # Deeper networks = Lower pitch (Bass), Wider networks = Higher pitch
+    base_freq = 110 - (min(50, len(genotype.modules)) / 2) 
+
+    # --- LAYER 1: THE RECTIFIERS (Sawtooth Drone) ---
+    # Represents raw processing power. Sounds like: Electric Buzz.
+    if mix['rectifier'] > 0:
+        # Super-saw effect: multiple detuned saws
+        saw1 = 2.0 * (np.mod(t * base_freq, 1.0) - 0.5)
+        saw2 = 2.0 * (np.mod(t * (base_freq * 1.01), 1.0) - 0.5) # Detuned slightly
+        layer_sound = (saw1 + saw2) * 0.5
+        # Low-pass filter proxy (soften the buzz over time)
+        envelope = np.exp(-t * 0.5) 
+        final_mix += layer_sound * mix['rectifier'] * 0.4 * envelope
+
+    # --- LAYER 2: THE SIGMOIDS (Sine Pad) ---
+    # Represents memory and stability. Sounds like: Deep Hum/Choir.
+    if mix['sigmoid'] > 0:
+        # Add harmonics for warmth
+        sine1 = np.sin(2 * np.pi * base_freq * t)
+        sine2 = np.sin(2 * np.pi * (base_freq * 2) * t) * 0.5 # Octave up
+        layer_sound = sine1 + sine2
+        # Slow breathing envelope
+        breathing = 0.8 + 0.2 * np.sin(2 * np.pi * 0.2 * t) 
+        final_mix += layer_sound * mix['sigmoid'] * 0.6 * breathing
+
+    # --- LAYER 3: THE OSCILLATORS (FM Sci-Fi) ---
+    # Represents periodic functions. Sounds like: UFO/Wobble.
+    if mix['oscillator'] > 0:
+        # Frequency Modulation synthesis
+        modulator_freq = 4.0 # 4Hz vibrato
+        carrier_freq = base_freq * 4 # High pitched
+        modulation_index = 5.0 * mix['oscillator'] # More oscillators = more crazy
         
-    if 'sin' in activations or 'cos' in activations:
-        # Oscillating 'Sci-Fi' wobble
-        wobble = 1 + 0.5 * np.sin(2 * np.pi * 2 * t) # 2Hz LFO
-        texture += 0.3 * np.sin(2 * np.pi * (base_freq * 4) * t * wobble)
+        modulator = modulation_index * np.sin(2 * np.pi * modulator_freq * t)
+        layer_sound = np.sin(2 * np.pi * (carrier_freq + modulator) * t)
+        
+        # Panning effect (simulated with volume LFO)
+        pan = np.sin(2 * np.pi * 0.5 * t)
+        final_mix += layer_sound * mix['oscillator'] * 0.3 * pan
 
-    # 5. The "Data Flow" Arpeggio (Random beeps based on connections)
-    arpeggio = np.zeros_like(t)
-    # Create a rhythmic pulse based on connection density
-    pulse_speed = max(2, min(10, num_conns / 20))
-    envelope = np.abs(np.sin(2 * np.pi * pulse_speed * t))
-    
-    # High frequency 'thinking' noises
-    high_freq = base_freq * 8
-    arpeggio = 0.2 * np.sin(2 * np.pi * high_freq * t) * (envelope ** 4) # Sharp pulses
+    # --- LAYER 4: THE LOGIC GATES (Rhythmic Stutter) ---
+    # Represents decision trees. Sounds like: Data processing beeps.
+    if mix['gated'] > 0:
+        # Square wave with rhythmic gating
+        square = np.sign(np.sin(2 * np.pi * (base_freq * 8) * t))
+        # Create a binary rhythm based on connection count
+        rhythm_speed = max(4, min(16, len(genotype.connections) / 10))
+        gate = np.where(np.sin(2 * np.pi * rhythm_speed * t) > 0, 1, 0)
+        
+        final_mix += square * gate * mix['gated'] * 0.15
 
-    # 6. Mix and Master
-    audio_signal = drone + texture + arpeggio
+    # --- LAYER 5: THE EXOTICS (Metallic Ring Mod) ---
+    # Represents complex math. Sounds like: Crystalline/Glassy chimes.
+    if mix['exotic'] > 0:
+        # Ring modulation: Multiplying two high frequencies
+        f1 = base_freq * 3.14 # Pi ratio
+        f2 = base_freq * 1.618 # Golden ratio
+        layer_sound = np.sin(2 * np.pi * f1 * t) * np.sin(2 * np.pi * f2 * t)
+        
+        # Ethereal envelope (long attack, long release)
+        env = np.minimum(t / 2, 1.0) * np.exp(-(t-2) * 0.5)
+        final_mix += layer_sound * mix['exotic'] * 0.4 * env
+
+    # 3. Master Limiter & Normalization
+    # Prevent clipping (distortion)
+    max_val = np.max(np.abs(final_mix))
+    if max_val > 0:
+        final_mix = final_mix / max_val
     
-    # Normalize to 16-bit range
-    audio_signal = audio_signal / np.max(np.abs(audio_signal))
-    audio_signal = (audio_signal * 32767).astype(np.int16)
+    # Convert to 16-bit PCM
+    audio_int16 = (final_mix * 32767).astype(np.int16)
     
-    # 7. Write to Buffer
+    # 4. Write to Buffer
     byte_io = io.BytesIO()
-    write(byte_io, sample_rate, audio_signal)
+    write(byte_io, sample_rate, audio_int16)
     return byte_io
+
+
 
 
 def visualize_phylogenetic_tree(history_df, current_population):
@@ -9288,38 +9350,51 @@ def main():
     st.markdown("---")
     st.header("🎵 The Harmonic Resonance Chamber")
     
-    if st.session_state.show_audio_chamber:
-        st.markdown("""
-        **Auditory Telemetry Online.** This system procedurally synthesizes a soundscape based on the *physical topology* of your Apex Intelligence.
-        
-        * **Bass Frequency:** Determined by network depth (Deeper = Lower).
-        * **Texture:** Determined by activation functions (ReLU = Buzz, Tanh = Hum).
-        * **Rhythm:** Determined by connection density (More connections = Faster pulse).
-        """)
-        
-        if st.session_state.current_population:
-            # Get the elite
+    if st.session_state.current_population:
             elite = max(st.session_state.current_population, key=lambda x: x.fitness)
             
+            # --- AUDIO MIXING CONSOLE ---
+            # Calculate the mix percentages for display
+            act_counts = {'Rectifier (Buzz)': 0, 'Sigmoid (Hum)': 0, 'Oscillator (Wobble)': 0, 'Gated (Rhythm)': 0, 'Exotic (Chime)': 0}
+            for m in elite.modules:
+                a = m.activation.lower()
+                if any(x in a for x in ['relu', 'elu', 'swish', 'mish', 'plus']): act_counts['Rectifier (Buzz)'] += 1
+                elif any(x in a for x in ['sigmoid', 'tanh', 'shrink']): act_counts['Sigmoid (Hum)'] += 1
+                elif any(x in a for x in ['sin', 'cos', 'snake']): act_counts['Oscillator (Wobble)'] += 1
+                elif any(x in a for x in ['glu', 'gate', 'hard']): act_counts['Gated (Rhythm)'] += 1
+                else: act_counts['Exotic (Chime)'] += 1
+            
+            # Create columns for the player and the visualizer
             col_audio_1, col_audio_2 = st.columns([1, 2])
             
             with col_audio_1:
-                st.info(f"**Target:** Apex Genotype `{elite.lineage_id}`\n\n**Modules:** {len(elite.modules)}\n\n**Connections:** {len(elite.connections)}")
-                
-                if st.button("🎼 Synthesize Neural Audio", key="generate_audio_btn", type="primary", use_container_width=True):
-                    with st.spinner("Analyzing graph topology frequencies..."):
+                st.markdown("### 🎛️ Neural Mixer")
+                st.caption("Sonic texture based on gene expression:")
+                # Display bars for the sound composition
+                total = len(elite.modules)
+                for name, count in act_counts.items():
+                    if count > 0:
+                        pct = count / total
+                        st.progress(pct, text=f"{name}: {int(pct*100)}%")
+
+                st.markdown("---")
+                if st.button("🎼 Synthesize Omni-Audio", key="generate_audio_btn", type="primary", use_container_width=True):
+                    with st.spinner("Compiling mathematical harmonics..."):
                         audio_bytes = generate_neural_symphony(elite)
                         st.session_state['neural_audio_final'] = audio_bytes
             
             with col_audio_2:
                 if 'neural_audio_final' in st.session_state:
-                    st.success("✅ Audio Stream Generated.")
+                    st.success(f"✅ **Audio Generated:** {len(elite.modules)} Modules sonified.")
                     st.audio(st.session_state['neural_audio_final'], format='audio/wav')
                     
-                    st.markdown("### 🌊 Visualizing the Waveform")
-                    # Quick dummy waveform visualization for aesthetics
-                    chart_data = pd.DataFrame(np.random.randn(50, 3), columns=["Alpha", "Beta", "Gamma"])
-                    st.area_chart(chart_data, height=100, color=["#00FFAA", "#00AAFF", "#AA00FF"])
+                    st.markdown("### 🌊 Harmonics Visualizer")
+                    # Generate a fake but cool looking spectrogram approximation
+                    chart_data = pd.DataFrame(
+                        np.random.randn(100, 3) * [act_counts['Rectifier (Buzz)']+1, act_counts['Sigmoid (Hum)']+1, act_counts['Exotic (Chime)']+1],
+                        columns=["Energy (Buzz)", "Depth (Hum)", "Complexity (Chime)"]
+                    )
+                    st.line_chart(chart_data, height=200, color=["#FF0055", "#00AAFF", "#00FF88"])
 
         else:
             st.warning("No intelligence found to sonify.")
