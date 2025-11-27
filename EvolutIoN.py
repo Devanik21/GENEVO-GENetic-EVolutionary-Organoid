@@ -2175,98 +2175,104 @@ def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
 
 def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
     """
-    Mathematically forces nodes into cool Sci-Fi shapes based on their Form ID.
-    No physics. Pure geometry.
+    Generates a unique, procedurally generated 'Strange Attractor' or 'Harmonic' 
+    layout for each Form ID. No forcing—just pure math-driven chaos.
     """
     pos = {}
-    sorted_hidden = sorted(hidden) # Sort for consistency
     
-    # --- SHAPE 1: THE SYNTHETIC CORTEX (Brain-like) ---
-    # Two lobes facing each other
-    if form_id % 5 == 1:
-        # Inputs in the "Brain Stem" (Bottom Center)
-        for i, n in enumerate(inputs):
-            pos[n] = np.array([0 + (i - len(inputs)/2)*0.5, -3.0])
-            
-        # Outputs in the "Prefrontal Cortex" (Top Center)
-        for i, n in enumerate(outputs):
-            pos[n] = np.array([0 + (i - len(outputs)/2)*0.5, 3.0])
-            
-        # Hidden nodes in two hemispheres
-        for i, n in enumerate(sorted_hidden):
-            t = (i / len(sorted_hidden)) * np.pi * 2
-            r = 2.0 + np.random.uniform(-0.2, 0.2)
-            
-            # Split into Left/Right Hemisphere
-            if i % 2 == 0:
-                x = -abs(r * np.cos(t)) - 0.5
-            else:
-                x = abs(r * np.cos(t)) + 0.5
-            y = r * np.sin(t)
-            pos[n] = np.array([x, y])
+    # Consolidate all nodes to assign positions
+    # We order them: Inputs -> Hidden -> Outputs to create a 'flow' in the time parameter
+    all_nodes = inputs + sorted(hidden) + outputs
+    total = len(all_nodes)
+    if total == 0: return pos
 
-    # --- SHAPE 2: THE SINGULARITY (Infinite Radial) ---
-    # Dense center exploding outwards
-    elif form_id % 5 == 2:
-        # Inputs on outer ring
-        for i, n in enumerate(inputs):
-            t = (i / len(inputs)) * 2 * np.pi
-            pos[n] = np.array([4 * np.cos(t), 4 * np.sin(t)])
-            
-        # Hidden nodes spiraling into the center
-        for i, n in enumerate(sorted_hidden):
-            t = i * 0.5  # Tight spiral
-            r = 3.0 * (1 - (i / len(sorted_hidden))) # Radius shrinks
-            pos[n] = np.array([r * np.cos(t), r * np.sin(t)])
-            
-        # Outputs at the absolute singularity (0,0)
-        for i, n in enumerate(outputs):
-            pos[n] = np.array([np.random.uniform(-0.2, 0.2), np.random.uniform(-0.2, 0.2)])
-
-    # --- SHAPE 3: THE DOUBLE HELIX (DNA / Time Stream) ---
-    # A horizontal sine wave stream
-    elif form_id % 5 == 3:
-        # Linear flow from Left to Right
-        total_nodes = inputs + sorted_hidden + outputs
-        length = 10.0
-        step = length / len(total_nodes)
+    # --- CHAOS SEEDING ---
+    # Use form_id to seed a local random generator.
+    # This ensures Form 5 always looks like Form 5, but Form 5 looks nothing like Form 6.
+    rng = random.Random(form_id * 314159) # Pi seed for extra "irrationality"
+    
+    # --- PROCEDURAL PARAMETER GENERATION ---
+    # We construct complex parametric curves: x = f(t), y = g(t)
+    
+    # Randomize harmonic frequencies
+    a = rng.uniform(1, 7)
+    b = rng.uniform(1, 7)
+    c = rng.uniform(1, 7)
+    d = rng.uniform(1, 7)
+    
+    # Randomize phase shifts
+    p1 = rng.uniform(0, np.pi)
+    p2 = rng.uniform(0, np.pi)
+    
+    # Randomize scale factors (stretch/squash)
+    A = rng.uniform(1, 3.5)
+    B = rng.uniform(0.5, 2)
+    C = rng.uniform(1, 3.5)
+    D = rng.uniform(0.5, 2)
+    
+    # Select a random "Style of Chaos" for this specific Form
+    style = rng.choice(['harmonic', 'strange_attractor', 'atomic_shells', 'bio_spiral', 'quantum_cloud'])
+    
+    # --- GENERATE GEOMETRY ---
+    for i, n in enumerate(all_nodes):
+        # t is a parameter that moves along the curve
+        progress = i / total
+        t = progress * 2 * np.pi * rng.uniform(1, 4) # Multiple loops around the shape
         
-        for i, n in enumerate(total_nodes):
-            x = -5.0 + (i * step)
-            # DNA Twist math
-            y_offset = np.sin(x * 1.5) * 2.0
+        x, y = 0, 0
+        
+        if style == 'harmonic':
+            # Lissajous-like complex interference curves
+            x = A * np.sin(a*t + p1) + B * np.cos(b*t)
+            y = C * np.sin(c*t + p2) + D * np.cos(d*t)
             
-            if i % 2 == 0:
-                y = y_offset
-            else:
-                y = -y_offset
-                
-            pos[n] = np.array([x, y])
+        elif style == 'bio_spiral':
+            # Logarithmic spirals with organic perturbations
+            r = progress * 5 + 0.2
+            theta = t * 3
+            # Add a "wobble" to the spiral
+            x = r * np.cos(theta) + np.sin(theta * 8) * 0.3
+            y = r * np.sin(theta) + np.cos(theta * 8) * 0.3
+            
+        elif style == 'atomic_shells':
+            # Electron shell-like orbits with jumps
+            # Create distinct orbital radii
+            shell_r = rng.choice([1.5, 2.8, 4.0, 5.2]) 
+            # Spread nodes along the ring
+            angle = t + rng.uniform(0, 0.5) 
+            x = shell_r * np.cos(angle)
+            y = shell_r * np.sin(angle)
+            
+        elif style == 'strange_attractor':
+            # A pseudo-Clifford attractor simulation
+            # Iterative chaos: x_n+1 depends on x_n, y_n
+            # We approximate this by using 't' as a driver
+            x = np.sin(a * t) + c * np.cos(a * t)
+            y = np.sin(b * t) + d * np.cos(b * t)
+            
+        else: # 'quantum_cloud'
+            # A chaotic cloud with dense cores
+            r = rng.uniform(0.1, 4.5)
+            theta = rng.uniform(0, 2*np.pi)
+            # Bias towards the center
+            r = r * r / 4.5 
+            x = r * np.cos(theta)
+            y = r * np.sin(theta)
+            
+            # Force Inputs/Outputs to opposite ends for this specific messy style
+            if n in inputs: 
+                x = -4.0 + rng.uniform(-0.5, 0.5)
+                y = rng.uniform(-2, 2)
+            if n in outputs: 
+                x = 4.0 + rng.uniform(-0.5, 0.5)
+                y = rng.uniform(-2, 2)
 
-    # --- SHAPE 4: THE CYBER-STACK (Server Rack / Rectangular) ---
-    # Highly organized grid
-    elif form_id % 5 == 4:
-        # Inputs Left Column
-        for i, n in enumerate(inputs):
-            pos[n] = np.array([-3, (i - len(inputs)/2)])
-            
-        # Outputs Right Column
-        for i, n in enumerate(outputs):
-            pos[n] = np.array([3, (i - len(outputs)/2)])
-            
-        # Hidden in a grid in between
-        grid_size = int(np.sqrt(len(sorted_hidden))) + 1
-        for i, n in enumerate(sorted_hidden):
-            row = i % grid_size
-            col = i // grid_size
-            # Center the grid
-            x = -2.0 + (col * (4.0 / grid_size))
-            y = -2.0 + (row * (4.0 / grid_size))
-            pos[n] = np.array([x, y])
-
-    # --- SHAPE 0 (Default): THE NEBULA (Cloud) ---
-    else: 
-        pos = nx.kamada_kawai_layout(G, scale=3.0)
+        # Add slight "organic noise" so nodes don't stack perfectly on top of each other
+        jitter = 0.08
+        x += np.random.normal(0, jitter)
+        y += np.random.normal(0, jitter)
+        
+        pos[n] = np.array([x, y])
         
     return pos
 
