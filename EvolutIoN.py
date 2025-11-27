@@ -2178,71 +2178,12 @@ import numpy as np
 import plotly.graph_objects as go
 import random
 
-def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
-    """
-    Generates a 'Deep Neuro-Web' layout.
-    Nodes cluster into 'Lobes' and are distorted by 'Cortical Folding'.
-    """
-    pos = {}
-    rng = random.Random(form_id * 888)
-    np.random.seed(form_id * 888) 
-    
-    # Canvas Size
-    canvas_width = 20.0
-    canvas_height = 12.0
-    
-    # --- A. Inputs & Outputs (Scattered Periphery) ---
-    def scatter_line(nodes, x_base, height_spread):
-        y_step = height_spread / (len(nodes) + 1)
-        for i, node in enumerate(nodes):
-            jx = rng.uniform(-1.5, 1.5)
-            jy = rng.uniform(-1.0, 1.0) 
-            curve_offset = np.sin((i / max(1, len(nodes))) * np.pi) * 2.0
-            pos[node] = np.array([x_base + jx - curve_offset, 
-                                  (i - len(nodes)/2) * y_step * 1.5 + jy])
-
-    scatter_line(inputs, -canvas_width/2, canvas_height)
-    scatter_line(outputs, canvas_width/2, canvas_height)
-
-    # --- B. Hidden Nodes (Deep Lobes) ---
-    if not hidden: return pos
-
-    num_lobes = rng.randint(3, 8) 
-    lobe_centers = []
-    
-    for _ in range(num_lobes):
-        cx = rng.uniform(-canvas_width/2 + 4, canvas_width/2 - 4)
-        cy = rng.uniform(-canvas_height/2, canvas_height/2)
-        lobe_centers.append((cx, cy))
-        
-    for node in hidden:
-        lobe_idx = rng.randint(0, num_lobes - 1)
-        cx, cy = lobe_centers[lobe_idx]
-        
-        # Heavy-tail scatter to fling nodes far out
-        dist = rng.expovariate(0.35) 
-        angle = rng.uniform(0, 2 * np.pi)
-        
-        x = cx + np.cos(angle) * dist
-        y = cy + np.sin(angle) * dist
-        
-        # Cortical Folding
-        fold_frequency = rng.uniform(0.3, 0.8)
-        fold_amplitude = rng.uniform(1.0, 3.0)
-        
-        x += np.sin(y * fold_frequency) * fold_amplitude
-        y += np.cos(x * fold_frequency) * fold_amplitude
-        
-        pos[node] = np.array([x, y])
-
-    return pos
-
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
-    Renders the 'Deep Neuro-Web' in a Bio-Digital Green theme.
-    - Green aesthetic (Easy on eyes).
-    - Reduced node sizes.
-    - Rich detailed hover data.
+    Renders the 'Deep Neuro-Web' with Cyber-Blue/Pink duality.
+    - Inputs/Hidden: Cyber Blue (Cool).
+    - Outputs: Neon Pink (Hot).
+    - Hover: Fixed and detailed.
     """
     G = nx.DiGraph()
     
@@ -2279,7 +2220,7 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     # 3. PLOTTING
     fig = go.Figure()
 
-    # --- EDGES: Bio-Digital Green ---
+    # --- EDGES: Subtle Cyber-Gray ---
     edge_x, edge_y = [], []
     
     for u, v, data in G.edges(data=True):
@@ -2290,82 +2231,80 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         dist = np.sqrt((x1-x0)**2 + (y1-y0)**2)
         
         if dist > 8.0:
-            # Long range axon (Straight)
             edge_x.extend([x0, x1, None])
             edge_y.extend([y0, y1, None])
         else:
-            # Short range dendrite (Curved)
             curve_dir = 1 if random.random() > 0.5 else -1
             curvature = 0.15 * curve_dir * (10/(dist+1e-5)) 
-            
             bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature, points=10)
-            
-            # Safe list extension
             edge_x.extend(list(bx) + [None])
             edge_y.extend(list(by) + [None])
 
-    # Edge Style: Soft Green
     fig.add_trace(go.Scattergl(
         x=edge_x, y=edge_y,
         mode='lines',
         line=dict(
-            width=0.5, 
-            color='rgba(50, 205, 100, 0.4)' # Soft Emerald Green
+            width=0.4, 
+            color='rgba(100, 120, 140, 0.25)' # Subtle Blue-Gray to let nodes pop
         ),
         hoverinfo='none',
         showlegend=False
     ))
 
-    # --- NODES ---
+    # --- NODES: Cyber Blue & Pink ---
     node_x, node_y = [], []
     node_colors = []
     node_sizes = []
     node_hover_texts = []
     
+    # Define Palette
+    CYBER_BLUE = '#00F0FF'
+    DEEP_BLUE = '#0088FF'
+    NEON_PINK = '#FF00AA'
+    
     for node in G.nodes():
         if node not in pos: continue
         x, y = pos[node]
         node_x.append(x); node_y.append(y)
-
+        
         attrs = G.nodes[node]
-
-        # --- Cybernetic Color Scheme ---
+        
+        # Color Logic based on Role
         if attrs['role'] == 'input':
-            node_colors.append('#00F0FF')  # Cyber Blue
+            node_color = CYBER_BLUE
         elif attrs['role'] == 'output':
-            node_colors.append('#FF007F')  # Cyber Pink
+            node_color = NEON_PINK
         else:
-            # Keep original color for hidden nodes, but can be changed
-            node_colors.append(attrs['color'])
-
+            node_color = DEEP_BLUE 
+            
+        node_colors.append(node_color)
+        
         # Reduced Size Logic
-        # Was: np.log(size) * 2.5 | Now: np.log(size) * 1.5
         base_size = np.log(attrs['size']) * 1.5
-        if attrs['role'] != 'hidden': base_size *= 1.5 # Input/Output slightly larger
-        node_sizes.append(max(2, base_size)) # Minimum size of 2
+        if attrs['role'] != 'hidden': base_size *= 1.3 
+        node_sizes.append(max(2, base_size))
         
         # Rich Detail Hover List (HTML Formatted)
         hover_str = (
             f"<b>ID:</b> {node}<br>"
-            f"<span style='color: #888;'>──────────────────</span><br>"
-            f"<b>• Type:</b> {attrs['module_type'].upper()}<br>"
-            f"<b>• Role:</b> {attrs['role'].capitalize()}<br>"
-            f"<b>• Size:</b> {attrs['size']} neurons<br>"
-            f"<b>• Activation:</b> {attrs['activation']}<br>"
-            f"<b>• Norm:</b> {attrs['normalization']}<br>"
-            f"<b>• Plasticity:</b> {attrs['plasticity']:.3f}<br>"
-            f"<b>• LR Multiplier:</b> {attrs['lr_mult']:.2f}x<br>"
-            f"<b>• Coordinates:</b> ({x:.1f}, {y:.1f})"
+            f"<b>Role:</b> {attrs['role'].upper()}<br>"
+            f"<span style='color: #555;'>──────────────</span><br>"
+            f"<b>Type:</b> {attrs['module_type']}<br>"
+            f"<b>Size:</b> {attrs['size']} neurons<br>"
+            f"<b>Activation:</b> {attrs['activation']}<br>"
+            f"<b>Plasticity:</b> {attrs['plasticity']:.3f}<br>"
+            f"<b>Norm:</b> {attrs['normalization']}"
         )
         node_hover_texts.append(hover_str)
 
-    # 1. Subtle Green Halo (Reduced)
+    # 1. Colored Halo (Glow)
     fig.add_trace(go.Scattergl(
         x=node_x, y=node_y,
         mode='markers',
         marker=dict(
             size=[s * 2.5 for s in node_sizes], 
-            color='rgba(50, 205, 50, 0.15)', # Lime Green Halo
+            color=node_colors,
+            opacity=0.2,
             line=dict(width=0)
         ),
         hoverinfo='none', showlegend=False
@@ -2377,13 +2316,13 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         mode='markers',
         marker=dict(
             size=node_sizes,
-            color=node_colors, # Keep original colors for semantic meaning
-            # Green border to unify the theme
-            line=dict(width=1, color='rgba(150, 255, 150, 0.8)'), 
+            color=node_colors,
+            line=dict(width=1, color='rgba(255,255,255,0.9)'), # Bright white rim
             opacity=1.0
         ),
         hovertext=node_hover_texts,
-        hoverinfo='text',
+        # Force the hover info to display using this template
+        hovertemplate="%{hovertext}<extra></extra>",
         name='Neurons'
     ))
 
@@ -2391,20 +2330,21 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         title=dict(
             text=f"<b>Deep Neural Topography: Form {genotype.form_id}</b>", 
             x=0.05, y=0.95, 
-            font=dict(size=16, color='#4ade80', family="monospace") # Green Title
+            font=dict(size=16, color='#00F0FF', family="monospace")
         ),
         showlegend=False,
         hovermode='closest',
         margin=dict(b=0, l=0, r=0, t=0),
         xaxis=dict(visible=False, showgrid=False, zeroline=False),
         yaxis=dict(visible=False, showgrid=False, zeroline=False),
-        # Deep Dark Background
-        plot_bgcolor='#020402', 
-        paper_bgcolor='#020402',
+        plot_bgcolor='#050508', 
+        paper_bgcolor='#050508',
         height=800
     )
     
     return fig
+
+
 
 
 def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype], evolutionary_metrics_df: pd.DataFrame) -> go.Figure:
