@@ -7418,6 +7418,8 @@ def main():
                 if st.button("Render 3D Fitness Landscape", key="show_fitness_landscape_btn"):
                     st.session_state.show_fitness_landscape = True
                     st.rerun()
+
+            st.markdown("---")
         
         if 'evolutionary_metrics' in st.session_state and st.session_state.evolutionary_metrics:
             metrics_df = pd.DataFrame(st.session_state.evolutionary_metrics)
@@ -7434,7 +7436,7 @@ def main():
                         st.session_state.show_phase_space = True
                         st.rerun()
                        
-                st.markdown("---")
+                
 
               
         
