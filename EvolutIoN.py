@@ -2246,6 +2246,7 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     - Inputs/Hidden: Soft Blues (Cool).
     - Outputs: Soft Pink (Hot).
     - Hover: Fixed and working on all nodes.
+    - Layout changes with different seeds (including -1 for random).
     """
     G = nx.DiGraph()
     
@@ -2276,8 +2277,8 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         if conn.source in G.nodes and conn.target in G.nodes:
             G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
 
-    # 2. APPLY GEOMETRY
-    pos = apply_scifi_geometry(G, genotype.form_id, inputs, outputs, hidden)
+    # 2. APPLY GEOMETRY (respects layout_seed including -1 for random)
+    pos = apply_scifi_geometry(G, genotype.form_id, inputs, outputs, hidden, seed=layout_seed)
 
     # 3. PLOTTING
     fig = go.Figure()
@@ -2306,8 +2307,8 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         x=edge_x, y=edge_y,
         mode='lines',
         line=dict(
-            width=0.5, 
-            color='rgba(100, 120, 150, 0.25)' # Softer, more subtle
+            width=0.8, 
+            color='rgba(120, 150, 180, 0.4)' # More pronounced
         ),
         hoverinfo='skip',
         showlegend=False
@@ -2341,10 +2342,10 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
             
         node_colors.append(node_color)
         
-        # Reduced Size Logic
-        base_size = np.log(attrs['size']) * 1.5
-        if attrs['role'] != 'hidden': base_size *= 1.3 
-        node_sizes.append(max(2, base_size))
+        # Reduced Size Logic - slightly more pronounced
+        base_size = np.log(attrs['size']) * 1.8
+        if attrs['role'] != 'hidden': base_size *= 1.4 
+        node_sizes.append(max(3, base_size))
         
         # Rich Detail Hover List (HTML Formatted)
         hover_str = (
