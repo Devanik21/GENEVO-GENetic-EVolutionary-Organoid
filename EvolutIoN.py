@@ -2175,8 +2175,8 @@ def get_bezier_curve(x0, y0, x1, y1, curvature=0.2, points=20):
 
 def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
     """
-    Hyper-Chaos Engine: Uses Strange Attractors and Iterative Chaos equations
-    to generate non-Euclidean, organic, and 'scary' layouts.
+    Generates 'Night Sky Constellation' layouts using the Peter de Jong Attractor.
+    Creates organic, nebula-like, and brain-like point clouds.
     """
     pos = {}
     all_nodes = inputs + sorted(hidden) + outputs
@@ -2185,95 +2185,72 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
     if total_nodes == 0: return pos
 
     # 1. CHAOS SEEDING
-    # We use a high-entropy seed based on form_id to ensure unique math per form.
-    # Multipliers ensure Form 1 and Form 2 have completely different mathematical constants.
-    seed_val = form_id * 9999999
+    # A unique high-entropy seed for every Form ensures totally unique galaxies.
+    seed_val = form_id * 424242
     rng = random.Random(seed_val)
-    np.random.seed(seed_val) 
-
-    # 2. SELECT A CHAOS EQUATION
-    # We don't use shapes. We use mathematical attractors.
-    equation_type = rng.choice([
-        'clifford_attractor', 
-        'bedhead_attractor', 
-        'fractal_dream', 
-        'svensson_attractor', 
-        'hopalong_orbit'
-    ])
-
-    # 3. GENERATE RANDOM COEFFICIENTS (The "DNA" of the shape)
-    # Tiny changes here result in completely different global structures (Butterfly Effect).
-    a = rng.uniform(-3.0, 3.0)
-    b = rng.uniform(-3.0, 3.0)
-    c = rng.uniform(-3.0, 3.0)
-    d = rng.uniform(-3.0, 3.0)
-
-    # 4. SIMULATE THE ATTRACTOR
-    # We generate a trajectory of points. The nodes will inhabit these points.
-    x, y = 0.1, 0.1 # Starting point
-    coords = []
     
-    # Burn-in period to find the attractor's stable groove
+    # 2. THE ATTRACTOR CONSTANTS (The DNA of the Galaxy)
+    # Small changes here completely reshape the universe.
+    # We pick from a range known to produce "beautiful" chaos.
+    a = rng.uniform(-2.5, 2.5)
+    b = rng.uniform(-2.5, 2.5)
+    c = rng.uniform(-2.5, 2.5)
+    d = rng.uniform(-2.5, 2.5)
+
+    # 3. GENERATE THE STAR FIELD
+    # We generate more points than we need, to find the "density" of the attractor
+    points = []
+    x, y = rng.uniform(-1, 1), rng.uniform(-1, 1)
+    
+    # Burn-in samples (to reach the attractor's orbit)
     for _ in range(100):
-        if equation_type == 'clifford_attractor':
-            x_new = np.sin(a * y) + c * np.cos(a * x)
-            y_new = np.sin(b * x) + d * np.cos(b * y)
-        elif equation_type == 'bedhead_attractor':
-            x_new = np.sin(x*y/b)*y + np.cos(a*x-y)
-            y_new = x + np.sin(y)/b
-        else:
-            x_new = y - np.sign(x) * np.sqrt(abs(b * x - c))
-            y_new = a - x
-        x, y = x_new, y_new
+        xn = np.sin(a * y) - np.cos(b * x)
+        yn = np.sin(c * x) - np.cos(d * y)
+        x, y = xn, yn
 
-    # Generate actual points for nodes
-    for _ in range(total_nodes):
-        # --- Equation 1: Clifford Attractor (Organic/Fluid) ---
-        if equation_type == 'clifford_attractor':
-            # x(n+1) = sin(a*y) + c*cos(a*x)
-            # y(n+1) = sin(b*x) + d*cos(b*y)
-            x_new = np.sin(a * y) + c * np.cos(a * x)
-            y_new = np.sin(b * x) + d * np.cos(b * y)
-            
-        # --- Equation 2: Bedhead Attractor (Industrial/Scary) ---
-        elif equation_type == 'bedhead_attractor':
-            x_new = np.sin(x*y/b)*y + np.cos(a*x-y)
-            y_new = x + np.sin(y)/b
-            
-        # --- Equation 3: Svensson Attractor (Folded/Geometric) ---
-        elif equation_type == 'svensson_attractor':
-            x_new = d * np.sin(a * x) - np.sin(b * y)
-            y_new = c * np.cos(a * x) + np.cos(b * y)
-
-        # --- Equation 4: Fractal Dream (Spiral/Nebula) ---
-        elif equation_type == 'fractal_dream':
-            r = np.sqrt(x**2 + y**2)
-            x_new = x * np.cos(a) - (y - x*x) * np.sin(a)
-            y_new = x * np.sin(a) + (y - x*x) * np.cos(a)
-            
-        # --- Equation 5: Hopalong (Jagged/Glitchy) ---
-        else: 
-            x_new = y - np.sign(x) * np.sqrt(abs(b * x - c))
-            y_new = a - x
-
-        # Update and Store
-        x, y = x_new, y_new
+    # Generate visible star points
+    # We generate a cloud of points
+    cloud_size = max(total_nodes, 2000) 
+    generated_points = []
+    
+    for _ in range(cloud_size):
+        # Peter de Jong Attractor Equations
+        xn = np.sin(a * y) - np.cos(b * x)
+        yn = np.sin(c * x) - np.cos(d * y)
+        x, y = xn, yn
         
-        # Add dynamic spatial warping (Non-linear distortion)
-        # This ensures no shape is ever a perfect square/circle
-        dist = np.sqrt(x**2 + y**2)
-        warp = 1.0 + 0.2 * np.sin(dist * 5.0)
-        coords.append((x * warp, y * warp))
+        # Add subtle 3D-ish noise (Depth of Field effect)
+        jitter = rng.uniform(-0.05, 0.05)
+        generated_points.append((x + jitter, y + jitter))
 
-    # 5. MAP NODES TO CHAOS COORDINATES
-    # We shuffle the coordinates so adjacent nodes in the list don't always stay neighbors,
-    # creating a "long-range connection" aesthetic (the scary web look).
-    rng.shuffle(coords)
+    # 4. MAPPING NODES TO STARS
+    # To ensure the brain "flows" logically, we sort the cloud by the X-axis.
+    # This puts Inputs on one side of the nebula and Outputs on the other,
+    # but keeps the messy, organic shape intact.
+    
+    # Sort points by X coordinate
+    generated_points.sort(key=lambda p: p[0])
+    
+    # We select evenly spaced points from the cloud to ensure we cover the whole shape
+    indices = np.linspace(0, len(generated_points) - 1, total_nodes, dtype=int)
+    selected_stars = [generated_points[i] for i in indices]
+    
+    # Optional: Shuffle the hidden nodes slightly to tangle the web (more complexity)
+    # This creates that "dense neural wiring" look
+    mid_start = len(inputs)
+    mid_end = total_nodes - len(outputs)
+    if mid_end > mid_start:
+        mid_stars = selected_stars[mid_start:mid_end]
+        rng.shuffle(mid_stars)
+        selected_stars[mid_start:mid_end] = mid_stars
+
+    # 5. ASSIGN POSITIONS
+    # Scale it up to fill the screen nicely
+    scale_factor = 3.5
     
     for i, n in enumerate(all_nodes):
-        # Apply a final jitter so nodes don't stack perfectly
-        fx, fy = coords[i]
-        pos[n] = np.array([fx, fy])
+        sx, sy = selected_stars[i]
+        pos[n] = np.array([sx * scale_factor, sy * scale_factor])
 
     return pos
 
