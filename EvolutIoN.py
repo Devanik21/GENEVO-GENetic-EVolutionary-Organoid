@@ -2239,6 +2239,7 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
     return pos
 
 
+
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
     Renders the 'Deep Neuro-Web' with Cyber-Blue/Pink duality.
@@ -2339,12 +2340,6 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         name='Connections'
     ))
 
-    # --- NODES: Cyber Blue & Pink ---
-    node_x, node_y = [], []
-    node_colors = []
-    node_sizes = []
-    node_hover_texts = []
-    
     # Define Palette
     CYBER_BLUE = '#00F0FF'
     DEEP_BLUE = '#0088FF'
@@ -2352,6 +2347,12 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     
     for node in G.nodes():
         if node not in pos: continue
+        
+        # This loop will now just prepare data for traces to be added later
+        # We'll categorize nodes to add them in separate traces for the legend
+        pass
+
+    def create_node_trace(nodes_to_plot, trace_name, trace_color):
         x, y = pos[node]
         node_x.append(x); node_y.append(y)
         
@@ -2386,43 +2387,74 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         )
         node_hover_texts.append(hover_str)
 
-    # 1. Colored Halo (Glow)
-    fig.add_trace(go.Scattergl(
-        x=node_x, y=node_y,
-        mode='markers',
-        marker=dict(
-            size=[s * 2.5 for s in node_sizes], 
-            color=node_colors,
-            opacity=0.3,
-            line=dict(width=0)
-        ),
-        hoverinfo='none', showlegend=False
-    ))
+        # Create traces for each role to build a legend
+        node_data = {role: {'x': [], 'y': [], 'sizes': [], 'hover': []} for role in ['input', 'hidden', 'output']}
+        
+        for node in G.nodes():
+            if node not in pos: continue
+            attrs = G.nodes[node]
+            role = attrs['role']
+            
+            x, y = pos[node]
+            node_data[role]['x'].append(x)
+            node_data[role]['y'].append(y)
+            
+            base_size = np.log(attrs['size']) * 1.5
+            if role != 'hidden': base_size *= 1.3
+            node_data[role]['sizes'].append(max(2, base_size))
+            
+            node_color = CYBER_BLUE if role == 'input' else NEON_PINK if role == 'output' else DEEP_BLUE
+            hover_str = (
+                f"<b>ID:</b> {node}  (<span style='color:{node_color};'>{attrs['role'].upper()}</span>)<br>"
+                f"<span style='color: #555;'><b>——— CORE ———</b></span><br>"
+                f"<b>Type:</b> {attrs['module_type']}<br>"
+                f"<b>Size:</b> {attrs['size']} neurons<br>"
+                f"<b>Activation:</b> {attrs['activation']}<br>"
+                f"<b>Normalization:</b> {attrs['normalization']}<br>"
+                f"<span style='color: #555;'><b>——— LEARNING ———</b></span><br>"
+                f"<b>Plasticity:</b> {attrs['plasticity']:.3f}<br>"
+                f"<b>LR Multiplier:</b> {attrs.get('lr_mult', 'N/A'):.2f}"
+            )
+            node_data[role]['hover'].append(hover_str)
 
-    # 2. The Core Node (with hover info)
-    fig.add_trace(go.Scattergl(
-        x=node_x, y=node_y,
-        mode='markers',
-        marker=dict(
-            size=node_sizes,
-            color=node_colors,
-            line=dict(width=1, color='rgba(255,255,255,0.9)'),
-            opacity=1.0
-        ),
-        hovertext=node_hover_texts,
-        hovertemplate="%{hovertext}<extra></extra>",
-        name='Neurons',
-        # Ensure this trace is rendered on top for hover priority
-        zorder=10 
-    ))
+        # --- NODES (Added last to ensure hover priority) ---
+        role_map = {
+            'input': {'name': 'Input Modules', 'color': CYBER_BLUE},
+            'hidden': {'name': 'Hidden Modules', 'color': DEEP_BLUE},
+            'output': {'name': 'Output Modules', 'color': NEON_PINK},
+        }
+
+        for role, config in role_map.items():
+            data = node_data[role]
+            if not data['x']: continue
+
+            # 1. Colored Halo (Glow)
+            fig.add_trace(go.Scattergl(
+                x=data['x'], y=data['y'], mode='markers',
+                marker=dict(size=[s * 2.5 for s in data['sizes']], color=config['color'], opacity=0.3, line=dict(width=0)),
+                hoverinfo='none', showlegend=False
+            ))
+            # 2. The Core Node (with hover info and legend entry)
+            fig.add_trace(go.Scattergl(
+                x=data['x'], y=data['y'], mode='markers',
+                marker=dict(size=data['sizes'], color=config['color'], line=dict(width=1, color='rgba(255,255,255,0.9)')),
+                hovertext=data['hover'],
+                hovertemplate="%{hovertext}<extra></extra>",
+                name=config['name']
+            ))
 
     fig.update_layout(
         title=dict(
             text=f"<b>Deep Neural Topography: Form {genotype.form_id}</b>", 
             x=0.05, y=0.95, 
-            font=dict(size=16, color='#00F0FF', family="monospace")
+            font=dict(size=16, color=CYBER_BLUE, family="monospace")
         ),
-        showlegend=False,
+        showlegend=True,
+        legend=dict(
+            x=0.01, y=0.01, xanchor='left', yanchor='bottom',
+            bgcolor='rgba(5, 5, 8, 0.8)', font=dict(color='#CCCCCC'),
+            bordercolor='#333333', borderwidth=1
+        ),
         hovermode='closest',
         margin=dict(b=0, l=0, r=0, t=0),
         xaxis=dict(visible=False, showgrid=False, zeroline=False),
