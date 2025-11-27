@@ -2180,7 +2180,6 @@ import random
 
 
 
-
 def apply_scifi_geometry(G, form_id, inputs, outputs, hidden, seed=None):
     """
     Generates a 'Deep Neuro-Web' layout with organic clustering.
@@ -2355,8 +2354,8 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo
         x=edge_x, y=edge_y,
         mode='lines',
         line=dict(
-            width=0.6, 
-            color='rgba(100, 120, 140, 0.15)'  # Very subtle gray edges
+            width=0.8, 
+            color='rgba(90, 255, 176, 0.25)'  # Soft green glow for edges
         ),
         hoverinfo='skip',
         showlegend=False
@@ -2368,10 +2367,10 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo
     node_sizes = []
     node_hover_texts = []
     
-    # Eye-friendly pastel cyberpunk palette
-    CYAN_BLUE = '#5DD9F5'       # Inputs: Soft cyan-blue
-    CORAL_ORANGE = '#FFB366'    # Hidden: Gentle orange
-    SOFT_PINK = '#FF8DB3'       # Outputs: Soft pink
+    # Eye-friendly cyberpunk palette with soft greens
+    CYBER_GREEN = '#5AFFB0'     # Inputs: Soft cyan-green
+    DEEP_GREEN = '#4AE88E'      # Hidden: Gentle emerald
+    NEON_CYAN = '#00E5FF'       # Outputs: Soft cyan
     
     for node in G.nodes():
         if node not in pos: continue
@@ -2382,11 +2381,11 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo
         
         # Color by role
         if attrs['role'] == 'input':
-            node_color = CYAN_BLUE
+            node_color = CYBER_GREEN
         elif attrs['role'] == 'output':
-            node_color = SOFT_PINK
+            node_color = NEON_CYAN
         else:
-            node_color = CORAL_ORANGE 
+            node_color = DEEP_GREEN 
             
         node_colors.append(node_color)
         
@@ -2444,14 +2443,14 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo
         title=dict(
             text=(
                 f"<b>Neural Architecture</b> · Form {genotype.form_id}<br>"
-                f"<span style='font-size:11px; color:#8DC9E8;'>"
+                f"<span style='font-size:11px; color:#4AE88E;'>"
                 f"Nodes: {num_nodes} ({num_inputs}→{num_hidden}→{num_outputs}) · "
                 f"Connections: {num_edges}</span>"
             ), 
             x=0.5, 
             y=0.97,
             xanchor='center',
-            font=dict(size=14, color='#8DC9E8', family="Arial, sans-serif")
+            font=dict(size=14, color='#5AFFB0', family="Arial, sans-serif")
         ),
         showlegend=False,
         hovermode='closest',
@@ -2464,6 +2463,8 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo
     )
     
     return fig
+
+
 
 
 def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype], evolutionary_metrics_df: pd.DataFrame) -> go.Figure:
