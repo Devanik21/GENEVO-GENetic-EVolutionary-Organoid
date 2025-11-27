@@ -2179,67 +2179,6 @@ import plotly.graph_objects as go
 import random
 
 
-def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
-    """
-    Generates a 'Deep Neuro-Web' layout.
-    Nodes cluster into 'Lobes' and are distorted by 'Cortical Folding'.
-    """
-    pos = {}
-    rng = random.Random(form_id * 888)
-    np.random.seed(form_id * 888) 
-    
-    # Canvas Size
-    canvas_width = 20.0
-    canvas_height = 12.0
-    
-    # --- A. Inputs & Outputs (Scattered Periphery) ---
-    def scatter_line(nodes, x_base, height_spread):
-        y_step = height_spread / (len(nodes) + 1)
-        for i, node in enumerate(nodes):
-            jx = rng.uniform(-1.5, 1.5)
-            jy = rng.uniform(-1.0, 1.0) 
-            curve_offset = np.sin((i / max(1, len(nodes))) * np.pi) * 2.0
-            pos[node] = np.array([x_base + jx - curve_offset, 
-                                  (i - len(nodes)/2) * y_step * 1.5 + jy])
-
-    scatter_line(inputs, -canvas_width/2, canvas_height)
-    scatter_line(outputs, canvas_width/2, canvas_height)
-
-    # --- B. Hidden Nodes (Deep Lobes) ---
-    if not hidden: return pos
-
-    num_lobes = rng.randint(3, 8) 
-    lobe_centers = []
-    
-    for _ in range(num_lobes):
-        cx = rng.uniform(-canvas_width/2 + 4, canvas_width/2 - 4)
-        cy = rng.uniform(-canvas_height/2, canvas_height/2)
-        lobe_centers.append((cx, cy))
-        
-    for node in hidden:
-        lobe_idx = rng.randint(0, num_lobes - 1)
-        cx, cy = lobe_centers[lobe_idx]
-        
-        # Heavy-tail scatter to fling nodes far out
-        dist = rng.expovariate(0.35) 
-        angle = rng.uniform(0, 2 * np.pi)
-        
-        x = cx + np.cos(angle) * dist
-        y = cy + np.sin(angle) * dist
-        
-        # Cortical Folding
-        fold_frequency = rng.uniform(0.3, 0.8)
-        fold_amplitude = rng.uniform(1.0, 3.0)
-        
-        x += np.sin(y * fold_frequency) * fold_amplitude
-        y += np.cos(x * fold_frequency) * fold_amplitude
-        
-        pos[node] = np.array([x, y])
-
-    return pos
-
-
-
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
     Renders the 'Deep Neuro-Web' with softer, eye-friendly colors.
