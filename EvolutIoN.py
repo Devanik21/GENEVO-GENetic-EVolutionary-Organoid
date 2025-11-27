@@ -1725,6 +1725,180 @@ def identify_pareto_frontier(individuals: List[Genotype]) -> List[Genotype]:
 
 # ==================== VISUALIZATION ====================
 
+
+def visualize_phylogenetic_tree(history_df, current_population):
+    """
+    Renders the 'Tree of Life' as a radial expansion from Gen 0.
+    Highlights the 'Royal Lineage' (Ancestors of the Apex).
+    """
+    import networkx as nx
+    import math
+
+    # 1. Identify the Apex and trace its Lineage
+    if not current_population:
+        return go.Figure()
+        
+    elite = max(current_population, key=lambda x: x.fitness)
+    # Trace parents backwards
+    royal_lineage = set()
+    royal_lineage.add(elite.lineage_id)
+    
+    # Create a lookup for the history
+    # We need to link child -> parent. 
+    # Since history_df stores 'parent_ids', we can build the path.
+    
+    # Optimization: Convert history to a graph
+    G = nx.DiGraph()
+    
+    # Filter to avoid massive rendering if history is huge (>2000 nodes)
+    # We prioritize the elite line and recent generations
+    if len(history_df) > 2000:
+        display_df = history_df.tail(2000)
+    else:
+        display_df = history_df
+
+    # Build Graph
+    for _, row in display_df.iterrows():
+        child_id = row['lineage_id']
+        gen = row['generation']
+        fit = row['fitness']
+        G.add_node(child_id, generation=gen, fitness=fit, form=row['form'])
+        
+        # Add edges from parents
+        if isinstance(row['parent_ids'], list):
+            for pid in row['parent_ids']:
+                # Only add edge if parent exists in our slice (or is a seed)
+                if pid in G.nodes or "SEED" in pid:
+                    G.add_edge(pid, child_id)
+
+    # 2. Identify the Royal Path (Backtracking from Elite)
+    path_nodes = set()
+    current_node = elite.lineage_id
+    # Simple BFS backwards or just following predecessors
+    # Since we might have incomplete history in the df, we do a best-effort trace
+    queue = [elite.lineage_id]
+    while queue:
+        curr = queue.pop(0)
+        path_nodes.add(curr)
+        if curr in G:
+            preds = list(G.predecessors(curr))
+            queue.extend(preds)
+
+    # 3. Custom "Big Bang" Radial Layout
+    # X = r * cos(theta), Y = r * sin(theta)
+    # r = generation
+    # theta = index / count * 2pi
+    pos = {}
+    
+    # Group nodes by generation
+    gen_groups = {}
+    for node in G.nodes():
+        gen = G.nodes[node].get('generation', 0)
+        if gen not in gen_groups: gen_groups[gen] = []
+        gen_groups[gen].append(node)
+        
+    for gen, nodes in gen_groups.items():
+        count = len(nodes)
+        for i, node in enumerate(nodes):
+            r = gen + 1 # Radius (0 is center)
+            # Add a "spiral" offset so they don't align perfectly (more organic)
+            theta = (i / count) * 2 * math.pi + (gen * 0.1) 
+            
+            x = r * math.cos(theta)
+            y = r * math.sin(theta)
+            pos[node] = (x, y)
+
+    # 4. Draw The Cosmos
+    node_x, node_y = [], []
+    node_color = []
+    node_size = []
+    node_text = []
+    
+    edge_x, edge_y = [], []
+    royal_edge_x, royal_edge_y = [], []
+    
+    # Process Edges
+    for u, v in G.edges():
+        if u in pos and v in pos:
+            x0, y0 = pos[u]
+            x1, y1 = pos[v]
+            
+            if v in path_nodes and u in path_nodes:
+                # Royal Path
+                royal_edge_x.extend([x0, x1, None])
+                royal_edge_y.extend([y0, y1, None])
+            else:
+                # Common Path
+                edge_x.extend([x0, x1, None])
+                edge_y.extend([y0, y1, None])
+
+    # Process Nodes
+    for node in G.nodes():
+        if node in pos:
+            x, y = pos[node]
+            node_x.append(x)
+            node_y.append(y)
+            
+            gen = G.nodes[node]['generation']
+            fit = G.nodes[node]['fitness']
+            
+            if node in path_nodes:
+                node_color.append('#FFD700') # Gold for Royal Line
+                node_size.append(8 + (fit * 5))
+                node_text.append(f"<b>👑 ANCESTOR</b><br>ID: {node}<br>Gen: {gen}<br>Fitness: {fit:.3f}")
+            else:
+                node_color.append(gen) # Color by generation time
+                node_size.append(4)
+                node_text.append(f"ID: {node}<br>Gen: {gen}<br>Fitness: {fit:.3f}")
+
+    # 5. Create Traces
+    # Background Edges (Faint)
+    trace_edges = go.Scattergl(
+        x=edge_x, y=edge_y,
+        mode='lines',
+        line=dict(color='rgba(255, 255, 255, 0.05)', width=0.5),
+        hoverinfo='none'
+    )
+    
+    # Royal Edges (Bright)
+    trace_royal_edges = go.Scattergl(
+        x=royal_edge_x, y=royal_edge_y,
+        mode='lines',
+        line=dict(color='rgba(255, 215, 0, 0.6)', width=2),
+        hoverinfo='none',
+        name='Royal Lineage'
+    )
+    
+    # Nodes
+    trace_nodes = go.Scattergl(
+        x=node_x, y=node_y,
+        mode='markers',
+        marker=dict(
+            color=node_color,
+            colorscale='Plasma',
+            size=node_size,
+            line=dict(width=0.5, color='black')
+        ),
+        text=node_text,
+        hoverinfo='text',
+        name='Organisms'
+    )
+
+    layout = go.Layout(
+        title="<b>The Akashic Records: Phylogenetic Map</b><br><i>Radial expansion from Gen 0. Gold path = Ancestry of current Best.</i>",
+        showlegend=False,
+        xaxis=dict(visible=False, showgrid=False),
+        yaxis=dict(visible=False, showgrid=False),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        height=700,
+        margin=dict(l=0, r=0, b=0, t=50)
+    )
+    
+    return go.Figure(data=[trace_edges, trace_royal_edges, trace_nodes], layout=layout)
+
+
+
 def visualize_fitness_landscape(history_df: pd.DataFrame):
     """Renders a highly comprehensive 3D fitness landscape with multiple evolutionary trajectories and analyses."""
     st.markdown("### The Fitness Landscape: A Multi-Dimensional View of the Evolutionary Search")
@@ -9007,6 +9181,44 @@ def main():
             st.rerun()
 
     st.markdown("---")  
+
+    # --- THE AKASHIC RECORDS: PHYLOGENY ---
+    if 'show_phylogeny' not in st.session_state:
+        st.session_state.show_phylogeny = False
+
+    st.markdown("---")
+    st.header("📜 The Akashic Records: Phylogenetic Cartography")
+    
+    if st.session_state.show_phylogeny:
+        st.markdown("""
+        **Tracing the Royal Lineage.** This "Big Bang" chart visualizes the entire history of your simulation. 
+        It traces the branching tree of life from the first "Eve" organism (Center) to the current generation (Outer Ring).
+        The **Golden Path** highlights the direct ancestral line of the current Apex Prince.
+        """)
+        
+        if st.session_state.history and st.session_state.current_population:
+            with st.spinner("Reconstructing evolutionary history..."):
+                # Convert list of dicts to DataFrame for the function
+                hist_df = pd.DataFrame(st.session_state.history)
+                phylo_fig = visualize_phylogenetic_tree(hist_df, st.session_state.current_population)
+                
+            st.plotly_chart(phylo_fig, width='stretch', key="phylogeny_plot")
+        else:
+            st.warning("Insufficient history data to map phylogeny.")
+
+        if st.button("Close Records", key="hide_phylo_btn"):
+            st.session_state.show_phylogeny = False
+            st.rerun()
+    else:
+        st.info("Visualizes the complete 'Tree of Life' and traces the ancestry of the best individual.")
+        # Uses the same Ghost Button style
+        if st.button("📜 Open Akashic Records", type="primary", key="show_phylo_btn"):
+            st.session_state.show_phylogeny = True
+            st.rerun()
+           
+
+    st.markdown("---") 
+   
     # --- LAZY LOADING FOR EPILOGUE ---
     if st.session_state.show_epilogue:
         st.header("🏁 Epilogue: Reflections on the Evolutionary Journey and Future Directions")
