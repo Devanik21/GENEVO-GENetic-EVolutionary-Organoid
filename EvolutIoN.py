@@ -2238,6 +2238,7 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
 
     return pos
 
+
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
     Renders the 'Deep Neuro-Web' with Cyber-Blue/Pink duality.
@@ -2304,8 +2305,8 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         x=edge_x, y=edge_y,
         mode='lines',
         line=dict(
-            width=0.4, 
-            color='rgba(100, 120, 140, 0.25)' # Subtle Blue-Gray to let nodes pop
+            width=0.6, 
+            color='rgba(120, 140, 160, 0.4)' # Brighter, more visible connections
         ),
         hoverinfo='none',
         showlegend=False
@@ -2364,7 +2365,7 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         marker=dict(
             size=[s * 2.5 for s in node_sizes], 
             color=node_colors,
-            opacity=0.2,
+            opacity=0.3,
             line=dict(width=0)
         ),
         hoverinfo='none', showlegend=False
@@ -2403,8 +2404,6 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     )
     
     return fig
-
-
 
 
 def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype], evolutionary_metrics_df: pd.DataFrame) -> go.Figure:
