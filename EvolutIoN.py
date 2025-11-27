@@ -2179,6 +2179,7 @@ import plotly.graph_objects as go
 import random
 
 
+
 def apply_scifi_geometry(G, form_id, inputs, outputs, hidden, seed=None):
     """
     Generates a 'Deep Neuro-Web' layout with organic clustering.
@@ -2422,22 +2423,34 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo
         hovertext=node_hover_texts,
         hovertemplate="%{hovertext}<extra></extra>",
         hoverlabel=dict(
-            bgcolor='rgba(15, 20, 35, 0.96)',
-            font=dict(color='#E8E8E8', size=11, family='Consolas, monospace'),
-            bordercolor='rgba(130, 160, 200, 0.6)',
+            bgcolor='rgba(10, 25, 20, 0.96)',
+            font=dict(color='#E0FFE8', size=11, family='Consolas, monospace'),
+            bordercolor='rgba(90, 255, 176, 0.6)',
             align='left'
         ),
         name='Neurons',
         showlegend=False
     ))
 
+    # Calculate statistics for title
+    num_nodes = G.number_of_nodes()
+    num_edges = G.number_of_edges()
+    num_inputs = len(inputs)
+    num_outputs = len(outputs)
+    num_hidden = len(hidden)
+    
     fig.update_layout(
         title=dict(
-            text=f"<b>Neural Architecture</b> · Form {genotype.form_id} · Seed {layout_seed}", 
+            text=(
+                f"<b>Neural Architecture</b> · Form {genotype.form_id}<br>"
+                f"<span style='font-size:11px; color:#4AE88E;'>"
+                f"Nodes: {num_nodes} ({num_inputs}→{num_hidden}→{num_outputs}) · "
+                f"Connections: {num_edges}</span>"
+            ), 
             x=0.5, 
             y=0.97,
             xanchor='center',
-            font=dict(size=14, color='#7DB8FF', family="Arial, sans-serif")
+            font=dict(size=14, color='#5AFFB0', family="Arial, sans-serif")
         ),
         showlegend=False,
         hovermode='closest',
@@ -2450,6 +2463,9 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = -1, layout_algo
     )
     
     return fig
+
+
+
 
 def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype], evolutionary_metrics_df: pd.DataFrame) -> go.Figure:
     """Extremely advanced, comprehensive evolution analytics dashboard"""
