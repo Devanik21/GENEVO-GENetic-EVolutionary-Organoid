@@ -2239,12 +2239,13 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
     return pos
 
 
+
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
-    Renders the 'Deep Neuro-Web' with Cyber-Blue/Pink duality.
-    - Inputs/Hidden: Cyber Blue (Cool).
-    - Outputs: Neon Pink (Hot).
-    - Hover: Fixed and detailed.
+    Renders the 'Deep Neuro-Web' with softer, eye-friendly colors.
+    - Inputs/Hidden: Soft Blues (Cool).
+    - Outputs: Soft Pink (Hot).
+    - Hover: Fixed and working on all nodes.
     """
     G = nx.DiGraph()
     
@@ -2281,24 +2282,13 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     # 3. PLOTTING
     fig = go.Figure()
 
-    # --- EDGES: Subtle Cyber-Gray ---
+    # --- EDGES: Softer, elegant connections ---
     edge_x, edge_y = [], []
-    edge_mid_x, edge_mid_y = [], []
-    edge_hover_texts = []
     
     for u, v, data in G.edges(data=True):
         if u not in pos or v not in pos: continue
         x0, y0 = pos[u]
         x1, y1 = pos[v]
-        
-        # Create hover info for an invisible marker at the edge's midpoint
-        edge_mid_x.append((x0 + x1) / 2)
-        edge_mid_y.append((y0 + y1) / 2)
-        edge_hover_texts.append(
-            f"<b>Connection:</b> {u} → {v}<br>"
-            f"<b>Weight:</b> {data.get('weight', 'N/A'):.3f}<br>"
-            f"<b>Type:</b> {data.get('type', 'N/A')}"
-        )
 
         dist = np.sqrt((x1-x0)**2 + (y1-y0)**2)
         
@@ -2316,39 +2306,23 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         x=edge_x, y=edge_y,
         mode='lines',
         line=dict(
-            width=0.6, 
-            color='rgba(120, 140, 160, 0.4)' # Brighter, more visible connections
+            width=0.5, 
+            color='rgba(100, 120, 150, 0.25)' # Softer, more subtle
         ),
-        hoverinfo='none',
+        hoverinfo='skip',
         showlegend=False
     ))
 
-    # --- EDGE HOVER: Invisible markers on edge midpoints ---
-    fig.add_trace(go.Scattergl(
-        x=edge_mid_x,
-        y=edge_mid_y,
-        mode='markers',
-        marker=dict(
-            size=8,
-            color='rgba(0,0,0,0)', # Invisible markers
-            opacity=0
-        ),
-        hovertext=edge_hover_texts,
-        hovertemplate="%{hovertext}<extra></extra>",
-        showlegend=False,
-        name='Connections'
-    ))
-
-    # --- NODES: Cyber Blue & Pink ---
+    # --- NODES: Soft Blues & Pink ---
     node_x, node_y = [], []
     node_colors = []
     node_sizes = []
     node_hover_texts = []
     
-    # Define Palette
-    CYBER_BLUE = '#00F0FF'
-    DEEP_BLUE = '#0088FF'
-    NEON_PINK = '#FF00AA'
+    # Define softer, eye-friendly palette
+    CYBER_BLUE = '#4DB8FF'      # Softer cyan-blue
+    DEEP_BLUE = '#5C9FFF'       # Gentle blue
+    NEON_PINK = '#FF6BBF'       # Softer pink
     
     for node in G.nodes():
         if node not in pos: continue
@@ -2375,63 +2349,58 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         # Rich Detail Hover List (HTML Formatted)
         hover_str = (
             f"<b>ID:</b> {node}  (<i>{attrs['role'].upper()}</i>)<br>"
-            f"<span style='color: #555;'><b>——— CORE ———</b></span><br>"
+            f"<span style='color: #888;'><b>——— CORE ———</b></span><br>"
             f"<b>Type:</b> {attrs['module_type']}<br>"
             f"<b>Size:</b> {attrs['size']} neurons<br>"
             f"<b>Activation:</b> {attrs['activation']}<br>"
             f"<b>Normalization:</b> {attrs['normalization']}<br>"
-            f"<span style='color: #555;'><b>——— LEARNING ———</b></span><br>"
+            f"<span style='color: #888;'><b>——— LEARNING ———</b></span><br>"
             f"<b>Plasticity:</b> {attrs['plasticity']:.3f}<br>"
             f"<b>LR Multiplier:</b> {attrs.get('lr_mult', 'N/A'):.2f}"
         )
         node_hover_texts.append(hover_str)
 
-    # 1. Colored Halo (Glow)
-    fig.add_trace(go.Scattergl(
-        x=node_x, y=node_y,
-        mode='markers',
-        marker=dict(
-            size=[s * 2.5 for s in node_sizes], 
-            color=node_colors,
-            opacity=0.3,
-            line=dict(width=0)
-        ),
-        hoverinfo='none', showlegend=False
-    ))
-
-    # 2. The Core Node
+    # Single unified node trace with proper hover
     fig.add_trace(go.Scattergl(
         x=node_x, y=node_y,
         mode='markers',
         marker=dict(
             size=node_sizes,
             color=node_colors,
-            line=dict(width=1, color='rgba(255,255,255,0.9)'), # Bright white rim
-            opacity=1.0
+            line=dict(width=1.5, color='rgba(255,255,255,0.6)'), # Softer rim
+            opacity=0.9,
+            # Add subtle glow effect directly in the marker
+            symbol='circle'
         ),
         hovertext=node_hover_texts,
-        # Force the hover info to display using this template
         hovertemplate="%{hovertext}<extra></extra>",
-        name='Neurons'
+        hoverlabel=dict(
+            bgcolor='rgba(20, 20, 30, 0.95)',
+            font=dict(color='white', size=11, family='monospace'),
+            bordercolor='rgba(100, 150, 200, 0.5)'
+        ),
+        name='Neurons',
+        showlegend=False
     ))
 
     fig.update_layout(
         title=dict(
-            text=f"<b>Deep Neural Topography: Form {genotype.form_id}</b>", 
+            text=f"<b>Neural Architecture: Form {genotype.form_id}</b>", 
             x=0.05, y=0.95, 
-            font=dict(size=16, color='#00F0FF', family="monospace")
+            font=dict(size=15, color='#6DB8FF', family="Arial, sans-serif")
         ),
         showlegend=False,
         hovermode='closest',
-        margin=dict(b=0, l=0, r=0, t=0),
+        margin=dict(b=20, l=20, r=20, t=40),
         xaxis=dict(visible=False, showgrid=False, zeroline=False),
         yaxis=dict(visible=False, showgrid=False, zeroline=False),
-        plot_bgcolor='#050508', 
-        paper_bgcolor='#050508',
+        plot_bgcolor='#0A0E1A',  # Softer dark blue-gray
+        paper_bgcolor='#0A0E1A',
         height=800
     )
     
     return fig
+
 
 def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype], evolutionary_metrics_df: pd.DataFrame) -> go.Figure:
     """Extremely advanced, comprehensive evolution analytics dashboard"""
