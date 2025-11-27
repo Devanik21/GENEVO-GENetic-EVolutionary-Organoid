@@ -2179,60 +2179,100 @@ import plotly.graph_objects as go
 import random
 
 
-def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
+def apply_scifi_geometry(G, form_id, inputs, outputs, hidden, seed=None):
     """
-    Generates a 'Deep Neuro-Web' layout.
+    Generates a 'Deep Neuro-Web' layout with organic clustering.
     Nodes cluster into 'Lobes' and are distorted by 'Cortical Folding'.
+    
+    Args:
+        G: NetworkX graph
+        form_id: Form identifier
+        inputs: List of input node IDs
+        outputs: List of output node IDs
+        hidden: List of hidden node IDs
+        seed: Layout seed. If -1, generates random layout. If None, uses form_id.
     """
     pos = {}
-    rng = random.Random(form_id * 888)
-    np.random.seed(form_id * 888) 
     
-    # Canvas Size
-    canvas_width = 20.0
-    canvas_height = 12.0
+    # Seed handling: -1 = random, None = use form_id, otherwise use provided seed
+    if seed == -1:
+        actual_seed = random.randint(0, 999999)
+    elif seed is None:
+        actual_seed = form_id * 888
+    else:
+        actual_seed = seed * 888
     
-    # --- A. Inputs & Outputs (Scattered Periphery) ---
-    def scatter_line(nodes, x_base, height_spread):
+    rng = random.Random(actual_seed)
+    np.random.seed(actual_seed) 
+    
+    # Canvas Size - slightly expanded for breathing room
+    canvas_width = 22.0
+    canvas_height = 14.0
+    
+    # --- A. Inputs & Outputs (Elegant Periphery) ---
+    def scatter_line(nodes, x_base, height_spread, is_input=True):
+        if not nodes:
+            return
         y_step = height_spread / (len(nodes) + 1)
         for i, node in enumerate(nodes):
-            jx = rng.uniform(-1.5, 1.5)
-            jy = rng.uniform(-1.0, 1.0) 
-            curve_offset = np.sin((i / max(1, len(nodes))) * np.pi) * 2.0
-            pos[node] = np.array([x_base + jx - curve_offset, 
-                                  (i - len(nodes)/2) * y_step * 1.5 + jy])
+            # More organic jitter
+            jx = rng.uniform(-2.0, 2.0)
+            jy = rng.uniform(-1.2, 1.2) 
+            
+            # Smooth wave pattern
+            wave_phase = (i / max(1, len(nodes) - 1)) * np.pi
+            curve_offset = np.sin(wave_phase) * 2.5
+            
+            # Add slight radial push outward
+            radial_push = 0.5 if is_input else -0.5
+            
+            pos[node] = np.array([
+                x_base + jx + curve_offset + radial_push, 
+                (i - len(nodes)/2) * y_step * 1.5 + jy
+            ])
 
-    scatter_line(inputs, -canvas_width/2, canvas_height)
-    scatter_line(outputs, canvas_width/2, canvas_height)
+    scatter_line(inputs, -canvas_width/2, canvas_height, is_input=True)
+    scatter_line(outputs, canvas_width/2, canvas_height, is_input=False)
 
-    # --- B. Hidden Nodes (Deep Lobes) ---
-    if not hidden: return pos
+    # --- B. Hidden Nodes (Organic Deep Lobes) ---
+    if not hidden:
+        return pos
 
-    num_lobes = rng.randint(3, 8) 
+    num_lobes = rng.randint(4, 9)  # More lobes for richer structure
     lobe_centers = []
     
-    for _ in range(num_lobes):
-        cx = rng.uniform(-canvas_width/2 + 4, canvas_width/2 - 4)
-        cy = rng.uniform(-canvas_height/2, canvas_height/2)
+    # Create lobe centers with better distribution
+    for i in range(num_lobes):
+        # Distribute lobes more evenly across the canvas
+        angle = (i / num_lobes) * 2 * np.pi + rng.uniform(-0.3, 0.3)
+        radius = rng.uniform(2.0, 6.0)
+        
+        cx = np.cos(angle) * radius + rng.uniform(-1.5, 1.5)
+        cy = np.sin(angle) * radius + rng.uniform(-1.5, 1.5)
         lobe_centers.append((cx, cy))
         
     for node in hidden:
         lobe_idx = rng.randint(0, num_lobes - 1)
         cx, cy = lobe_centers[lobe_idx]
         
-        # Heavy-tail scatter to fling nodes far out
-        dist = rng.expovariate(0.35) 
+        # Organic scatter with varying density
+        dist = rng.expovariate(0.4)  # Slightly tighter clusters
         angle = rng.uniform(0, 2 * np.pi)
         
         x = cx + np.cos(angle) * dist
         y = cy + np.sin(angle) * dist
         
-        # Cortical Folding
-        fold_frequency = rng.uniform(0.3, 0.8)
-        fold_amplitude = rng.uniform(1.0, 3.0)
+        # Enhanced Cortical Folding with multiple frequencies
+        fold_freq_1 = rng.uniform(0.4, 0.9)
+        fold_freq_2 = rng.uniform(0.2, 0.5)
+        fold_amp_1 = rng.uniform(1.2, 2.8)
+        fold_amp_2 = rng.uniform(0.5, 1.5)
         
-        x += np.sin(y * fold_frequency) * fold_amplitude
-        y += np.cos(x * fold_frequency) * fold_amplitude
+        # Multi-frequency folding for more organic look
+        x += np.sin(y * fold_freq_1) * fold_amp_1
+        x += np.cos(y * fold_freq_2 * 2) * fold_amp_2
+        y += np.cos(x * fold_freq_1) * fold_amp_1
+        y += np.sin(x * fold_freq_2 * 2) * fold_amp_2
         
         pos[node] = np.array([x, y])
 
@@ -2241,11 +2281,13 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
 
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
-    Renders the 'Deep Neuro-Web' with softer, eye-friendly colors.
-    - Inputs/Hidden: Soft Blues (Cool).
-    - Outputs: Soft Pink (Hot).
-    - Hover: Fixed and working on all nodes.
-    - Layout changes with different seeds (including -1 for random).
+    Renders the 'Deep Neuro-Web' with beautiful, eye-friendly aesthetics.
+    
+    Features:
+    - Soft color palette: Blues for inputs/hidden, Pink for outputs
+    - Organic network topology with cortical folding
+    - Responsive hover on all nodes with detailed info
+    - Dynamic layouts via seed parameter (-1 for random)
     """
     G = nx.DiGraph()
     
@@ -2276,14 +2318,17 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         if conn.source in G.nodes and conn.target in G.nodes:
             G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
 
-    # 2. APPLY GEOMETRY (respects layout_seed including -1 for random)
+    # 2. APPLY ORGANIC GEOMETRY (respects layout_seed, -1 for random)
     pos = apply_scifi_geometry(G, genotype.form_id, inputs, outputs, hidden, seed=layout_seed)
 
     # 3. PLOTTING
     fig = go.Figure()
 
-    # --- EDGES: Softer, elegant connections ---
+    # --- EDGES: Elegant Neural Pathways ---
     edge_x, edge_y = [], []
+    
+    # Use consistent random for curve generation
+    edge_rng = random.Random(42)
     
     for u, v, data in G.edges(data=True):
         if u not in pos or v not in pos: continue
@@ -2293,12 +2338,14 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         dist = np.sqrt((x1-x0)**2 + (y1-y0)**2)
         
         if dist > 8.0:
+            # Straight lines for long connections
             edge_x.extend([x0, x1, None])
             edge_y.extend([y0, y1, None])
         else:
-            curve_dir = 1 if random.random() > 0.5 else -1
-            curvature = 0.15 * curve_dir * (10/(dist+1e-5)) 
-            bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature, points=10)
+            # Smooth curves for short connections
+            curve_dir = 1 if edge_rng.random() > 0.5 else -1
+            curvature = 0.18 * curve_dir * (10/(dist+1e-5)) 
+            bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature, points=12)
             edge_x.extend(list(bx) + [None])
             edge_y.extend(list(by) + [None])
 
@@ -2307,22 +2354,22 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         mode='lines',
         line=dict(
             width=0.8, 
-            color='rgba(120, 150, 180, 0.4)' # More pronounced
+            color='rgba(130, 160, 200, 0.35)'  # Soft blue-gray with good visibility
         ),
         hoverinfo='skip',
         showlegend=False
     ))
 
-    # --- NODES: Soft Blues & Pink ---
+    # --- NODES: Vibrant Yet Gentle ---
     node_x, node_y = [], []
     node_colors = []
     node_sizes = []
     node_hover_texts = []
     
-    # Define softer, eye-friendly palette
-    CYBER_BLUE = '#4DB8FF'      # Softer cyan-blue
-    DEEP_BLUE = '#5C9FFF'       # Gentle blue
-    NEON_PINK = '#FF6BBF'       # Softer pink
+    # Eye-friendly color palette with good contrast
+    CYBER_BLUE = '#4DB8FF'      # Inputs: Soft cyan-blue
+    DEEP_BLUE = '#5C9FFF'       # Hidden: Gentle blue
+    NEON_PINK = '#FF6BBF'       # Outputs: Soft pink
     
     for node in G.nodes():
         if node not in pos: continue
@@ -2331,7 +2378,7 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         
         attrs = G.nodes[node]
         
-        # Color Logic based on Role
+        # Color by role
         if attrs['role'] == 'input':
             node_color = CYBER_BLUE
         elif attrs['role'] == 'output':
@@ -2341,43 +2388,44 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
             
         node_colors.append(node_color)
         
-        # Reduced Size Logic - slightly more pronounced
-        base_size = np.log(attrs['size']) * 1.8
-        if attrs['role'] != 'hidden': base_size *= 1.4 
-        node_sizes.append(max(3, base_size))
+        # Pronounced size scaling with better visibility
+        base_size = np.log(attrs['size']) * 2.0
+        if attrs['role'] != 'hidden': 
+            base_size *= 1.5  # Make I/O nodes more prominent
+        node_sizes.append(max(4, base_size))
         
-        # Rich Detail Hover List (HTML Formatted)
+        # Rich hover information
         hover_str = (
-            f"<b>ID:</b> {node}  (<i>{attrs['role'].upper()}</i>)<br>"
-            f"<span style='color: #888;'><b>——— CORE ———</b></span><br>"
+            f"<b>ID:</b> {node}  <span style='color: #AAA;'>({attrs['role'].upper()})</span><br>"
+            f"<span style='color: #888;'>━━━━━━━━━━━━━━━━━</span><br>"
             f"<b>Type:</b> {attrs['module_type']}<br>"
             f"<b>Size:</b> {attrs['size']} neurons<br>"
             f"<b>Activation:</b> {attrs['activation']}<br>"
             f"<b>Normalization:</b> {attrs['normalization']}<br>"
-            f"<span style='color: #888;'><b>——— LEARNING ———</b></span><br>"
+            f"<span style='color: #888;'>━━━━━━━━━━━━━━━━━</span><br>"
             f"<b>Plasticity:</b> {attrs['plasticity']:.3f}<br>"
             f"<b>LR Multiplier:</b> {attrs.get('lr_mult', 'N/A'):.2f}"
         )
         node_hover_texts.append(hover_str)
 
-    # Single unified node trace with proper hover
+    # Single unified node trace with excellent hover response
     fig.add_trace(go.Scattergl(
         x=node_x, y=node_y,
         mode='markers',
         marker=dict(
             size=node_sizes,
             color=node_colors,
-            line=dict(width=1.5, color='rgba(255,255,255,0.6)'), # Softer rim
-            opacity=0.9,
-            # Add subtle glow effect directly in the marker
+            line=dict(width=1.8, color='rgba(255,255,255,0.7)'),  # Crisp white rim
+            opacity=0.92,
             symbol='circle'
         ),
         hovertext=node_hover_texts,
         hovertemplate="%{hovertext}<extra></extra>",
         hoverlabel=dict(
-            bgcolor='rgba(20, 20, 30, 0.95)',
-            font=dict(color='white', size=11, family='monospace'),
-            bordercolor='rgba(100, 150, 200, 0.5)'
+            bgcolor='rgba(15, 20, 35, 0.96)',
+            font=dict(color='#E8E8E8', size=11, family='Consolas, monospace'),
+            bordercolor='rgba(130, 160, 200, 0.6)',
+            align='left'
         ),
         name='Neurons',
         showlegend=False
@@ -2385,17 +2433,19 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
 
     fig.update_layout(
         title=dict(
-            text=f"<b>Neural Architecture: Form {genotype.form_id}</b>", 
-            x=0.05, y=0.95, 
-            font=dict(size=15, color='#6DB8FF', family="Arial, sans-serif")
+            text=f"<b>Neural Architecture</b> · Form {genotype.form_id} · Seed {layout_seed}", 
+            x=0.5, 
+            y=0.97,
+            xanchor='center',
+            font=dict(size=14, color='#7DB8FF', family="Arial, sans-serif")
         ),
         showlegend=False,
         hovermode='closest',
-        margin=dict(b=20, l=20, r=20, t=40),
+        margin=dict(b=20, l=20, r=20, t=50),
         xaxis=dict(visible=False, showgrid=False, zeroline=False),
         yaxis=dict(visible=False, showgrid=False, zeroline=False),
-        plot_bgcolor='#0A0E1A',  # Softer dark blue-gray
-        paper_bgcolor='#0A0E1A',
+        plot_bgcolor='#0B0F1A',  # Rich dark blue-gray
+        paper_bgcolor='#0B0F1A',
         height=800
     )
     
