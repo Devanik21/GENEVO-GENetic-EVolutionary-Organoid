@@ -9343,14 +9343,24 @@ def main():
 
     st.markdown("---") 
 
-    # --- THE HARMONIC RESONANCE CHAMBER (AUDIO) ---
+# --- THE HARMONIC RESONANCE CHAMBER (AUDIO) ---
     if 'show_audio_chamber' not in st.session_state:
         st.session_state.show_audio_chamber = False
 
     st.markdown("---")
     st.header("🎵 The Harmonic Resonance Chamber")
     
-    if st.session_state.current_population:
+    if st.session_state.show_audio_chamber:
+        st.markdown("""
+        **Auditory Telemetry Online.** This system procedurally synthesizes a soundscape based on the *physical topology* of your Apex Intelligence.
+        The **Omni-Acoustic Engine** maps activation functions to sonic textures:
+        * **Rectifiers (ReLU):** Electric Buzz (Sawtooth)
+        * **Sigmoids (Tanh):** Deep Hum (Sine)
+        * **Oscillators (Sin):** Sci-Fi Wobble (FM)
+        * **Exotics:** Crystalline Chimes (Ring Mod)
+        """)
+        
+        if st.session_state.current_population:
             elite = max(st.session_state.current_population, key=lambda x: x.fitness)
             
             # --- AUDIO MIXING CONSOLE ---
