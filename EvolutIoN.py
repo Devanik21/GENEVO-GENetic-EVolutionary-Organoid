@@ -8845,10 +8845,6 @@ def main():
         </style>
         """, unsafe_allow_html=True)
        
-       st.markdown("---")
-
-    
-
         if st.button("Launch Holographic Connectome Analysis", type="primary", key="show_bomb_btn"):
             st.session_state.show_final_bomb = True
             st.rerun()
