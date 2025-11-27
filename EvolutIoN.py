@@ -1726,6 +1726,68 @@ def identify_pareto_frontier(individuals: List[Genotype]) -> List[Genotype]:
 # ==================== VISUALIZATION ====================
 
 
+def generate_neural_symphony(genotype: Genotype, duration_sec=8):
+    """
+    Procedurally generates a sci-fi 'ambient drone' based on the Neural Architecture.
+    Maps graph topology to sound frequencies.
+    """
+    import numpy as np
+    import io
+    from scipy.io.wavfile import write
+
+    # 1. Analyze the Brain
+    num_modules = len(genotype.modules)
+    num_conns = len(genotype.connections)
+    
+    # 2. Audio Parameters
+    sample_rate = 44100
+    t = np.linspace(0, duration_sec, int(sample_rate * duration_sec), endpoint=False)
+    
+    # 3. The "Base Drone" (Based on Network Size)
+    # Larger networks = Deeper, lower hum (60Hz - 150Hz)
+    base_freq = 150 - min(100, num_modules) 
+    drone = 0.5 * np.sin(2 * np.pi * base_freq * t)
+    
+    # 4. The "Activity Layer" (Based on Activation Functions)
+    texture = np.zeros_like(t)
+    activations = [m.activation for m in genotype.modules]
+    
+    if 'relu' in activations or 'gelu' in activations:
+        # Sharp, saw-like buzz
+        texture += 0.3 * (np.mod(t * base_freq * 1.5, 1) - 0.5)
+    
+    if 'tanh' in activations or 'sigmoid' in activations:
+        # Smooth, high-pitched sine
+        texture += 0.3 * np.sin(2 * np.pi * (base_freq * 2.5) * t)
+        
+    if 'sin' in activations or 'cos' in activations:
+        # Oscillating 'Sci-Fi' wobble
+        wobble = 1 + 0.5 * np.sin(2 * np.pi * 2 * t) # 2Hz LFO
+        texture += 0.3 * np.sin(2 * np.pi * (base_freq * 4) * t * wobble)
+
+    # 5. The "Data Flow" Arpeggio (Random beeps based on connections)
+    arpeggio = np.zeros_like(t)
+    # Create a rhythmic pulse based on connection density
+    pulse_speed = max(2, min(10, num_conns / 20))
+    envelope = np.abs(np.sin(2 * np.pi * pulse_speed * t))
+    
+    # High frequency 'thinking' noises
+    high_freq = base_freq * 8
+    arpeggio = 0.2 * np.sin(2 * np.pi * high_freq * t) * (envelope ** 4) # Sharp pulses
+
+    # 6. Mix and Master
+    audio_signal = drone + texture + arpeggio
+    
+    # Normalize to 16-bit range
+    audio_signal = audio_signal / np.max(np.abs(audio_signal))
+    audio_signal = (audio_signal * 32767).astype(np.int16)
+    
+    # 7. Write to Buffer
+    byte_io = io.BytesIO()
+    write(byte_io, sample_rate, audio_signal)
+    return byte_io
+
+
 def visualize_phylogenetic_tree(history_df, current_population):
     """
     Renders the 'Tree of Life' as a radial expansion from Gen 0.
@@ -9218,7 +9280,64 @@ def main():
            
 
     st.markdown("---") 
-   
+
+    # --- THE HARMONIC RESONANCE CHAMBER (AUDIO) ---
+    if 'show_audio_chamber' not in st.session_state:
+        st.session_state.show_audio_chamber = False
+
+    st.markdown("---")
+    st.header("🎵 The Harmonic Resonance Chamber")
+    
+    if st.session_state.show_audio_chamber:
+        st.markdown("""
+        **Auditory Telemetry Online.** This system procedurally synthesizes a soundscape based on the *physical topology* of your Apex Intelligence.
+        
+        * **Bass Frequency:** Determined by network depth (Deeper = Lower).
+        * **Texture:** Determined by activation functions (ReLU = Buzz, Tanh = Hum).
+        * **Rhythm:** Determined by connection density (More connections = Faster pulse).
+        """)
+        
+        if st.session_state.current_population:
+            # Get the elite
+            elite = max(st.session_state.current_population, key=lambda x: x.fitness)
+            
+            col_audio_1, col_audio_2 = st.columns([1, 2])
+            
+            with col_audio_1:
+                st.info(f"**Target:** Apex Genotype `{elite.lineage_id}`\n\n**Modules:** {len(elite.modules)}\n\n**Connections:** {len(elite.connections)}")
+                
+                if st.button("🎼 Synthesize Neural Audio", key="generate_audio_btn", type="primary", use_container_width=True):
+                    with st.spinner("Analyzing graph topology frequencies..."):
+                        audio_bytes = generate_neural_symphony(elite)
+                        st.session_state['neural_audio_final'] = audio_bytes
+            
+            with col_audio_2:
+                if 'neural_audio_final' in st.session_state:
+                    st.success("✅ Audio Stream Generated.")
+                    st.audio(st.session_state['neural_audio_final'], format='audio/wav')
+                    
+                    st.markdown("### 🌊 Visualizing the Waveform")
+                    # Quick dummy waveform visualization for aesthetics
+                    chart_data = pd.DataFrame(np.random.randn(50, 3), columns=["Alpha", "Beta", "Gamma"])
+                    st.area_chart(chart_data, height=100, color=["#00FFAA", "#00AAFF", "#AA00FF"])
+
+        else:
+            st.warning("No intelligence found to sonify.")
+
+        if st.button("Silence Chamber", key="hide_audio_btn"):
+            st.session_state.show_audio_chamber = False
+            st.rerun()
+            
+    else:
+        st.info("Listen to the procedural 'hum' generated by the neural architecture's topology.")
+        # Uses the ghost button style from previous steps
+        if st.button("🎧 Enter Resonance Chamber", type="primary", key="show_audio_btn"):
+            st.session_state.show_audio_chamber = True
+            st.rerun()
+
+    st.markdown("---") 
+
+
     # --- LAZY LOADING FOR EPILOGUE ---
     if st.session_state.show_epilogue:
         st.header("🏁 Epilogue: Reflections on the Evolutionary Journey and Future Directions")
