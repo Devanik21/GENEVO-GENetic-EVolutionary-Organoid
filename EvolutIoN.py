@@ -2241,9 +2241,7 @@ def apply_scifi_geometry(G, form_id, inputs, outputs, hidden):
 def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo: str = 'scifi') -> go.Figure:
     """
     Renders the 'Deep Neuro-Web' with Cyber-Blue/Pink duality.
-    - Inputs/Hidden: Cyber Blue (Cool).
-    - Outputs: Neon Pink (Hot).
-    - Hover: Fixed and detailed.
+    UPDATED: Uses force-directed physics with fixed Input/Output poles for maximum clarity.
     """
     G = nx.DiGraph()
     
@@ -2274,8 +2272,42 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         if conn.source in G.nodes and conn.target in G.nodes:
             G.add_edge(conn.source, conn.target, weight=conn.weight, type=conn.connection_type)
 
-    # 2. APPLY GEOMETRY
-    pos = apply_scifi_geometry(G, genotype.form_id, inputs, outputs, hidden)
+    # 2. APPLY GEOMETRY (Physics-Based Flow Layout)
+    # This replaces the chaotic scatter with a structured flow from Left -> Right
+    pos = {}
+    fixed_nodes = []
+    
+    # A. Anchor Inputs to the Left (x = -2)
+    if inputs:
+        y_gap = 2.0 / (len(inputs) + 1)
+        for i, node in enumerate(inputs):
+            # Distribute vertically centered
+            y_pos = 1.0 - (i + 1) * y_gap
+            pos[node] = np.array([-2.0, y_pos])
+            fixed_nodes.append(node)
+
+    # B. Anchor Outputs to the Right (x = 2)
+    if outputs:
+        y_gap = 2.0 / (len(outputs) + 1)
+        for i, node in enumerate(outputs):
+            y_pos = 1.0 - (i + 1) * y_gap
+            pos[node] = np.array([2.0, y_pos])
+            fixed_nodes.append(node)
+            
+    # C. Initial scatter for hidden nodes (to help the physics engine)
+    for node in hidden:
+        pos[node] = np.array([random.uniform(-1, 1), random.uniform(-1, 1)])
+
+    # D. Run Force-Directed Simulation
+    # 'k' controls node spread. 'iterations' controls simulation stability.
+    # We fix inputs/outputs so hidden nodes untangle themselves in the middle.
+    try:
+        if fixed_nodes:
+            pos = nx.spring_layout(G, pos=pos, fixed=fixed_nodes, k=0.3, iterations=50, seed=layout_seed)
+        else:
+            pos = nx.kamada_kawai_layout(G) # Fallback if no inputs/outputs
+    except:
+        pos = nx.random_layout(G) # Ultimate fallback
 
     # 3. PLOTTING
     fig = go.Figure()
@@ -2283,29 +2315,34 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     # --- EDGES: Subtle Cyber-Gray ---
     edge_x, edge_y = [], []
     
+    # Optimization: If graph is huge, skip very weak edges for clarity
+    draw_threshold = 0.05 if len(G.edges) > 500 else 0.0
+    
     for u, v, data in G.edges(data=True):
         if u not in pos or v not in pos: continue
+        
+        weight = data.get('weight', 0.1)
+        if weight < draw_threshold: continue 
+
         x0, y0 = pos[u]
         x1, y1 = pos[v]
         
         dist = np.sqrt((x1-x0)**2 + (y1-y0)**2)
         
-        if dist > 8.0:
-            edge_x.extend([x0, x1, None])
-            edge_y.extend([y0, y1, None])
-        else:
-            curve_dir = 1 if random.random() > 0.5 else -1
-            curvature = 0.15 * curve_dir * (10/(dist+1e-5)) 
-            bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature, points=10)
-            edge_x.extend(list(bx) + [None])
-            edge_y.extend(list(by) + [None])
+        # Draw straighter lines for clarity, slight curve for style
+        curve_dir = 1 if random.random() > 0.5 else -1
+        curvature = 0.1 * curve_dir # Reduced curvature for cleaner look
+        
+        bx, by = get_bezier_curve(x0, y0, x1, y1, curvature=curvature, points=10)
+        edge_x.extend(list(bx) + [None])
+        edge_y.extend(list(by) + [None])
 
     fig.add_trace(go.Scattergl(
         x=edge_x, y=edge_y,
         mode='lines',
         line=dict(
-            width=0.4, 
-            color='rgba(100, 120, 140, 0.25)' # Subtle Blue-Gray to let nodes pop
+            width=0.5, # Thinner lines for clearer structure
+            color='rgba(100, 120, 140, 0.3)' # More transparent
         ),
         hoverinfo='none',
         showlegend=False
@@ -2317,7 +2354,7 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     node_sizes = []
     node_hover_texts = []
     
-    # Define Palette
+    # Define Palette (UNCHANGED)
     CYBER_BLUE = '#00F0FF'
     DEEP_BLUE = '#0088FF'
     NEON_PINK = '#FF00AA'
@@ -2342,7 +2379,7 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         # Reduced Size Logic
         base_size = np.log(attrs['size']) * 1.5
         if attrs['role'] != 'hidden': base_size *= 1.3 
-        node_sizes.append(max(2, base_size))
+        node_sizes.append(max(3, base_size))
         
         # Rich Detail Hover List (HTML Formatted)
         hover_str = (
@@ -2362,9 +2399,9 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         x=node_x, y=node_y,
         mode='markers',
         marker=dict(
-            size=[s * 2.5 for s in node_sizes], 
+            size=[s * 2.0 for s in node_sizes], 
             color=node_colors,
-            opacity=0.2,
+            opacity=0.3, # Slightly higher opacity for better visibility
             line=dict(width=0)
         ),
         hoverinfo='none', showlegend=False
@@ -2403,7 +2440,6 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     )
     
     return fig
-
 
 
 
