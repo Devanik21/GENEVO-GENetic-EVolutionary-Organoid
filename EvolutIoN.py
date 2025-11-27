@@ -8900,11 +8900,14 @@ def main():
         if st.button("Hide Epilogue", key="hide_epilogue_btn"):
             st.session_state.show_epilogue = False
             st.rerun()
+         
     else:
         st.info("The Epilogue is hidden to save resources.")
         if st.button("Render Epilogue", key="show_epilogue_btn"):
             st.session_state.show_epilogue = True
             st.rerun()
+
+    st.markdown("---")  
 
     st.markdown("""
     <style>
