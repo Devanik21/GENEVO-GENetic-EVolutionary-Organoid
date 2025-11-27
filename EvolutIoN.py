@@ -2374,14 +2374,15 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
         
         # Rich Detail Hover List (HTML Formatted)
         hover_str = (
-            f"<b>ID:</b> {node}<br>"
-            f"<b>Role:</b> {attrs['role'].upper()}<br>"
-            f"<span style='color: #555;'>──────────────</span><br>"
+            f"<b>ID:</b> {node}  (<i>{attrs['role'].upper()}</i>)<br>"
+            f"<span style='color: #555;'><b>——— CORE ———</b></span><br>"
             f"<b>Type:</b> {attrs['module_type']}<br>"
             f"<b>Size:</b> {attrs['size']} neurons<br>"
             f"<b>Activation:</b> {attrs['activation']}<br>"
+            f"<b>Normalization:</b> {attrs['normalization']}<br>"
+            f"<span style='color: #555;'><b>——— LEARNING ———</b></span><br>"
             f"<b>Plasticity:</b> {attrs['plasticity']:.3f}<br>"
-            f"<b>Norm:</b> {attrs['normalization']}"
+            f"<b>LR Multiplier:</b> {attrs.get('lr_mult', 'N/A'):.2f}"
         )
         node_hover_texts.append(hover_str)
 
@@ -2431,7 +2432,6 @@ def visualize_genotype_2d(genotype: Genotype, layout_seed: int = 42, layout_algo
     )
     
     return fig
-
 
 def create_evolution_dashboard(history_df: pd.DataFrame, population: List[Genotype], evolutionary_metrics_df: pd.DataFrame) -> go.Figure:
     """Extremely advanced, comprehensive evolution analytics dashboard"""
