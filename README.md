@@ -1597,7 +1597,7 @@ This implementation demonstrates the core concepts while remaining tractable for
 
 ## 📄 License
 
-This repository and all associated research documents and code are open-sourced under the **Apache 2.0 License**.
+This repository and all associated research documents and code are open-sourced under the **MIT License**.
 
 ---
 
@@ -1622,6 +1622,6 @@ If you use this research or code in your work, please cite it as:
 
 **"The code of life is the architect of the mind."**
 
-[![GitHub stars](https://img.shields.io/github/stars/Devanik21/dark-lucid-protocol?style=social)](https://github.com/Devanik21/dark-lucid-protocol)
+[![GitHub stars](https://img.shields.io/github/stars/Devanik21/dark-lucid-protocol?style=social)](https://github.com/Devanik21/GENEVO-GENetic-EVolutionary-Organoid)
 
 </div>
