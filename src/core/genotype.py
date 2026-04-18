@@ -60,7 +60,13 @@ class Genotype:
             ])
             mutations.append(mutation_type)
             if mutation_type == 'add_module' and len(self.modules) < 10:
-                new_id = f"M{len(self.modules)}"
+                # Find maximum existing ID index to avoid collisions
+                existing_indices = []
+                for m in self.modules:
+                    if m.id.startswith('M') and m.id[1:].isdigit():
+                        existing_indices.append(int(m.id[1:]))
+                next_idx = max(existing_indices) + 1 if existing_indices else len(self.modules)
+                new_id = f"M{next_idx}"
                 module_type = random.choice(['linear', 'attention', 'rnn', 'cnn'])
                 params = self._random_params(module_type)
                 self.add_module(ModuleGene(new_id, module_type, params))

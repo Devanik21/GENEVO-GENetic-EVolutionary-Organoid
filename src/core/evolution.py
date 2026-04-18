@@ -30,7 +30,7 @@ class EvolutionarySystem:
 
         offspring = []
         while len(offspring) < self.population_size:
-            p1, p2 = random.sample(parents, 2) if len(parents) >= 2 else (parents[0], parents[0])
+            p1, p2 = random.sample(parents, 2)
             child = self._crossover(p1, p2)
             child.mutate(self.mutation_rate)
             offspring.append(child)

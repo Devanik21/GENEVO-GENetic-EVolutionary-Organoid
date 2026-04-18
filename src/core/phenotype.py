@@ -20,9 +20,30 @@ class Phenotype(nn.Module):
         self._build_from_genotype()
 
     def _build_from_genotype(self):
-        current_dim = self.input_dim
+        # Build connection graph first to determine proper inputs
+        for conn in self.genotype.connections:
+            if conn.target not in self.connection_graph:
+                self.connection_graph[conn.target] = []
+            self.connection_graph[conn.target].append(conn.source)
 
-        for module_gene in self.genotype.modules:
+        module_output_dims = {}
+        final_dim = self.input_dim
+
+        for i, module_gene in enumerate(self.genotype.modules):
+            # Calculate input dim based on graph
+            if i == 0:
+                current_dim = self.input_dim
+            else:
+                sources = self.connection_graph.get(module_gene.id, [])
+                if sources:
+                    # In forward pass, inputs are stacked and mean-pooled over dim=0 if they match length.
+                    # Or minimum dimension is used. We will approximate by using the min dim of all sources.
+                    source_dims = [module_output_dims.get(s, self.input_dim) for s in sources]
+                    current_dim = min(source_dims)
+                else:
+                    # Disconnected module (should theoretically not happen if graph is valid, but fallback)
+                    current_dim = self.input_dim
+
             if self.module_factory:
                 module = self.module_factory(module_gene, current_dim)
             else:
@@ -30,15 +51,12 @@ class Phenotype(nn.Module):
                 module = nn.Sequential(nn.Linear(current_dim, 128), nn.ReLU())
 
             # Assume module changes dim or keeps it
-            current_dim = module_gene.params.get('dim', module_gene.params.get('hidden_dim', 128))
+            out_dim = module_gene.params.get('dim', module_gene.params.get('hidden_dim', 128))
+            module_output_dims[module_gene.id] = out_dim
             self.modules_dict[module_gene.id] = module
+            final_dim = out_dim
 
-        for conn in self.genotype.connections:
-            if conn.target not in self.connection_graph:
-                self.connection_graph[conn.target] = []
-            self.connection_graph[conn.target].append(conn.source)
-
-        self.output_layer = nn.Linear(current_dim, self.output_dim)
+        self.output_layer = nn.Linear(final_dim, self.output_dim)
 
     def forward(self, x):
         activations = {}
