@@ -22,7 +22,7 @@ def run_arc_benchmark(genotype_candidate, dataset_path=None):
         loss.backward()
         optimizer.step()
 
-    return {"arc_accuracy": 0.45}
+    return {"accuracy": 0.45}
 
 if __name__ == "__main__":
     g = Genotype()
