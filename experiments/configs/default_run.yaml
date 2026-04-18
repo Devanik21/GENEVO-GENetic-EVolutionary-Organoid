@@ -1,0 +1,11 @@
+# Default configuration for evolutionary run
+population_size: 50
+mutation_rate: 0.2
+generations: 100
+modules:
+  - linear
+  - attention
+  - rnn
+  - cnn
+benchmark:
+  arc_path: "data/datasets/arc"
